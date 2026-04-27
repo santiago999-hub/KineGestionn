@@ -36,9 +36,10 @@ namespace KineGestion.Data.Context
             modelBuilder.Entity<Professional>(entity =>
             {
                 entity.HasKey(p => p.Id);
+                entity.Property(p => p.Nombre).IsRequired().HasMaxLength(100);
+                entity.Property(p => p.Apellido).IsRequired().HasMaxLength(100);
                 entity.Property(p => p.Matricula).IsRequired().HasMaxLength(20);
                 entity.HasIndex(p => p.Matricula).IsUnique();
-                entity.Property(p => p.Nombre).IsRequired().HasMaxLength(100);
             });
 
             // Treatment
