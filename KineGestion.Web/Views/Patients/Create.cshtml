@@ -46,8 +46,14 @@
                     <div class="row g-3 mt-1">
                         <div class="col-md-12">
                             <label asp-for="ObraSocial" class="form-label fw-semibold"></label>
-                            <input asp-for="ObraSocial" class="form-control" placeholder="Ej: OSDE, PAMI, Particular" />
+                            <input asp-for="ObraSocial" id="obraSocialInput" class="form-control" placeholder="Ej: OSDE, PAMI, Swiss Medical" />
                             <span asp-validation-for="ObraSocial" class="text-danger small"></span>
+                            <div class="form-check mt-1">
+                                <input class="form-check-input" type="checkbox" id="sinObraSocial" />
+                                <label class="form-check-label text-muted" for="sinObraSocial">
+                                    El paciente no posee obra social
+                                </label>
+                            </div>
                         </div>
                     </div>
 
@@ -86,4 +92,20 @@
 
 @section Scripts {
     @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script>
+        const chk = document.getElementById('sinObraSocial');
+        const input = document.getElementById('obraSocialInput');
+        chk.addEventListener('change', function () {
+            if (this.checked) {
+                input.value = 'Sin obra social';
+                input.setAttribute('readonly', true);
+                input.classList.add('bg-light');
+            } else {
+                input.value = '';
+                input.removeAttribute('readonly');
+                input.classList.remove('bg-light');
+                input.focus();
+            }
+        });
+    </script>
 }

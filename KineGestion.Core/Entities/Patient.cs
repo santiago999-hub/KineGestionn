@@ -25,8 +25,9 @@ namespace KineGestion.Core.Entities
         [DataType(DataType.Date)]
         public DateTime FechaNacimiento { get; set; }
 
+        [Required(ErrorMessage = "La obra social es obligatoria. Si no posee, seleccione 'Sin obra social'.")]
         [StringLength(150, ErrorMessage = "La obra social no puede superar los 150 caracteres.")]
-        public string? ObraSocial { get; set; }
+        public string ObraSocial { get; set; } = string.Empty;
 
         [Phone(ErrorMessage = "El formato del teléfono no es válido.")]
         [StringLength(20)]
