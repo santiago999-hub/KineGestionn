@@ -1,0 +1,43 @@
+@model KineGestion.Web.Models.ViewModels.PatientViewModel
+
+@{
+    ViewData["Title"] = "Detalle del Paciente";
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card shadow-sm">
+            <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+                <h4 class="mb-0">🔍 Detalle del Paciente</h4>
+                <span class="badge @(Model.IsActivo ? "bg-success" : "bg-secondary") fs-6">
+                    @(Model.IsActivo ? "Activo" : "Inactivo")
+                </span>
+            </div>
+            <div class="card-body">
+                <dl class="row">
+                    <dt class="col-sm-4">Apellido y Nombre</dt>
+                    <dd class="col-sm-8">@Model.Apellido, @Model.Nombre</dd>
+
+                    <dt class="col-sm-4">DNI</dt>
+                    <dd class="col-sm-8">@Model.DNI</dd>
+
+                    <dt class="col-sm-4">Fecha de Nacimiento</dt>
+                    <dd class="col-sm-8">@Model.FechaNacimiento.ToString("dd/MM/yyyy")</dd>
+
+                    <dt class="col-sm-4">Obra Social</dt>
+                    <dd class="col-sm-8">@(Model.ObraSocial ?? "—")</dd>
+
+                    <dt class="col-sm-4">Teléfono</dt>
+                    <dd class="col-sm-8">@(Model.Telefono ?? "—")</dd>
+
+                    <dt class="col-sm-4">Email</dt>
+                    <dd class="col-sm-8">@(Model.Email ?? "—")</dd>
+                </dl>
+            </div>
+            <div class="card-footer d-flex justify-content-between">
+                <a asp-action="Index" class="btn btn-outline-secondary">← Volver</a>
+                <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">✏️ Editar</a>
+            </div>
+        </div>
+    </div>
+</div>

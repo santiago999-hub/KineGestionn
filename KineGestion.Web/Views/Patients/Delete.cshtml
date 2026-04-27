@@ -1,0 +1,39 @@
+@model KineGestion.Web.Models.ViewModels.PatientViewModel
+
+@{
+    ViewData["Title"] = "Eliminar Paciente";
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-7 col-lg-6">
+        <div class="card shadow-sm border-danger">
+            <div class="card-header bg-danger text-white">
+                <h4 class="mb-0">🗑️ Confirmar Eliminación</h4>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-warning">
+                    ⚠️ ¿Estás seguro que querés eliminar al paciente <strong>@Model.Apellido, @Model.Nombre</strong>?
+                    Esta acción no se puede deshacer.
+                </div>
+
+                <dl class="row">
+                    <dt class="col-sm-4">DNI</dt>
+                    <dd class="col-sm-8">@Model.DNI</dd>
+
+                    <dt class="col-sm-4">Fecha de Nacimiento</dt>
+                    <dd class="col-sm-8">@Model.FechaNacimiento.ToString("dd/MM/yyyy")</dd>
+
+                    <dt class="col-sm-4">Obra Social</dt>
+                    <dd class="col-sm-8">@(Model.ObraSocial ?? "—")</dd>
+                </dl>
+            </div>
+            <div class="card-footer d-flex justify-content-between">
+                <a asp-action="Index" class="btn btn-outline-secondary">← Cancelar</a>
+                <form asp-action="Delete" asp-route-id="@Model.Id" method="post">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-danger">🗑️ Sí, eliminar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

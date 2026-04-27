@@ -50,19 +50,32 @@ namespace KineGestion.Core.Services
         /// <summary>Valida unicidad de DNI y luego delega la persistencia al Repository.</summary>
         public async Task<Patient> CreateAsync(Patient patient)
         {
-            await ValidateDniUniquenessAsync(patient.DNI);
+                ValidateFechaNacimiento(patient.FechaNacimiento);
+                await ValidateDniUniquenessAsync(patient.DNI);
             return await _repository.AddAsync(patient);
         }
 
         /// <summary>Valida unicidad de DNI excluyendo al propio paciente (caso edición).</summary>
         public async Task<Patient> UpdateAsync(Patient patient)
         {
-            await ValidateDniUniquenessAsync(patient.DNI, excludeId: patient.Id);
+                ValidateFechaNacimiento(patient.FechaNacimiento);
+                await ValidateDniUniquenessAsync(patient.DNI, excludeId: patient.Id);
             return await _repository.UpdateAsync(patient);
         }
 
         public async Task DeleteAsync(int id)
-            => await _repository.DeleteAsync(id);
+                => await _repository.DeleteAsync(id);
+
+            /// <summary>
+            /// LÓGICA DE NEGOCIO: la fecha de nacimiento no puede ser futura.
+            /// Un paciente no puede nacer mañana.
+            /// </summary>
+            private static void ValidateFechaNacimiento(DateTime fechaNacimiento)
+            {
+                if (fechaNacimiento.Date >= DateTime.Today)
+                    throw new InvalidOperationException(
+                        "La fecha de nacimiento no puede ser igual o posterior a la fecha actual.");
+            }
     }
 }
 

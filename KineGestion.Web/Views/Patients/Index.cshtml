@@ -1,0 +1,74 @@
+@model IEnumerable<KineGestion.Web.Models.ViewModels.PatientViewModel>
+
+@{
+    ViewData["Title"] = "Gestión de Pacientes";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0">👥 Pacientes</h2>
+    <a asp-action="Create" class="btn btn-primary">
+        <i class="bi bi-plus-circle"></i> Nuevo Paciente
+    </a>
+</div>
+
+@if (!Model.Any())
+{
+    <div class="alert alert-info">
+        No hay pacientes registrados. <a asp-action="Create">Registrá el primero.</a>
+    </div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-striped table-hover align-middle">
+            <thead class="table-dark">
+                <tr>
+                    <th>Apellido y Nombre</th>
+                    <th>DNI</th>
+                    <th>Obra Social</th>
+                    <th>Teléfono</th>
+                    <th>Estado</th>
+                    <th class="text-center">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var patient in Model)
+                {
+                    <tr>
+                        <td>
+                            <strong>@patient.Apellido</strong>, @patient.Nombre
+                        </td>
+                        <td>@patient.DNI</td>
+                        <td>@(patient.ObraSocial ?? "—")</td>
+                        <td>@(patient.Telefono ?? "—")</td>
+                        <td>
+                            @if (patient.IsActivo)
+                            {
+                                <span class="badge bg-success">Activo</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary">Inactivo</span>
+                            }
+                        </td>
+                        <td class="text-center">
+                            <a asp-action="Details" asp-route-id="@patient.Id"
+                               class="btn btn-sm btn-outline-info" title="Ver detalle">
+                                🔍
+                            </a>
+                            <a asp-action="Edit" asp-route-id="@patient.Id"
+                               class="btn btn-sm btn-outline-warning" title="Editar">
+                                ✏️
+                            </a>
+                            <a asp-action="Delete" asp-route-id="@patient.Id"
+                               class="btn btn-sm btn-outline-danger" title="Eliminar">
+                                🗑️
+                            </a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    <p class="text-muted small">Total: @Model.Count() pacientes activos</p>
+}
