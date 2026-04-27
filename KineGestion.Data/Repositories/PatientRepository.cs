@@ -26,7 +26,10 @@ namespace KineGestion.Data.Repositories
             => await _context.Patients.FindAsync(id);
 
         public async Task<IEnumerable<Patient>> GetAllAsync()
-            => await _context.Patients.AsNoTracking().ToListAsync();
+            => await _context.Patients
+                             .AsNoTracking()
+                             .Where(p => p.IsActivo)
+                             .ToListAsync();
 
         /// <summary>Consulta optimizada: solo trae pacientes con IsActivo = true.</summary>
         public async Task<IEnumerable<Patient>> GetActivosAsync()
@@ -61,9 +64,9 @@ namespace KineGestion.Data.Repositories
         public async Task DeleteAsync(int id)
         {
             var patient = await _context.Patients.FindAsync(id);
-            if (patient is not null)
+            if (patient is not null && patient.IsActivo)
             {
-                _context.Patients.Remove(patient);
+                patient.IsActivo = false;
                 await _context.SaveChangesAsync();
             }
         }

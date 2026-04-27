@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using System;
 using KineGestion.Core.Entities;
 
 namespace KineGestion.Core.Interfaces
@@ -10,6 +11,7 @@ namespace KineGestion.Core.Interfaces
         Task<IEnumerable<Session>> GetAllAsync();
         Task<IEnumerable<Session>> GetByPatientIdAsync(int patientId);
         Task<IEnumerable<Session>> GetByTreatmentIdAsync(int treatmentId);
+        Task<bool> ExistsProfessionalConflictAsync(int professionalId, DateTime fechaHora, int windowInMinutes = 45, int? excludeSessionId = null);
         Task<Session> AddAsync(Session session);
         Task<Session> UpdateAsync(Session session);
         Task DeleteAsync(int id);

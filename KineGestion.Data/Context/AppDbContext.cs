@@ -39,6 +39,7 @@ namespace KineGestion.Data.Context
                 entity.Property(p => p.Nombre).IsRequired().HasMaxLength(100);
                 entity.Property(p => p.Apellido).IsRequired().HasMaxLength(100);
                 entity.Property(p => p.Matricula).IsRequired().HasMaxLength(20);
+                entity.Property(p => p.IsActivo).IsRequired();
                 entity.HasIndex(p => p.Matricula).IsUnique();
             });
 

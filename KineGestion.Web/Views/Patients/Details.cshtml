@@ -36,7 +36,12 @@
             </div>
             <div class="card-footer d-flex justify-content-between">
                 <a asp-action="Index" class="btn btn-outline-secondary">← Volver</a>
-                <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">✏️ Editar</a>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-outline-primary" disabled title="Disponible en el proximo modulo">
+                        Nueva Sesion
+                    </button>
+                    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">✏️ Editar</a>
+                </div>
             </div>
         </div>
     </div>

@@ -27,14 +27,28 @@
                         <li class="nav-item">
                             <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
                         </li>
-                        </ul>
-                        <ul class="navbar-nav ms-auto">
-                            <li class="nav-item">
-                                <a class="nav-link text-dark" asp-controller="Patients" asp-action="Index">
-                                    👥 Gestión de Pacientes
-                                </a>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle text-dark" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                Administracion
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li>
+                                    <a class="dropdown-item" asp-controller="Patients" asp-action="Index">Pacientes</a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" asp-controller="Professionals" asp-action="Index">Profesionales</a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" asp-controller="Sessions" asp-action="Index">Sesiones</a>
+                                </li>
+                            </ul>
+                        </li>
+                    </ul>
+                    <ul class="navbar-nav ms-auto">
+                            <li class="nav-item text-muted small d-flex align-items-center">
+                                Sistema de Gestion Clinica
                             </li>
-                        </ul>
+                    </ul>
                 </div>
             </div>
         </nav>

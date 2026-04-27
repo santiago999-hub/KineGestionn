@@ -21,6 +21,9 @@ namespace KineGestion.Core.Services
         public async Task<IEnumerable<Professional>> GetAllAsync()
             => await _repository.GetAllAsync();
 
+        public async Task<IEnumerable<Professional>> GetActiveProfessionalsAsync()
+            => await _repository.GetActivosAsync();
+
         public async Task ValidateMatriculaUniquenessAsync(string matricula, int? excludeId = null)
         {
             bool existe = await _repository.ExistsByMatriculaAsync(matricula, excludeId);
@@ -32,6 +35,7 @@ namespace KineGestion.Core.Services
         public async Task<Professional> CreateAsync(Professional professional)
         {
             await ValidateMatriculaUniquenessAsync(professional.Matricula);
+            professional.IsActivo = true;
             return await _repository.AddAsync(professional);
         }
 

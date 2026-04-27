@@ -23,6 +23,12 @@ namespace KineGestion.Core.Entities
         [StringLength(100, ErrorMessage = "La especialidad no puede superar los 100 caracteres.")]
         public string Especialidad { get; set; } = string.Empty;
 
+        /// <summary>
+        /// Indica si el profesional se encuentra activo en el sistema.
+        /// Se usa para borrado lógico y conservación de historial clínico.
+        /// </summary>
+        public bool IsActivo { get; set; } = true;
+
         // Navigation Property
         public virtual ICollection<Session> Sesiones { get; set; } = new List<Session>();
     }

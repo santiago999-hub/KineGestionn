@@ -23,6 +23,12 @@ namespace KineGestion.Data.Repositories
         public async Task<IEnumerable<Professional>> GetAllAsync()
             => await _context.Professionals.AsNoTracking().ToListAsync();
 
+        public async Task<IEnumerable<Professional>> GetActivosAsync()
+            => await _context.Professionals
+                             .AsNoTracking()
+                             .Where(p => p.IsActivo)
+                             .ToListAsync();
+
         public async Task<bool> ExistsByMatriculaAsync(string matricula, int? excludeId = null)
             => await _context.Professionals
                              .AsNoTracking()
@@ -47,7 +53,7 @@ namespace KineGestion.Data.Repositories
             var professional = await _context.Professionals.FindAsync(id);
             if (professional is not null)
             {
-                _context.Professionals.Remove(professional);
+                professional.IsActivo = false;
                 await _context.SaveChangesAsync();
             }
         }

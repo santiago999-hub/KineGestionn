@@ -1,0 +1,60 @@
+@model IEnumerable<KineGestion.Web.Models.ViewModels.ProfessionalViewModel>
+
+@{
+    ViewData["Title"] = "Gestion de Profesionales";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0">Profesionales</h2>
+    <a asp-action="Create" class="btn btn-primary">Nuevo Profesional</a>
+</div>
+
+@if (!Model.Any())
+{
+    <div class="alert alert-info">
+        No hay profesionales registrados. <a asp-action="Create">Registra el primero.</a>
+    </div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-striped table-hover align-middle">
+            <thead class="table-dark">
+                <tr>
+                    <th>Apellido y Nombre</th>
+                    <th>Matricula</th>
+                    <th>Especialidad</th>
+                    <th>Estado</th>
+                    <th class="text-center">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var professional in Model)
+                {
+                    <tr>
+                        <td><strong>@professional.Apellido</strong>, @professional.Nombre</td>
+                        <td>@professional.Matricula</td>
+                        <td>@professional.Especialidad</td>
+                        <td>
+                            @if (professional.IsActivo)
+                            {
+                                <span class="badge bg-success">Activo</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary">Inactivo</span>
+                            }
+                        </td>
+                        <td class="text-center">
+                            <a asp-action="Details" asp-route-id="@professional.Id" class="btn btn-sm btn-outline-info" title="Ver detalle">Ver</a>
+                            <a asp-action="Edit" asp-route-id="@professional.Id" class="btn btn-sm btn-outline-warning" title="Editar">Editar</a>
+                            <a asp-action="Delete" asp-route-id="@professional.Id" class="btn btn-sm btn-outline-danger" title="Dar de baja">Baja</a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <p class="text-muted small">Total: @Model.Count() profesionales activos</p>
+}

@@ -1,0 +1,47 @@
+@model IEnumerable<KineGestion.Web.Models.ViewModels.SessionViewModel>
+
+@{
+    ViewData["Title"] = "Gestion de Sesiones";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0">Sesiones</h2>
+    <a asp-action="Create" class="btn btn-primary">Nueva Sesion</a>
+</div>
+
+@if (!Model.Any())
+{
+    <div class="alert alert-info">
+        No hay sesiones registradas. <a asp-action="Create">Registra la primera.</a>
+    </div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead class="table-dark">
+                <tr>
+                    <th>Fecha y hora</th>
+                    <th>Paciente</th>
+                    <th>Profesional</th>
+                    <th>Tratamiento</th>
+                    <th>Nro</th>
+                    <th>Pago</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var session in Model)
+                {
+                    <tr class="@(session.EstadoPago ? "table-success" : "table-warning")">
+                        <td>@session.FechaHora.ToString("dd/MM/yyyy HH:mm")</td>
+                        <td>@session.PacienteNombre</td>
+                        <td>@session.ProfesionalNombre</td>
+                        <td>@session.TratamientoDescripcion</td>
+                        <td>@session.NroSesionEnTratamiento</td>
+                        <td>@(session.EstadoPago ? "Pagada" : "Pendiente")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
