@@ -15,6 +15,13 @@ namespace KineGestion.Core.Entities
 
         public bool EstadoPago { get; set; } = false;
 
+        /// <summary>
+        /// Número de esta sesión dentro del tratamiento (ej: 3 de 10).
+        /// Permite mostrar el progreso del paciente.
+        /// </summary>
+        [Range(1, 365, ErrorMessage = "El número de sesión debe ser mayor a 0.")]
+        public int NroSesionEnTratamiento { get; set; }
+
         // Foreign Keys
         [Required]
         public int PatientId { get; set; }

@@ -11,6 +11,10 @@ namespace KineGestion.Core.Entities
         [StringLength(100, ErrorMessage = "El nombre no puede superar los 100 caracteres.")]
         public string Nombre { get; set; } = string.Empty;
 
+        [Required(ErrorMessage = "El apellido del profesional es obligatorio.")]
+        [StringLength(100, ErrorMessage = "El apellido no puede superar los 100 caracteres.")]
+        public string Apellido { get; set; } = string.Empty;
+
         [Required(ErrorMessage = "La matrícula es obligatoria.")]
         [StringLength(20, ErrorMessage = "La matrícula no puede superar los 20 caracteres.")]
         public string Matricula { get; set; } = string.Empty;
