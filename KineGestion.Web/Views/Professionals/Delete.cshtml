@@ -4,33 +4,47 @@
     ViewData["Title"] = "Dar de Baja Profesional";
 }
 
-<div class="row justify-content-center">
-    <div class="col-md-7 col-lg-6">
-        <div class="card shadow-sm border-danger">
-            <div class="card-header bg-danger text-white">
-                <h4 class="mb-0">Confirmar Baja</h4>
-            </div>
-            <div class="card-body">
-                <div class="alert alert-warning">
-                    Estas por dar de baja al profesional <strong>@Model.Apellido, @Model.Nombre</strong>.
-                    Sus datos quedaran inactivos y se conservara su historial.
-                </div>
+<div class="kg-page-header">
+    <div>
+        <h2>Dar de Baja Profesional</h2>
+        <p class="text-muted mb-0">Baja lógica — los datos se conservan</p>
+    </div>
+    <a asp-action="Index" class="btn-kg-outline">
+        <i class="bi bi-arrow-left"></i> Cancelar
+    </a>
+</div>
 
-                <dl class="row">
-                    <dt class="col-sm-4">Matricula</dt>
-                    <dd class="col-sm-8">@Model.Matricula</dd>
-
-                    <dt class="col-sm-4">Especialidad</dt>
-                    <dd class="col-sm-8">@Model.Especialidad</dd>
-                </dl>
+<div class="kg-form-card" style="border-top: 3px solid var(--kg-danger)">
+    <div class="kg-form-header" style="background:#fff5f5">
+        <div class="kg-form-header-icon" style="background:#fee2e2;color:#dc2626"><i class="bi bi-exclamation-triangle-fill"></i></div>
+        <div>
+            <h4>¿Confirmar baja?</h4>
+            <p style="color:#dc2626">El profesional <strong>@Model.Apellido, @Model.Nombre</strong> quedará inactivo. Sus datos y historial se conservarán.</p>
+        </div>
+    </div>
+    <div class="kg-form-body">
+        <div class="kg-detail-grid">
+            <div class="kg-detail-item">
+                <dt>Nombre completo</dt>
+                <dd>@Model.Apellido, @Model.Nombre</dd>
             </div>
-            <div class="card-footer d-flex justify-content-between">
-                <a asp-action="Index" class="btn btn-outline-secondary">Cancelar</a>
-                <form asp-action="Delete" asp-route-id="@Model.Id" method="post">
-                    @Html.AntiForgeryToken()
-                    <button type="submit" class="btn btn-danger">Si, dar de baja</button>
-                </form>
+            <div class="kg-detail-item">
+                <dt>Matrícula</dt>
+                <dd><span class="kg-badge kg-badge-info">@Model.Matricula</span></dd>
+            </div>
+            <div class="kg-detail-item">
+                <dt>Especialidad</dt>
+                <dd>@Model.Especialidad</dd>
             </div>
         </div>
+    </div>
+    <div class="kg-form-footer">
+        <a asp-action="Index" class="btn-kg-outline"><i class="bi bi-x-lg"></i> Cancelar</a>
+        <form asp-action="Delete" asp-route-id="@Model.Id" method="post" style="display:inline">
+            @Html.AntiForgeryToken()
+            <button type="submit" class="btn-kg-danger">
+                <i class="bi bi-trash-fill"></i> Confirmar Baja
+            </button>
+        </form>
     </div>
 </div>

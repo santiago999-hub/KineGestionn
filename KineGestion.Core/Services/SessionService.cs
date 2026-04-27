@@ -27,6 +27,9 @@ namespace KineGestion.Core.Services
         public async Task<Session> CreateAsync(Session session)
         {
             await ValidateProfessionalAvailabilityAsync(session.ProfessionalId, session.FechaHora);
+            // Auto-calcular el número de sesión dentro del tratamiento
+            int sesionesExistentes = await _repository.CountByTreatmentIdAsync(session.TreatmentId);
+            session.NroSesionEnTratamiento = sesionesExistentes + 1;
             return await _repository.AddAsync(session);
         }
 

@@ -1,60 +1,91 @@
 @model IEnumerable<KineGestion.Web.Models.ViewModels.ProfessionalViewModel>
 
 @{
-    ViewData["Title"] = "Gestion de Profesionales";
+    ViewData["Title"] = "Profesionales";
 }
 
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h2 class="mb-0">Profesionales</h2>
-    <a asp-action="Create" class="btn btn-primary">Nuevo Profesional</a>
+<div class="kg-page-header">
+    <div>
+        <h2>Profesionales</h2>
+        <p class="text-muted mb-0">Equipo de kinesiólogos y especialistas activos</p>
+    </div>
+    <a asp-action="Create" class="btn-kg-primary">
+        <i class="bi bi-person-badge-fill"></i> Nuevo Profesional
+    </a>
 </div>
 
-@if (!Model.Any())
-{
-    <div class="alert alert-info">
-        No hay profesionales registrados. <a asp-action="Create">Registra el primero.</a>
-    </div>
-}
-else
-{
-    <div class="table-responsive">
-        <table class="table table-striped table-hover align-middle">
-            <thead class="table-dark">
-                <tr>
-                    <th>Apellido y Nombre</th>
-                    <th>Matricula</th>
-                    <th>Especialidad</th>
-                    <th>Estado</th>
-                    <th class="text-center">Acciones</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var professional in Model)
-                {
-                    <tr>
-                        <td><strong>@professional.Apellido</strong>, @professional.Nombre</td>
-                        <td>@professional.Matricula</td>
-                        <td>@professional.Especialidad</td>
-                        <td>
-                            @if (professional.IsActivo)
-                            {
-                                <span class="badge bg-success">Activo</span>
-                            }
-                            else
-                            {
-                                <span class="badge bg-secondary">Inactivo</span>
-                            }
-                        </td>
-                        <td class="text-center">
-                            <a asp-action="Details" asp-route-id="@professional.Id" class="btn btn-sm btn-outline-info" title="Ver detalle">Ver</a>
-                            <a asp-action="Edit" asp-route-id="@professional.Id" class="btn btn-sm btn-outline-warning" title="Editar">Editar</a>
-                            <a asp-action="Delete" asp-route-id="@professional.Id" class="btn btn-sm btn-outline-danger" title="Dar de baja">Baja</a>
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
+<div class="kg-card">
+    <div class="kg-card-header">
+        <h5 class="kg-card-header-title">
+            <i class="bi bi-person-badge-fill"></i> Listado de Profesionales
+        </h5>
+        <span class="kg-badge kg-badge-muted">@Model.Count() registros</span>
     </div>
 
-    <p class="text-muted small">Total: @Model.Count() profesionales activos</p>
-}
+    @if (!Model.Any())
+    {
+        <div class="kg-empty">
+            <div class="kg-empty-icon"><i class="bi bi-person-badge"></i></div>
+            <h5>Sin profesionales registrados</h5>
+            <p>Registrá al primer kinesiólogo del centro.</p>
+            <a asp-action="Create" class="btn-kg-primary">
+                <i class="bi bi-person-plus-fill"></i> Registrar el primero
+            </a>
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="kg-table">
+                <thead>
+                    <tr>
+                        <th>Profesional</th>
+                        <th>Matrícula</th>
+                        <th>Especialidad</th>
+                        <th>Estado</th>
+                        <th style="text-align:right">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var p in Model)
+                    {
+                        <tr>
+                            <td>
+                                <div style="display:flex;align-items:center;gap:10px">
+                                    <div style="width:34px;height:34px;border-radius:50%;background:#e0f2fe;color:#0284c7;display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:700;flex-shrink:0">
+                                        @(p.Nombre.Length > 0 ? p.Nombre[0].ToString().ToUpper() : "?")@(p.Apellido.Length > 0 ? p.Apellido[0].ToString().ToUpper() : "")
+                                    </div>
+                                    <div>
+                                        <div style="font-weight:600">@p.Apellido, @p.Nombre</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td><span class="kg-badge kg-badge-info">@p.Matricula</span></td>
+                            <td>@p.Especialidad</td>
+                            <td>
+                                @if (p.IsActivo)
+                                {
+                                    <span class="kg-badge kg-badge-success"><i class="bi bi-circle-fill" style="font-size:.45rem"></i> Activo</span>
+                                }
+                                else
+                                {
+                                    <span class="kg-badge kg-badge-muted">Inactivo</span>
+                                }
+                            </td>
+                            <td>
+                                <div class="kg-action-btns" style="justify-content:flex-end">
+                                    <a asp-action="Details" asp-route-id="@p.Id" class="kg-action-btn view" title="Ver detalle"><i class="bi bi-eye-fill"></i></a>
+                                    <a asp-action="Edit" asp-route-id="@p.Id" class="kg-action-btn edit" title="Editar"><i class="bi bi-pencil-fill"></i></a>
+                                    <a asp-action="Delete" asp-route-id="@p.Id" class="kg-action-btn del" title="Dar de baja"><i class="bi bi-trash-fill"></i></a>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        <div style="padding:12px 18px;border-top:1px solid var(--kg-border);font-size:.76rem;color:var(--kg-text-muted)">
+            Mostrando @Model.Count() profesionales activos
+        </div>
+    }
+</div>

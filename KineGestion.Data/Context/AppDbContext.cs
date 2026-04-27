@@ -48,6 +48,11 @@ namespace KineGestion.Data.Context
             {
                 entity.HasKey(t => t.Id);
                 entity.Property(t => t.Descripcion).IsRequired().HasMaxLength(200);
+
+                entity.HasOne(t => t.Patient)
+                      .WithMany(p => p.Tratamientos)
+                      .HasForeignKey(t => t.PatientId)
+                      .OnDelete(DeleteBehavior.Restrict);
             });
 
             // Session y sus relaciones

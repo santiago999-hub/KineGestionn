@@ -20,6 +20,9 @@ namespace KineGestion.Core.Services
         public async Task<IEnumerable<Treatment>> GetAllAsync()
             => await _repository.GetAllAsync();
 
+        public async Task<IEnumerable<Treatment>> GetByPatientIdAsync(int patientId)
+            => await _repository.GetByPatientIdAsync(patientId);
+
         public async Task<Treatment> CreateAsync(Treatment treatment)
             => await _repository.AddAsync(treatment);
 

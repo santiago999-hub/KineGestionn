@@ -4,43 +4,140 @@
     ViewData["Title"] = "Dashboard";
 }
 
-<div class="mb-4">
-    <h1 class="display-6 fw-bold text-primary">Dashboard Operativo</h1>
-    <p class="text-muted mb-0">Resumen rapido del estado actual del centro.</p>
+<!-- Page Header -->
+<div class="kg-page-header">
+    <div>
+        <h2>Dashboard</h2>
+        <p class="text-muted mb-0">Resumen operativo del centro de kinesiología</p>
+    </div>
+    <span class="kg-badge kg-badge-success">
+        <i class="bi bi-circle-fill" style="font-size:.5rem"></i> Sistema activo
+    </span>
 </div>
 
-<div class="row g-4">
-    <div class="col-md-6">
-        <div class="card shadow-sm border-0 h-100">
-            <div class="card-body d-flex align-items-center justify-content-between">
-                <div>
-                    <h5 class="text-muted mb-1">Pacientes Activos</h5>
-                    <p class="display-5 fw-bold mb-0 text-success">@Model.PacientesActivosCount</p>
-                </div>
-                <div class="fs-1">👥</div>
+<!-- Stat Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-3">
+        <div class="kg-stat-card">
+            <div class="kg-stat-icon blue"><i class="bi bi-people-fill"></i></div>
+            <div>
+                <div class="kg-stat-label">Pacientes activos</div>
+                <div class="kg-stat-value">@Model.PacientesActivosCount</div>
             </div>
         </div>
     </div>
-    <div class="col-md-6">
-        <div class="card shadow-sm border-0 h-100">
-            <div class="card-body d-flex align-items-center justify-content-between">
-                <div>
-                    <h5 class="text-muted mb-1">Profesionales Activos</h5>
-                    <p class="display-5 fw-bold mb-0 text-info">@Model.ProfesionalesActivosCount</p>
-                </div>
-                <div class="fs-1">🩺</div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="kg-stat-card">
+            <div class="kg-stat-icon cyan"><i class="bi bi-person-badge-fill"></i></div>
+            <div>
+                <div class="kg-stat-label">Profesionales</div>
+                <div class="kg-stat-value">@Model.ProfesionalesActivosCount</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="kg-stat-card">
+            <div class="kg-stat-icon green"><i class="bi bi-journal-medical"></i></div>
+            <div>
+                <div class="kg-stat-label">Tratamientos</div>
+                <div class="kg-stat-value">—</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="kg-stat-card">
+            <div class="kg-stat-icon violet"><i class="bi bi-calendar2-check-fill"></i></div>
+            <div>
+                <div class="kg-stat-label">Sesiones</div>
+                <div class="kg-stat-value">—</div>
             </div>
         </div>
     </div>
 </div>
 
-<div class="card mt-4 shadow-sm border-0">
-    <div class="card-body">
-        <h5 class="card-title">Acciones rapidas</h5>
-        <div class="d-flex flex-wrap gap-2 mt-3">
-            <a asp-controller="Patients" asp-action="Create" class="btn btn-outline-primary">Nuevo Paciente</a>
-            <a asp-controller="Professionals" asp-action="Create" class="btn btn-outline-secondary">Nuevo Profesional</a>
-            <a asp-controller="Sessions" asp-action="Create" class="btn btn-outline-success">Nueva Sesion</a>
+<!-- Quick Actions + Info -->
+<div class="row g-3">
+    <div class="col-lg-7">
+        <div class="kg-card">
+            <div class="kg-card-header">
+                <h5 class="kg-card-header-title">
+                    <i class="bi bi-lightning-charge-fill"></i> Acciones rápidas
+                </h5>
+            </div>
+            <div class="kg-card-body">
+                <div class="row g-3">
+                    <div class="col-sm-6">
+                        <a asp-controller="Patients" asp-action="Create" class="kg-quick-action">
+                            <i class="bi bi-person-plus-fill"></i>
+                            <div>
+                                <div>Nuevo Paciente</div>
+                                <div style="font-size:.72rem;font-weight:400;color:var(--kg-text-muted)">Registrar en el sistema</div>
+                            </div>
+                        </a>
+                    </div>
+                    <div class="col-sm-6">
+                        <a asp-controller="Professionals" asp-action="Create" class="kg-quick-action">
+                            <i class="bi bi-person-badge-fill"></i>
+                            <div>
+                                <div>Nuevo Profesional</div>
+                                <div style="font-size:.72rem;font-weight:400;color:var(--kg-text-muted)">Dar de alta kinesiólogo</div>
+                            </div>
+                        </a>
+                    </div>
+                    <div class="col-sm-6">
+                        <a asp-controller="Treatments" asp-action="Create" class="kg-quick-action">
+                            <i class="bi bi-journal-plus"></i>
+                            <div>
+                                <div>Nuevo Tratamiento</div>
+                                <div style="font-size:.72rem;font-weight:400;color:var(--kg-text-muted)">Asignar a un paciente</div>
+                            </div>
+                        </a>
+                    </div>
+                    <div class="col-sm-6">
+                        <a asp-controller="Sessions" asp-action="Create" class="kg-quick-action">
+                            <i class="bi bi-calendar2-plus-fill"></i>
+                            <div>
+                                <div>Nueva Sesión</div>
+                                <div style="font-size:.72rem;font-weight:400;color:var(--kg-text-muted)">Registrar sesión clínica</div>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-5">
+        <div class="kg-card h-100">
+            <div class="kg-card-header">
+                <h5 class="kg-card-header-title">
+                    <i class="bi bi-info-circle-fill"></i> Información del sistema
+                </h5>
+            </div>
+            <div class="kg-card-body">
+                <ul class="list-unstyled mb-0" style="font-size:.84rem;display:flex;flex-direction:column;gap:12px">
+                    <li class="d-flex justify-content-between align-items-center">
+                        <span class="text-muted">Versión</span>
+                        <span class="kg-badge kg-badge-primary">v1.0 — Sprint 2</span>
+                    </li>
+                    <li class="d-flex justify-content-between align-items-center">
+                        <span class="text-muted">Base de datos</span>
+                        <span class="kg-badge kg-badge-success"><i class="bi bi-circle-fill" style="font-size:.45rem"></i> SQL Server</span>
+                    </li>
+                    <li class="d-flex justify-content-between align-items-center">
+                        <span class="text-muted">Framework</span>
+                        <span class="kg-badge kg-badge-info">.NET 8 MVC</span>
+                    </li>
+                    <li class="d-flex justify-content-between align-items-center">
+                        <span class="text-muted">Arquitectura</span>
+                        <span class="kg-badge kg-badge-violet">Clean Architecture</span>
+                    </li>
+                    <li class="d-flex justify-content-between align-items-center">
+                        <span class="text-muted">Fecha</span>
+                        <span class="fw-600" style="font-weight:600">@DateTime.Today.ToString("dd/MM/yyyy")</span>
+                    </li>
+                </ul>
+            </div>
         </div>
     </div>
 </div>

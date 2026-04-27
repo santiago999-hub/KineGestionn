@@ -34,11 +34,12 @@ namespace KineGestion.Web.Controllers
             return View(viewModels);
         }
 
-        public async Task<IActionResult> Create()
+        public async Task<IActionResult> Create(int? patientId = null)
         {
             var viewModel = new SessionViewModel
             {
-                FechaHora = DateTime.Now
+                FechaHora = DateTime.Now,
+                PacienteId = patientId ?? 0
             };
 
             await LoadSelectListsAsync(viewModel);
@@ -68,6 +69,77 @@ namespace KineGestion.Web.Controllers
                 await LoadSelectListsAsync(viewModel);
                 return View(viewModel);
             }
+        }
+
+        // GET: /Sessions/Edit/5
+        public async Task<IActionResult> Edit(int id)
+        {
+            var session = await _sessionService.GetByIdAsync(id);
+            if (session is null)
+                return NotFound();
+
+            var viewModel = SessionViewModel.FromEntity(session);
+            await LoadSelectListsAsync(viewModel);
+            return View(viewModel);
+        }
+
+        // POST: /Sessions/Edit/5
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Edit(int id, SessionViewModel viewModel)
+        {
+            if (id != viewModel.Id)
+                return BadRequest();
+
+            if (!ModelState.IsValid)
+            {
+                await LoadSelectListsAsync(viewModel);
+                return View(viewModel);
+            }
+
+            try
+            {
+                var session = viewModel.ToEntity();
+                await _sessionService.UpdateAsync(session);
+                TempData["Success"] = "Sesion actualizada correctamente.";
+                return RedirectToAction(nameof(Index));
+            }
+            catch (InvalidOperationException ex)
+            {
+                ModelState.AddModelError(nameof(viewModel.FechaHora), ex.Message);
+                await LoadSelectListsAsync(viewModel);
+                return View(viewModel);
+            }
+        }
+
+        // GET: /Sessions/Details/5
+        public async Task<IActionResult> Details(int id)
+        {
+            var session = await _sessionService.GetByIdAsync(id);
+            if (session is null)
+                return NotFound();
+
+            return View(SessionViewModel.FromEntity(session));
+        }
+
+        // GET: /Sessions/Delete/5
+        public async Task<IActionResult> Delete(int id)
+        {
+            var session = await _sessionService.GetByIdAsync(id);
+            if (session is null)
+                return NotFound();
+
+            return View(SessionViewModel.FromEntity(session));
+        }
+
+        // POST: /Sessions/Delete/5
+        [HttpPost, ActionName("Delete")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteConfirmed(int id)
+        {
+            await _sessionService.DeleteAsync(id);
+            TempData["Success"] = "Sesion eliminada correctamente.";
+            return RedirectToAction(nameof(Index));
         }
 
         private async Task LoadSelectListsAsync(SessionViewModel viewModel)

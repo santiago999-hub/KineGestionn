@@ -18,7 +18,12 @@ namespace KineGestion.Core.Entities
         [DataType(DataType.Date)]
         public DateTime FechaInicio { get; set; }
 
-        // Navigation Property
+        // Foreign Key — un tratamiento pertenece a un paciente específico
+        [Required]
+        public int PatientId { get; set; }
+
+        // Navigation Properties
+        public virtual Patient? Patient { get; set; }
         public virtual ICollection<Session> Sesiones { get; set; } = new List<Session>();
     }
 }

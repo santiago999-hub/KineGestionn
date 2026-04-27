@@ -4,60 +4,56 @@
     ViewData["Title"] = "Nuevo Profesional";
 }
 
-<div class="row justify-content-center">
-    <div class="col-md-8 col-lg-7">
-        <div class="card shadow-sm">
-            <div class="card-header bg-primary text-white">
-                <h4 class="mb-0">Registrar Nuevo Profesional</h4>
-            </div>
-            <div class="card-body">
-                <form asp-action="Create" method="post">
-                    @Html.AntiForgeryToken()
-                    <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+<div class="kg-page-header">
+    <div>
+        <h2>Nuevo Profesional</h2>
+        <p class="text-muted mb-0">Registrá un nuevo kinesiólogo o especialista</p>
+    </div>
+    <a asp-action="Index" class="btn-kg-outline">
+        <i class="bi bi-arrow-left"></i> Volver al listado
+    </a>
+</div>
 
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label asp-for="Nombre" class="form-label fw-semibold"></label>
-                            <input asp-for="Nombre" class="form-control" placeholder="Ej: Maria" />
-                            <span asp-validation-for="Nombre" class="text-danger small"></span>
-                        </div>
-                        <div class="col-md-6">
-                            <label asp-for="Apellido" class="form-label fw-semibold"></label>
-                            <input asp-for="Apellido" class="form-control" placeholder="Ej: Gomez" />
-                            <span asp-validation-for="Apellido" class="text-danger small"></span>
-                        </div>
-                    </div>
-
-                    <div class="row g-3 mt-1">
-                        <div class="col-md-6">
-                            <label asp-for="Matricula" class="form-label fw-semibold"></label>
-                            <input asp-for="Matricula" class="form-control" placeholder="Ej: MP-12345" />
-                            <span asp-validation-for="Matricula" class="text-danger small"></span>
-                        </div>
-                        <div class="col-md-6">
-                            <label asp-for="Especialidad" class="form-label fw-semibold"></label>
-                            <input asp-for="Especialidad" class="form-control" placeholder="Ej: Kinesiologia Deportiva" />
-                            <span asp-validation-for="Especialidad" class="text-danger small"></span>
-                        </div>
-                    </div>
-
-                    <div class="row g-3 mt-1">
-                        <div class="col-md-6 d-flex align-items-center">
-                            <div class="form-check">
-                                <input asp-for="IsActivo" class="form-check-input" type="checkbox" />
-                                <label asp-for="IsActivo" class="form-check-label fw-semibold"></label>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="d-flex justify-content-between mt-4">
-                        <a asp-action="Index" class="btn btn-outline-secondary">Volver</a>
-                        <button type="submit" class="btn btn-primary">Guardar Profesional</button>
-                    </div>
-                </form>
-            </div>
+<div class="kg-form-card">
+    <div class="kg-form-header">
+        <div class="kg-form-header-icon primary"><i class="bi bi-person-badge-fill"></i></div>
+        <div>
+            <h4>Datos del Profesional</h4>
+            <p>Los campos marcados son obligatorios</p>
         </div>
     </div>
+    <form asp-action="Create" method="post">
+        @Html.AntiForgeryToken()
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger mb-4" role="alert"></div>
+    <div class="kg-form-body">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label asp-for="Nombre" class="form-label"></label>
+                    <input asp-for="Nombre" class="form-control" placeholder="Ej: María" />
+                    <span asp-validation-for="Nombre" class="text-danger small"></span>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="Apellido" class="form-label"></label>
+                    <input asp-for="Apellido" class="form-control" placeholder="Ej: Gómez" />
+                    <span asp-validation-for="Apellido" class="text-danger small"></span>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="Matricula" class="form-label"></label>
+                    <input asp-for="Matricula" class="form-control" placeholder="Ej: MP-12345" />
+                    <span asp-validation-for="Matricula" class="text-danger small"></span>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="Especialidad" class="form-label"></label>
+                    <input asp-for="Especialidad" class="form-control" placeholder="Ej: Kinesiología Deportiva" />
+                    <span asp-validation-for="Especialidad" class="text-danger small"></span>
+                </div>
+            </div>
+    </div>
+    <div class="kg-form-footer">
+        <a asp-action="Index" class="btn-kg-outline"><i class="bi bi-x-lg"></i> Cancelar</a>
+        <button type="submit" class="btn-kg-primary"><i class="bi bi-check-lg"></i> Guardar Profesional</button>
+    </div>
+    </form>
 </div>
 
 @section Scripts {

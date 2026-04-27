@@ -1,47 +1,93 @@
 @model IEnumerable<KineGestion.Web.Models.ViewModels.SessionViewModel>
 
 @{
-    ViewData["Title"] = "Gestion de Sesiones";
+    ViewData["Title"] = "Sesiones";
 }
 
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h2 class="mb-0">Sesiones</h2>
-    <a asp-action="Create" class="btn btn-primary">Nueva Sesion</a>
+<div class="kg-page-header">
+    <div>
+        <h2>Sesiones</h2>
+        <p class="text-muted mb-0">Registro de sesiones clínicas realizadas</p>
+    </div>
+    <a asp-action="Create" class="btn-kg-primary">
+        <i class="bi bi-calendar2-plus-fill"></i> Nueva Sesión
+    </a>
 </div>
 
-@if (!Model.Any())
-{
-    <div class="alert alert-info">
-        No hay sesiones registradas. <a asp-action="Create">Registra la primera.</a>
+<div class="kg-card">
+    <div class="kg-card-header">
+        <h5 class="kg-card-header-title">
+            <i class="bi bi-calendar2-check-fill"></i> Historial de Sesiones
+        </h5>
+        <span class="kg-badge kg-badge-muted">@Model.Count() registros</span>
     </div>
-}
-else
-{
-    <div class="table-responsive">
-        <table class="table table-hover align-middle">
-            <thead class="table-dark">
-                <tr>
-                    <th>Fecha y hora</th>
-                    <th>Paciente</th>
-                    <th>Profesional</th>
-                    <th>Tratamiento</th>
-                    <th>Nro</th>
-                    <th>Pago</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var session in Model)
-                {
-                    <tr class="@(session.EstadoPago ? "table-success" : "table-warning")">
-                        <td>@session.FechaHora.ToString("dd/MM/yyyy HH:mm")</td>
-                        <td>@session.PacienteNombre</td>
-                        <td>@session.ProfesionalNombre</td>
-                        <td>@session.TratamientoDescripcion</td>
-                        <td>@session.NroSesionEnTratamiento</td>
-                        <td>@(session.EstadoPago ? "Pagada" : "Pendiente")</td>
+
+    @if (!Model.Any())
+    {
+        <div class="kg-empty">
+            <div class="kg-empty-icon"><i class="bi bi-calendar2-x"></i></div>
+            <h5>Sin sesiones registradas</h5>
+            <p>Registrá la primera sesión clínica del sistema.</p>
+            <a asp-action="Create" class="btn-kg-primary">
+                <i class="bi bi-calendar2-plus-fill"></i> Registrar la primera
+            </a>
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="kg-table">
+                <thead>
+                    <tr>
+                        <th>Fecha y hora</th>
+                        <th>Paciente</th>
+                        <th>Profesional</th>
+                        <th>Tratamiento</th>
+                        <th>Nro</th>
+                        <th>Pago</th>
+                        <th style="text-align:right">Acciones</th>
                     </tr>
-                }
-            </tbody>
-        </table>
-    </div>
-}
+                </thead>
+                <tbody>
+                    @foreach (var s in Model)
+                    {
+                        <tr>
+                            <td>
+                                <div style="font-weight:600">@s.FechaHora.ToString("dd/MM/yyyy")</div>
+                                <div style="font-size:.75rem;color:var(--kg-text-muted)">@s.FechaHora.ToString("HH:mm") hs</div>
+                            </td>
+                            <td>@s.PacienteNombre</td>
+                            <td>@s.ProfesionalNombre</td>
+                            <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="@s.TratamientoDescripcion">
+                                @s.TratamientoDescripcion
+                            </td>
+                            <td>
+                                <span class="kg-badge kg-badge-violet">N° @s.NroSesionEnTratamiento</span>
+                            </td>
+                            <td>
+                                @if (s.EstadoPago)
+                                {
+                                    <span class="kg-badge kg-badge-success"><i class="bi bi-check-circle-fill"></i> Pagada</span>
+                                }
+                                else
+                                {
+                                    <span class="kg-badge kg-badge-warning"><i class="bi bi-clock-fill"></i> Pendiente</span>
+                                }
+                            </td>
+                            <td>
+                                <div class="kg-action-btns" style="justify-content:flex-end">
+                                    <a asp-action="Details" asp-route-id="@s.Id" class="kg-action-btn view" title="Ver detalle"><i class="bi bi-eye-fill"></i></a>
+                                    <a asp-action="Edit" asp-route-id="@s.Id" class="kg-action-btn edit" title="Editar"><i class="bi bi-pencil-fill"></i></a>
+                                    <a asp-action="Delete" asp-route-id="@s.Id" class="kg-action-btn del" title="Eliminar"><i class="bi bi-trash-fill"></i></a>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        <div style="padding:12px 18px;border-top:1px solid var(--kg-border);font-size:.76rem;color:var(--kg-text-muted)">
+            Mostrando @Model.Count() sesiones — pagadas: @Model.Count(s => s.EstadoPago) | pendientes: @Model.Count(s => !s.EstadoPago)
+        </div>
+    }
+</div>

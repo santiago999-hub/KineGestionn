@@ -1,0 +1,87 @@
+@model KineGestion.Web.Models.ViewModels.SessionViewModel
+
+@{
+    ViewData["Title"] = "Detalle de Sesión";
+}
+
+<div class="kg-page-header">
+    <div>
+        <h2>Detalle de Sesión</h2>
+        <p class="text-muted mb-0">Información completa de la sesión clínica</p>
+    </div>
+    <a asp-action="Index" class="btn-kg-outline">
+        <i class="bi bi-arrow-left"></i> Volver al listado
+    </a>
+</div>
+
+<div class="kg-form-card">
+    <div class="kg-form-header" style="justify-content:space-between">
+        <div style="display:flex;align-items:center;gap:12px">
+            <div style="width:48px;height:48px;border-radius:12px;background:#dbeafe;color:#2563eb;display:flex;align-items:center;justify-content:center;font-size:1.3rem">
+                <i class="bi bi-calendar2-check-fill"></i>
+            </div>
+            <div>
+                <h4 style="margin:0">@Model.PacienteNombre</h4>
+                <p style="margin:0;font-size:.78rem;color:var(--kg-text-muted)">@Model.FechaHora.ToString("dd/MM/yyyy") a las @Model.FechaHora.ToString("HH:mm") hs</p>
+            </div>
+        </div>
+        @if (Model.EstadoPago)
+        {
+            <span class="kg-badge kg-badge-success"><i class="bi bi-check-circle-fill"></i> Pagada</span>
+        }
+        else
+        {
+            <span class="kg-badge kg-badge-warning"><i class="bi bi-clock-fill"></i> Pendiente</span>
+        }
+    </div>
+    <div class="kg-form-body">
+        <div class="kg-detail-grid">
+            <div class="kg-detail-item">
+                <dt>Fecha y hora</dt>
+                <dd>@Model.FechaHora.ToString("dd/MM/yyyy HH:mm") hs</dd>
+            </div>
+            <div class="kg-detail-item">
+                <dt>Paciente</dt>
+                <dd>@Model.PacienteNombre</dd>
+            </div>
+            <div class="kg-detail-item">
+                <dt>Profesional</dt>
+                <dd>@Model.ProfesionalNombre</dd>
+            </div>
+            <div class="kg-detail-item">
+                <dt>Tratamiento</dt>
+                <dd>@Model.TratamientoDescripcion</dd>
+            </div>
+            <div class="kg-detail-item">
+                <dt>Número de sesión</dt>
+                <dd><span class="kg-badge kg-badge-violet">N° @Model.NroSesionEnTratamiento</span></dd>
+            </div>
+            <div class="kg-detail-item">
+                <dt>Estado de pago</dt>
+                <dd>
+                    @if (Model.EstadoPago)
+                    {
+                        <span class="kg-badge kg-badge-success"><i class="bi bi-check-circle-fill"></i> Pagada</span>
+                    }
+                    else
+                    {
+                        <span class="kg-badge kg-badge-warning"><i class="bi bi-clock-fill"></i> Pendiente</span>
+                    }
+                </dd>
+            </div>
+            @if (!string.IsNullOrWhiteSpace(Model.Observaciones))
+            {
+                <div class="kg-detail-item" style="grid-column:1/-1">
+                    <dt>Observaciones</dt>
+                    <dd>@Model.Observaciones</dd>
+                </div>
+            }
+        </div>
+    </div>
+    <div class="kg-form-footer">
+        <a asp-action="Index" class="btn-kg-outline"><i class="bi bi-arrow-left"></i> Volver</a>
+        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn-kg-warning">
+            <i class="bi bi-pencil-fill"></i> Editar
+        </a>
+    </div>
+</div>

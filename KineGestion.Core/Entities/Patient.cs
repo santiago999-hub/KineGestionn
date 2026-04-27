@@ -43,7 +43,8 @@ namespace KineGestion.Core.Entities
         /// </summary>
         public bool IsActivo { get; set; } = true;
 
-        // Navigation Property
+        // Navigation Properties
         public virtual ICollection<Session> Sesiones { get; set; } = new List<Session>();
+        public virtual ICollection<Treatment> Tratamientos { get; set; } = new List<Treatment>();
     }
 }

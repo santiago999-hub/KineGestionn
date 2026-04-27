@@ -1,0 +1,84 @@
+@model IEnumerable<KineGestion.Web.Models.ViewModels.TreatmentViewModel>
+
+@{
+    ViewData["Title"] = "Tratamientos";
+}
+
+<div class="kg-page-header">
+    <div>
+        <h2>Tratamientos</h2>
+        <p class="text-muted mb-0">Planes terapéuticos asignados a pacientes</p>
+    </div>
+    <a asp-action="Create" class="btn-kg-primary">
+        <i class="bi bi-journal-plus"></i> Nuevo Tratamiento
+    </a>
+</div>
+
+<div class="kg-card">
+    <div class="kg-card-header">
+        <h5 class="kg-card-header-title">
+            <i class="bi bi-journal-medical"></i> Listado de Tratamientos
+        </h5>
+        <span class="kg-badge kg-badge-muted">@Model.Count() registros</span>
+    </div>
+
+    @if (!Model.Any())
+    {
+        <div class="kg-empty">
+            <div class="kg-empty-icon"><i class="bi bi-journal-medical"></i></div>
+            <h5>Sin tratamientos registrados</h5>
+            <p>Creá el primer plan terapéutico para un paciente.</p>
+            <a asp-action="Create" class="btn-kg-primary">
+                <i class="bi bi-journal-plus"></i> Crear el primero
+            </a>
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="kg-table">
+                <thead>
+                    <tr>
+                        <th>Tratamiento</th>
+                        <th>Paciente</th>
+                        <th>Sesiones totales</th>
+                        <th>Fecha inicio</th>
+                        <th style="text-align:right">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var t in Model)
+                    {
+                        <tr>
+                            <td>
+                                <div style="display:flex;align-items:center;gap:10px">
+                                    <div style="width:34px;height:34px;border-radius:10px;background:#dcfce7;color:#16a34a;display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0">
+                                        <i class="bi bi-journal-medical"></i>
+                                    </div>
+                                    <div style="font-weight:600">@t.Descripcion</div>
+                                </div>
+                            </td>
+                            <td>@(t.PacienteNombre ?? "—")</td>
+                            <td>
+                                <span class="kg-badge kg-badge-primary">
+                                    <i class="bi bi-calendar2-check"></i> @t.CantidadSesionesTotales sesiones
+                                </span>
+                            </td>
+                            <td>@t.FechaInicio.ToString("dd/MM/yyyy")</td>
+                            <td>
+                                <div class="kg-action-btns" style="justify-content:flex-end">
+                                    <a asp-action="Details" asp-route-id="@t.Id" class="kg-action-btn view" title="Ver detalle"><i class="bi bi-eye-fill"></i></a>
+                                    <a asp-action="Edit" asp-route-id="@t.Id" class="kg-action-btn edit" title="Editar"><i class="bi bi-pencil-fill"></i></a>
+                                    <a asp-action="Delete" asp-route-id="@t.Id" class="kg-action-btn del" title="Eliminar"><i class="bi bi-trash-fill"></i></a>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        <div style="padding:12px 18px;border-top:1px solid var(--kg-border);font-size:.76rem;color:var(--kg-text-muted)">
+            Mostrando @Model.Count() tratamientos
+        </div>
+    }
+</div>

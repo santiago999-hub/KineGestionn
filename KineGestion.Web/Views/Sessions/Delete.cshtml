@@ -1,13 +1,13 @@
-@model KineGestion.Web.Models.ViewModels.PatientViewModel
+@model KineGestion.Web.Models.ViewModels.SessionViewModel
 
 @{
-    ViewData["Title"] = "Dar de Baja Paciente";
+    ViewData["Title"] = "Eliminar Sesión";
 }
 
 <div class="kg-page-header">
     <div>
-        <h2>Dar de Baja Paciente</h2>
-        <p class="text-muted mb-0">Baja lógica — los datos se conservan</p>
+        <h2>Eliminar Sesión</h2>
+        <p class="text-muted mb-0">Esta acción es permanente</p>
     </div>
     <a asp-action="Index" class="btn-kg-outline">
         <i class="bi bi-arrow-left"></i> Cancelar
@@ -18,27 +18,27 @@
     <div class="kg-form-header" style="background:#fff5f5">
         <div class="kg-form-header-icon" style="background:#fee2e2;color:#dc2626"><i class="bi bi-exclamation-triangle-fill"></i></div>
         <div>
-            <h4>¿Confirmar baja lógica?</h4>
-            <p style="color:#dc2626">Esta acción desactivará a <strong>@Model.Apellido, @Model.Nombre</strong> pero conservará su historial clínico por seguridad legal.</p>
+            <h4>¿Eliminar esta sesión?</h4>
+            <p style="color:#dc2626">La sesión de <strong>@Model.PacienteNombre</strong> del <strong>@Model.FechaHora.ToString("dd/MM/yyyy HH:mm")</strong> será eliminada permanentemente.</p>
         </div>
     </div>
     <div class="kg-form-body">
         <div class="kg-detail-grid">
             <div class="kg-detail-item">
-                <dt>Apellido y Nombre</dt>
-                <dd>@Model.Apellido, @Model.Nombre</dd>
+                <dt>Paciente</dt>
+                <dd>@Model.PacienteNombre</dd>
             </div>
             <div class="kg-detail-item">
-                <dt>DNI</dt>
-                <dd style="font-family:monospace">@Model.DNI</dd>
+                <dt>Profesional</dt>
+                <dd>@Model.ProfesionalNombre</dd>
             </div>
             <div class="kg-detail-item">
-                <dt>Fecha de nacimiento</dt>
-                <dd>@Model.FechaNacimiento.ToString("dd/MM/yyyy")</dd>
+                <dt>Tratamiento</dt>
+                <dd>@Model.TratamientoDescripcion</dd>
             </div>
             <div class="kg-detail-item">
-                <dt>Obra social</dt>
-                <dd>@(Model.ObraSocial ?? "—")</dd>
+                <dt>Número de sesión</dt>
+                <dd><span class="kg-badge kg-badge-violet">N° @Model.NroSesionEnTratamiento</span></dd>
             </div>
         </div>
     </div>
@@ -47,9 +47,8 @@
         <form asp-action="Delete" asp-route-id="@Model.Id" method="post" style="display:inline">
             @Html.AntiForgeryToken()
             <button type="submit" class="btn-kg-danger">
-                <i class="bi bi-trash-fill"></i> Confirmar Baja
+                <i class="bi bi-trash-fill"></i> Sí, eliminar
             </button>
         </form>
     </div>
 </div>
-

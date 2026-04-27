@@ -63,6 +63,11 @@ namespace KineGestion.Data.Repositories
                                              && s.FechaHora <= maxFecha);
         }
 
+        public async Task<int> CountByTreatmentIdAsync(int treatmentId)
+            => await _context.Sessions
+                             .AsNoTracking()
+                             .CountAsync(s => s.TreatmentId == treatmentId);
+
         public async Task<Session> AddAsync(Session session)
         {
             _context.Sessions.Add(session);

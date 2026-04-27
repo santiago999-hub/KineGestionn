@@ -12,6 +12,7 @@ namespace KineGestion.Core.Interfaces
         Task<IEnumerable<Session>> GetByPatientIdAsync(int patientId);
         Task<IEnumerable<Session>> GetByTreatmentIdAsync(int treatmentId);
         Task<bool> ExistsProfessionalConflictAsync(int professionalId, DateTime fechaHora, int windowInMinutes = 45, int? excludeSessionId = null);
+        Task<int> CountByTreatmentIdAsync(int treatmentId);
         Task<Session> AddAsync(Session session);
         Task<Session> UpdateAsync(Session session);
         Task DeleteAsync(int id);

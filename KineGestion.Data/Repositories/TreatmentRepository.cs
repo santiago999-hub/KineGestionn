@@ -17,10 +17,22 @@ namespace KineGestion.Data.Repositories
         }
 
         public async Task<Treatment?> GetByIdAsync(int id)
-            => await _context.Treatments.FindAsync(id);
+            => await _context.Treatments
+                             .Include(t => t.Patient)
+                             .FirstOrDefaultAsync(t => t.Id == id);
 
         public async Task<IEnumerable<Treatment>> GetAllAsync()
-            => await _context.Treatments.AsNoTracking().ToListAsync();
+            => await _context.Treatments
+                             .AsNoTracking()
+                             .Include(t => t.Patient)
+                             .ToListAsync();
+
+        public async Task<IEnumerable<Treatment>> GetByPatientIdAsync(int patientId)
+            => await _context.Treatments
+                             .AsNoTracking()
+                             .Where(t => t.PatientId == patientId)
+                             .Include(t => t.Patient)
+                             .ToListAsync();
 
         public async Task<Treatment> AddAsync(Treatment treatment)
         {

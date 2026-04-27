@@ -1,0 +1,62 @@
+@model KineGestion.Web.Models.ViewModels.TreatmentViewModel
+
+@{
+    ViewData["Title"] = "Detalle del Tratamiento";
+}
+
+<div class="kg-page-header">
+    <div>
+        <h2>Detalle del Tratamiento</h2>
+        <p class="text-muted mb-0">Información completa del plan terapéutico</p>
+    </div>
+    <a asp-action="Index" class="btn-kg-outline">
+        <i class="bi bi-arrow-left"></i> Volver al listado
+    </a>
+</div>
+
+<div class="kg-form-card">
+    <div class="kg-form-header" style="justify-content:space-between">
+        <div style="display:flex;align-items:center;gap:12px">
+            <div style="width:48px;height:48px;border-radius:12px;background:#dcfce7;color:#16a34a;display:flex;align-items:center;justify-content:center;font-size:1.3rem">
+                <i class="bi bi-journal-medical"></i>
+            </div>
+            <div>
+                <h4 style="margin:0">@Model.Descripcion</h4>
+                <p style="margin:0;font-size:.78rem;color:var(--kg-text-muted)">Inicio: @Model.FechaInicio.ToString("dd/MM/yyyy")</p>
+            </div>
+        </div>
+        <span class="kg-badge kg-badge-primary"><i class="bi bi-calendar2-check"></i> @Model.CantidadSesionesTotales sesiones</span>
+    </div>
+    <div class="kg-form-body">
+        <div class="kg-detail-grid">
+            <div class="kg-detail-item">
+                <dt>Descripción</dt>
+                <dd>@Model.Descripcion</dd>
+            </div>
+            <div class="kg-detail-item">
+                <dt>Paciente</dt>
+                <dd>@(Model.PacienteNombre ?? "—")</dd>
+            </div>
+            <div class="kg-detail-item">
+                <dt>Sesiones totales</dt>
+                <dd><span class="kg-badge kg-badge-primary">@Model.CantidadSesionesTotales sesiones</span></dd>
+            </div>
+            <div class="kg-detail-item">
+                <dt>Fecha de inicio</dt>
+                <dd>@Model.FechaInicio.ToString("dd/MM/yyyy")</dd>
+            </div>
+        </div>
+    </div>
+    <div class="kg-form-footer">
+        <a asp-action="Index" class="btn-kg-outline"><i class="bi bi-arrow-left"></i> Volver</a>
+        <div style="display:flex;gap:10px">
+            <a asp-controller="Sessions" asp-action="Create" asp-route-patientId="@Model.PacienteId"
+               class="btn-kg-primary" style="background:#22c55e">
+                <i class="bi bi-calendar2-plus-fill"></i> Nueva Sesión
+            </a>
+            <a asp-action="Edit" asp-route-id="@Model.Id" class="btn-kg-warning">
+                <i class="bi bi-pencil-fill"></i> Editar
+            </a>
+        </div>
+    </div>
+</div>
