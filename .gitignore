@@ -1,0 +1,44 @@
+## .NET / C# gitignore
+
+# Build outputs
+bin/
+obj/
+out/
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Rider / JetBrains
+.idea/
+*.sln.iml
+
+# NuGet
+*.nupkg
+*.snupkg
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# Publish profiles
+PublishProfiles/
+
+# Secrets (NUNCA subir cadenas de conexión reales)
+appsettings.Development.json
+appsettings.*.json
+!appsettings.json
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Entity Framework Migrations (sí subirlas — son parte del historial)
+# !**/Migrations/

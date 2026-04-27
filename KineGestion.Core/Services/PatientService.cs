@@ -1,0 +1,68 @@
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using KineGestion.Core.Entities;
+using KineGestion.Core.Interfaces;
+
+namespace KineGestion.Core.Services
+{
+    /// <summary>
+    /// Contiene la lógica de negocio pura del dominio Patient.
+    /// NO conoce EF Core, SQL ni ningún detalle de infraestructura.
+    /// Solo interactúa con IPatientRepository (abstracción).
+    /// </summary>
+    public class PatientService : IPatientService
+    {
+        private readonly IPatientRepository _repository;
+
+        // Dependency Injection: el contenedor de ASP.NET Core inyecta
+        // automáticamente la implementación concreta (PatientRepository).
+        public PatientService(IPatientRepository repository)
+        {
+            _repository = repository;
+        }
+
+        public async Task<Patient?> GetByIdAsync(int id)
+            => await _repository.GetByIdAsync(id);
+
+        public async Task<IEnumerable<Patient>> GetAllAsync()
+            => await _repository.GetAllAsync();
+
+        /// <summary>
+        /// LÓGICA DE NEGOCIO: filtra pacientes activos.
+        /// Esta decisión vive en el Service, no en el Controller ni en el Repository.
+        /// </summary>
+        public async Task<IEnumerable<Patient>> GetActivePatientsAsync()
+            => await _repository.GetActivosAsync();
+
+        /// <summary>
+        /// LÓGICA DE NEGOCIO: un DNI no puede estar registrado dos veces.
+        /// El Service sabe QUÉ validar; el Repository sabe CÓMO consultarlo.
+        /// </summary>
+        public async Task ValidateDniUniquenessAsync(string dni, int? excludeId = null)
+        {
+            bool existe = await _repository.ExistsByDniAsync(dni, excludeId);
+            if (existe)
+                throw new InvalidOperationException(
+                    $"El DNI '{dni}' ya se encuentra registrado en el sistema.");
+        }
+
+        /// <summary>Valida unicidad de DNI y luego delega la persistencia al Repository.</summary>
+        public async Task<Patient> CreateAsync(Patient patient)
+        {
+            await ValidateDniUniquenessAsync(patient.DNI);
+            return await _repository.AddAsync(patient);
+        }
+
+        /// <summary>Valida unicidad de DNI excluyendo al propio paciente (caso edición).</summary>
+        public async Task<Patient> UpdateAsync(Patient patient)
+        {
+            await ValidateDniUniquenessAsync(patient.DNI, excludeId: patient.Id);
+            return await _repository.UpdateAsync(patient);
+        }
+
+        public async Task DeleteAsync(int id)
+            => await _repository.DeleteAsync(id);
+    }
+}
+
