@@ -1,0 +1,96 @@
+@model IEnumerable<KineGestion.Web.Models.ViewModels.OfficeViewModel>
+
+@{
+    ViewData["Title"] = "Consultorios";
+}
+
+<div class="kg-page-header">
+    <div>
+        <h2>Consultorios</h2>
+        <p class="text-muted mb-0">Gestión de espacios físicos del centro</p>
+    </div>
+    <a asp-action="Create" class="btn-kg-primary">
+        <i class="bi bi-building-add"></i> Nuevo Consultorio
+    </a>
+</div>
+
+<div class="kg-card">
+    <div class="kg-card-header">
+        <h5 class="kg-card-header-title">
+            <i class="bi bi-building"></i> Listado de Consultorios
+        </h5>
+        <span class="kg-badge kg-badge-muted">@Model.Count() registros</span>
+    </div>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show mx-4 mt-3" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i>@TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @if (!Model.Any())
+    {
+        <div class="kg-empty">
+            <div class="kg-empty-icon"><i class="bi bi-building"></i></div>
+            <h5>Sin consultorios registrados</h5>
+            <p>Registrá el primer espacio del centro kinesiológico.</p>
+            <a asp-action="Create" class="btn-kg-primary">
+                <i class="bi bi-building-add"></i> Registrar el primero
+            </a>
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="kg-table">
+                <thead>
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Estado</th>
+                        <th style="text-align:right">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var o in Model)
+                    {
+                        <tr>
+                            <td>
+                                <div style="display:flex;align-items:center;gap:10px">
+                                    <div style="width:34px;height:34px;border-radius:8px;background:#f0fdf4;color:#16a34a;display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0">
+                                        <i class="bi bi-building"></i>
+                                    </div>
+                                    <span style="font-weight:600">@o.Name</span>
+                                </div>
+                            </td>
+                            <td>
+                                @if (o.IsActive)
+                                {
+                                    <span class="kg-badge kg-badge-success"><i class="bi bi-check-circle-fill"></i> Activo</span>
+                                }
+                                else
+                                {
+                                    <span class="kg-badge kg-badge-warning"><i class="bi bi-pause-circle-fill"></i> Inactivo</span>
+                                }
+                            </td>
+                            <td style="text-align:right">
+                                <div style="display:flex;gap:6px;justify-content:flex-end">
+                                    <a asp-action="Details" asp-route-id="@o.Id" class="btn btn-sm btn-outline-secondary" title="Ver detalle">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    <a asp-action="Edit" asp-route-id="@o.Id" class="btn btn-sm btn-outline-primary" title="Editar">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <a asp-action="Delete" asp-route-id="@o.Id" class="btn btn-sm btn-outline-danger" title="Eliminar">
+                                        <i class="bi bi-trash"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

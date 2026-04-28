@@ -1,6 +1,6 @@
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using System;
 using KineGestion.Core.Entities;
 using KineGestion.Core.Interfaces;
 
@@ -18,6 +18,14 @@ namespace KineGestion.Core.Services
         public async Task<Session?> GetByIdAsync(int id)
             => await _repository.GetByIdAsync(id);
 
+        public async Task<IEnumerable<Session>> GetAllForAdminAsync()
+        {
+            var sessions = await _repository.GetAllAsync();
+            foreach (var s in sessions)
+                s.Evolution = null;
+            return sessions;
+        }
+
         public async Task<IEnumerable<Session>> GetAllAsync()
             => await _repository.GetAllAsync();
 
@@ -27,7 +35,6 @@ namespace KineGestion.Core.Services
         public async Task<Session> CreateAsync(Session session)
         {
             await ValidateProfessionalAvailabilityAsync(session.ProfessionalId, session.FechaHora);
-            // Auto-calcular el número de sesión dentro del tratamiento
             int sesionesExistentes = await _repository.CountByTreatmentIdAsync(session.TreatmentId);
             session.NroSesionEnTratamiento = sesionesExistentes + 1;
             return await _repository.AddAsync(session);

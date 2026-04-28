@@ -1,0 +1,66 @@
+@model KineGestion.Web.Models.ViewModels.OfficeViewModel
+
+@{
+    ViewData["Title"] = "Detalle de Consultorio";
+}
+
+<div class="kg-page-header">
+    <div>
+        <h2>Detalle de Consultorio</h2>
+        <p class="text-muted mb-0">Información del espacio físico</p>
+    </div>
+    <a asp-action="Index" class="btn-kg-outline">
+        <i class="bi bi-arrow-left"></i> Volver al listado
+    </a>
+</div>
+
+<div class="kg-form-card">
+    <div class="kg-form-header" style="justify-content:space-between">
+        <div style="display:flex;align-items:center;gap:12px">
+            <div style="width:48px;height:48px;border-radius:12px;background:#f0fdf4;color:#16a34a;display:flex;align-items:center;justify-content:center;font-size:1.3rem">
+                <i class="bi bi-building-fill"></i>
+            </div>
+            <div>
+                <h4 style="margin:0">@Model.Name</h4>
+                <p style="margin:0;font-size:.78rem;color:var(--kg-text-muted)">Consultorio #@Model.Id</p>
+            </div>
+        </div>
+        @if (Model.IsActive)
+        {
+            <span class="kg-badge kg-badge-success"><i class="bi bi-check-circle-fill"></i> Activo</span>
+        }
+        else
+        {
+            <span class="kg-badge kg-badge-warning"><i class="bi bi-pause-circle-fill"></i> Inactivo</span>
+        }
+    </div>
+    <div class="kg-form-body">
+        <div class="kg-detail-grid">
+            <div class="kg-detail-item">
+                <dt>Nombre</dt>
+                <dd>@Model.Name</dd>
+            </div>
+            <div class="kg-detail-item">
+                <dt>Estado</dt>
+                <dd>
+                    @if (Model.IsActive)
+                    {
+                        <span class="kg-badge kg-badge-success"><i class="bi bi-check-circle-fill"></i> Activo</span>
+                    }
+                    else
+                    {
+                        <span class="kg-badge kg-badge-warning"><i class="bi bi-pause-circle-fill"></i> Inactivo</span>
+                    }
+                </dd>
+            </div>
+        </div>
+    </div>
+    <div class="kg-form-footer">
+        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn-kg-primary">
+            <i class="bi bi-pencil-fill"></i> Editar
+        </a>
+        <a asp-action="Delete" asp-route-id="@Model.Id" class="btn btn-outline-danger">
+            <i class="bi bi-trash"></i> Eliminar
+        </a>
+    </div>
+</div>

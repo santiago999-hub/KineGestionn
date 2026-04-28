@@ -14,23 +14,27 @@ namespace KineGestion.Web.Controllers
         private readonly IPatientService _patientService;
         private readonly IProfessionalService _professionalService;
         private readonly ITreatmentService _treatmentService;
+        private readonly IOfficeService _officeService;
 
         public SessionsController(
             ISessionService sessionService,
             IPatientService patientService,
             IProfessionalService professionalService,
-            ITreatmentService treatmentService)
+            ITreatmentService treatmentService,
+            IOfficeService officeService)
         {
             _sessionService = sessionService;
             _patientService = patientService;
             _professionalService = professionalService;
             _treatmentService = treatmentService;
+            _officeService = officeService;
         }
 
+        // Listado administrativo: no incluye Evolution
         public async Task<IActionResult> Index()
         {
-            var sessions = await _sessionService.GetAllAsync();
-            var viewModels = sessions.Select(SessionViewModel.FromEntity);
+            var sessions = await _sessionService.GetAllForAdminAsync();
+            var viewModels = sessions.Select(SessionViewModel.FromEntityForAdmin);
             return View(viewModels);
         }
 
@@ -113,6 +117,7 @@ namespace KineGestion.Web.Controllers
         }
 
         // GET: /Sessions/Details/5
+        // Detalle para profesionales: incluye Evolution.
         public async Task<IActionResult> Details(int id)
         {
             var session = await _sessionService.GetByIdAsync(id);
@@ -129,7 +134,7 @@ namespace KineGestion.Web.Controllers
             if (session is null)
                 return NotFound();
 
-            return View(SessionViewModel.FromEntity(session));
+            return View(SessionViewModel.FromEntityForAdmin(session));
         }
 
         // POST: /Sessions/Delete/5
@@ -147,6 +152,7 @@ namespace KineGestion.Web.Controllers
             var patients = await _patientService.GetAllAsync();
             var professionals = await _professionalService.GetActiveProfessionalsAsync();
             var treatments = await _treatmentService.GetAllAsync();
+            var offices = await _officeService.GetActiveAsync();
 
             viewModel.Pacientes = patients
                 .Select(p => new SelectListItem
@@ -173,6 +179,14 @@ namespace KineGestion.Web.Controllers
                     Text = t.Descripcion
                 })
                 .OrderBy(t => t.Text)
+                .ToList();
+
+            viewModel.Consultorios = offices
+                .Select(o => new SelectListItem
+                {
+                    Value = o.Id.ToString(),
+                    Text = o.Name
+                })
                 .ToList();
         }
     }

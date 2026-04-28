@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.ComponentModel.DataAnnotations;
 
 namespace KineGestion.Core.Entities
@@ -13,16 +13,17 @@ namespace KineGestion.Core.Entities
         [StringLength(1000, ErrorMessage = "Las observaciones no pueden superar los 1000 caracteres.")]
         public string? Observaciones { get; set; }
 
+        [StringLength(4000)]
+        public string? Evolution { get; set; }
+
+        [StringLength(2000)]
+        public string? InternalNotes { get; set; }
+
         public bool EstadoPago { get; set; } = false;
 
-        /// <summary>
-        /// Número de esta sesión dentro del tratamiento (ej: 3 de 10).
-        /// Permite mostrar el progreso del paciente.
-        /// </summary>
         [Range(1, 365, ErrorMessage = "El número de sesión debe ser mayor a 0.")]
         public int NroSesionEnTratamiento { get; set; }
 
-        // Foreign Keys
         [Required]
         public int PatientId { get; set; }
 
@@ -32,9 +33,11 @@ namespace KineGestion.Core.Entities
         [Required]
         public int TreatmentId { get; set; }
 
-        // Navigation Properties
+        public int? OfficeId { get; set; }
+
         public virtual Patient? Patient { get; set; }
         public virtual Professional? Professional { get; set; }
         public virtual Treatment? Treatment { get; set; }
+        public virtual Office? Office { get; set; }
     }
 }

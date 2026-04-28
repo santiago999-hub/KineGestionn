@@ -7,6 +7,7 @@ namespace KineGestion.Core.Interfaces
     public interface ISessionService
     {
         Task<Session?> GetByIdAsync(int id);
+        Task<IEnumerable<Session>> GetAllForAdminAsync();
         Task<IEnumerable<Session>> GetAllAsync();
         Task<IEnumerable<Session>> GetByPatientIdAsync(int patientId);
         Task<Session> CreateAsync(Session session);

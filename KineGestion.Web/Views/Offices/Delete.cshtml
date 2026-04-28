@@ -1,0 +1,45 @@
+@model KineGestion.Web.Models.ViewModels.OfficeViewModel
+
+@{
+    ViewData["Title"] = "Eliminar Consultorio";
+}
+
+<div class="kg-page-header">
+    <div>
+        <h2>Eliminar Consultorio</h2>
+        <p class="text-muted mb-0">Confirmación de eliminación</p>
+    </div>
+    <a asp-action="Index" class="btn-kg-outline">
+        <i class="bi bi-arrow-left"></i> Volver al listado
+    </a>
+</div>
+
+<div class="kg-form-card">
+    <div class="kg-form-header" style="background:#fef2f2">
+        <div class="kg-form-header-icon" style="background:#fee2e2;color:#dc2626"><i class="bi bi-exclamation-triangle-fill"></i></div>
+        <div>
+            <h4>¿Eliminar "@Model.Name"?</h4>
+            <p>Esta acción no se puede deshacer. Las sesiones asignadas a este consultorio quedarán sin consultorio asignado.</p>
+        </div>
+    </div>
+    <div class="kg-form-body">
+        <div class="kg-detail-grid">
+            <div class="kg-detail-item">
+                <dt>Nombre</dt>
+                <dd>@Model.Name</dd>
+            </div>
+            <div class="kg-detail-item">
+                <dt>Estado</dt>
+                <dd>@(Model.IsActive ? "Activo" : "Inactivo")</dd>
+            </div>
+        </div>
+    </div>
+    <div class="kg-form-footer">
+        <a asp-action="Index" class="btn-kg-outline"><i class="bi bi-x-lg"></i> Cancelar</a>
+        <form asp-action="Delete" method="post" style="display:inline">
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="Id" />
+            <button type="submit" class="btn btn-danger"><i class="bi bi-trash-fill"></i> Sí, eliminar</button>
+        </form>
+    </div>
+</div>

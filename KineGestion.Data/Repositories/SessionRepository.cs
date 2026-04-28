@@ -23,6 +23,7 @@ namespace KineGestion.Data.Repositories
                              .Include(s => s.Patient)
                              .Include(s => s.Professional)
                              .Include(s => s.Treatment)
+                             .Include(s => s.Office)
                              .FirstOrDefaultAsync(s => s.Id == id);
 
         public async Task<IEnumerable<Session>> GetAllAsync()
@@ -31,6 +32,7 @@ namespace KineGestion.Data.Repositories
                              .Include(s => s.Patient)
                              .Include(s => s.Professional)
                              .Include(s => s.Treatment)
+                             .Include(s => s.Office)
                              .OrderByDescending(s => s.FechaHora)
                              .ToListAsync();
 
@@ -40,6 +42,7 @@ namespace KineGestion.Data.Repositories
                              .Where(s => s.PatientId == patientId)
                              .Include(s => s.Professional)
                              .Include(s => s.Treatment)
+                             .Include(s => s.Office)
                              .OrderBy(s => s.NroSesionEnTratamiento)
                              .ToListAsync();
 

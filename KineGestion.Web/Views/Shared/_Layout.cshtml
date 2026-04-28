@@ -53,6 +53,11 @@
                 <i class="bi bi-calendar2-check-fill"></i>
                 <span>Sesiones</span>
             </a>
+            <a class="kg-nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Offices" ? "active" : "")"
+               asp-controller="Offices" asp-action="Index">
+                <i class="bi bi-building"></i>
+                <span>Consultorios</span>
+            </a>
         </nav>
 
         <div class="kg-sidebar-footer">

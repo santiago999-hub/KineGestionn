@@ -53,16 +53,35 @@
                     </select>
                     <span asp-validation-for="TratamientoId" class="text-danger small"></span>
                 </div>
-                <div class="col-12">
-                    <label asp-for="Observaciones" class="form-label"></label>
-                    <textarea asp-for="Observaciones" class="form-control" rows="3" placeholder="Notas clínicas adicionales..."></textarea>
-                    <span asp-validation-for="Observaciones" class="text-danger small"></span>
+                <div class="col-md-6">
+                    <label asp-for="OfficeId" class="form-label"></label>
+                    <select asp-for="OfficeId" asp-items="Model.Consultorios" class="form-select">
+                        <option value="">Sin consultorio asignado</option>
+                    </select>
                 </div>
-                <div class="col-12">
-                    <div class="form-check">
+                <div class="col-md-6 d-flex align-items-end">
+                    <div class="form-check mb-1">
                         <input asp-for="EstadoPago" class="form-check-input" type="checkbox" />
                         <label asp-for="EstadoPago" class="form-check-label">Sesión pagada</label>
                     </div>
+                </div>
+                <div class="col-12">
+                    <label asp-for="Observaciones" class="form-label"></label>
+                    <textarea asp-for="Observaciones" class="form-control" rows="2" placeholder="Observaciones generales..."></textarea>
+                    <span asp-validation-for="Observaciones" class="text-danger small"></span>
+                </div>
+                <div class="col-12">
+                    <label asp-for="Evolution" class="form-label">
+                        <i class="bi bi-shield-lock-fill text-primary me-1"></i>@Html.DisplayNameFor(m => m.Evolution)
+                        <span class="text-muted small ms-1">(solo profesionales)</span>
+                    </label>
+                    <textarea asp-for="Evolution" class="form-control" rows="4" placeholder="Registrá la evolución clínica del paciente..."></textarea>
+                    <span asp-validation-for="Evolution" class="text-danger small"></span>
+                </div>
+                <div class="col-12">
+                    <label asp-for="InternalNotes" class="form-label"></label>
+                    <textarea asp-for="InternalNotes" class="form-control" rows="2" placeholder="Notas administrativas internas..."></textarea>
+                    <span asp-validation-for="InternalNotes" class="text-danger small"></span>
                 </div>
             </div>
     </div>

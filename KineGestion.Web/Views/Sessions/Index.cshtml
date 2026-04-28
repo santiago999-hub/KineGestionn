@@ -42,6 +42,7 @@
                         <th>Fecha y hora</th>
                         <th>Paciente</th>
                         <th>Profesional</th>
+                        <th>Consultorio</th>
                         <th>Tratamiento</th>
                         <th>Nro</th>
                         <th>Pago</th>
@@ -58,6 +59,7 @@
                             </td>
                             <td>@s.PacienteNombre</td>
                             <td>@s.ProfesionalNombre</td>
+                            <td>@(string.IsNullOrWhiteSpace(s.OfficeNombre) ? "Sin asignar" : s.OfficeNombre)</td>
                             <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="@s.TratamientoDescripcion">
                                 @s.TratamientoDescripcion
                             </td>

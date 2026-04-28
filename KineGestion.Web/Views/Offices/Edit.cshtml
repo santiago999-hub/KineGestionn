@@ -1,0 +1,53 @@
+@model KineGestion.Web.Models.ViewModels.OfficeViewModel
+
+@{
+    ViewData["Title"] = "Editar Consultorio";
+}
+
+<div class="kg-page-header">
+    <div>
+        <h2>Editar Consultorio</h2>
+        <p class="text-muted mb-0">Modificá los datos del consultorio</p>
+    </div>
+    <a asp-action="Index" class="btn-kg-outline">
+        <i class="bi bi-arrow-left"></i> Volver al listado
+    </a>
+</div>
+
+<div class="kg-form-card">
+    <div class="kg-form-header">
+        <div class="kg-form-header-icon" style="background:#fef9c3;color:#ca8a04"><i class="bi bi-pencil-fill"></i></div>
+        <div>
+            <h4>Editando: @Model.Name</h4>
+            <p>Modificá los campos necesarios</p>
+        </div>
+    </div>
+    <form asp-action="Edit" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="Id" />
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger mb-4" role="alert"></div>
+        <div class="kg-form-body">
+            <div class="row g-3">
+                <div class="col-md-8">
+                    <label asp-for="Name" class="form-label"></label>
+                    <input asp-for="Name" class="form-control" />
+                    <span asp-validation-for="Name" class="text-danger small"></span>
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                    <div class="form-check mb-1">
+                        <input asp-for="IsActive" class="form-check-input" type="checkbox" />
+                        <label asp-for="IsActive" class="form-check-label">Consultorio activo</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="kg-form-footer">
+            <a asp-action="Index" class="btn-kg-outline"><i class="bi bi-x-lg"></i> Cancelar</a>
+            <button type="submit" class="btn-kg-primary"><i class="bi bi-check-lg"></i> Guardar Cambios</button>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}
