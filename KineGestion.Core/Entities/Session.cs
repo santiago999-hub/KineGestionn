@@ -1,9 +1,10 @@
 ﻿using System;
 using System.ComponentModel.DataAnnotations;
+using KineGestion.Core;
 
 namespace KineGestion.Core.Entities
 {
-    public class Session
+    public class Session : BaseEntity
     {
         public int Id { get; set; }
 
@@ -19,7 +20,9 @@ namespace KineGestion.Core.Entities
         [StringLength(2000)]
         public string? InternalNotes { get; set; }
 
-        public bool EstadoPago { get; set; } = false;
+        public SessionStatus Status { get; set; } = SessionStatus.Pending;
+
+        public PaymentStatus PaymentStatus { get; set; } = PaymentStatus.Pending;
 
         [Range(1, 365, ErrorMessage = "El número de sesión debe ser mayor a 0.")]
         public int NroSesionEnTratamiento { get; set; }

@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace KineGestion.Core.Entities
 {
-    public class Professional
+    public class Professional : BaseEntity
     {
         public int Id { get; set; }
 

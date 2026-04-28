@@ -1,6 +1,8 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using KineGestion.Core;
+using KineGestion.Core.Exceptions;
 using KineGestion.Core.Interfaces;
 using KineGestion.Web.Models.ViewModels;
 using Microsoft.AspNetCore.Mvc;
@@ -67,9 +69,10 @@ namespace KineGestion.Web.Controllers
                 TempData["Success"] = "Sesion registrada correctamente.";
                 return RedirectToAction(nameof(Index));
             }
-            catch (InvalidOperationException ex)
+            catch (BusinessValidationException ex)
             {
-                ModelState.AddModelError(nameof(viewModel.FechaHora), ex.Message);
+                var key = string.IsNullOrWhiteSpace(ex.PropertyName) ? string.Empty : ex.PropertyName;
+                ModelState.AddModelError(key, ex.Message);
                 await LoadSelectListsAsync(viewModel);
                 return View(viewModel);
             }
@@ -108,9 +111,10 @@ namespace KineGestion.Web.Controllers
                 TempData["Success"] = "Sesion actualizada correctamente.";
                 return RedirectToAction(nameof(Index));
             }
-            catch (InvalidOperationException ex)
+            catch (BusinessValidationException ex)
             {
-                ModelState.AddModelError(nameof(viewModel.FechaHora), ex.Message);
+                var key = string.IsNullOrWhiteSpace(ex.PropertyName) ? string.Empty : ex.PropertyName;
+                ModelState.AddModelError(key, ex.Message);
                 await LoadSelectListsAsync(viewModel);
                 return View(viewModel);
             }
@@ -186,6 +190,28 @@ namespace KineGestion.Web.Controllers
                 {
                     Value = o.Id.ToString(),
                     Text = o.Name
+                })
+                .ToList();
+
+            viewModel.EstadosSesion = Enum.GetValues<SessionStatus>()
+                .Select(s => new SelectListItem
+                {
+                    Value = s.ToString(),
+                    Text = s switch
+                    {
+                        SessionStatus.Pending => "Pendiente",
+                        SessionStatus.Completed => "Completada",
+                        SessionStatus.Canceled => "Cancelada",
+                        _ => s.ToString()
+                    }
+                })
+                .ToList();
+
+            viewModel.EstadosPago = Enum.GetValues<PaymentStatus>()
+                .Select(p => new SelectListItem
+                {
+                    Value = p.ToString(),
+                    Text = p == PaymentStatus.Paid ? "Pagada" : "Pendiente"
                 })
                 .ToList();
         }

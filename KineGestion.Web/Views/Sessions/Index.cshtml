@@ -1,4 +1,5 @@
 @model IEnumerable<KineGestion.Web.Models.ViewModels.SessionViewModel>
+@using KineGestion.Core
 
 @{
     ViewData["Title"] = "Sesiones";
@@ -45,6 +46,7 @@
                         <th>Consultorio</th>
                         <th>Tratamiento</th>
                         <th>Nro</th>
+                        <th>Estado</th>
                         <th>Pago</th>
                         <th style="text-align:right">Acciones</th>
                     </tr>
@@ -67,7 +69,21 @@
                                 <span class="kg-badge kg-badge-violet">N° @s.NroSesionEnTratamiento</span>
                             </td>
                             <td>
-                                @if (s.EstadoPago)
+                                @if (s.Status == SessionStatus.Completed)
+                                {
+                                    <span class="kg-badge kg-badge-success">Completada</span>
+                                }
+                                else if (s.Status == SessionStatus.Canceled)
+                                {
+                                    <span class="kg-badge kg-badge-danger">Cancelada</span>
+                                }
+                                else
+                                {
+                                    <span class="kg-badge kg-badge-warning">Pendiente</span>
+                                }
+                            </td>
+                            <td>
+                                @if (s.PaymentStatus == PaymentStatus.Paid)
                                 {
                                     <span class="kg-badge kg-badge-success"><i class="bi bi-check-circle-fill"></i> Pagada</span>
                                 }
@@ -89,7 +105,7 @@
             </table>
         </div>
         <div style="padding:12px 18px;border-top:1px solid var(--kg-border);font-size:.76rem;color:var(--kg-text-muted)">
-            Mostrando @Model.Count() sesiones — pagadas: @Model.Count(s => s.EstadoPago) | pendientes: @Model.Count(s => !s.EstadoPago)
+            Mostrando @Model.Count() sesiones — pagadas: @Model.Count(s => s.PaymentStatus == PaymentStatus.Paid) | pendientes: @Model.Count(s => s.PaymentStatus == PaymentStatus.Pending)
         </div>
     }
 </div>

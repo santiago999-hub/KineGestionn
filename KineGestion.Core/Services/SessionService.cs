@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using KineGestion.Core.Entities;
+using KineGestion.Core.Exceptions;
 using KineGestion.Core.Interfaces;
 
 namespace KineGestion.Core.Services
@@ -59,8 +60,9 @@ namespace KineGestion.Core.Services
 
             if (hasConflict)
             {
-                throw new InvalidOperationException(
-                    "El profesional ya tiene una sesion asignada en un rango de +/- 45 minutos para el horario seleccionado.");
+                throw new BusinessValidationException(
+                    "El profesional ya tiene una sesion asignada en un rango de +/- 45 minutos para el horario seleccionado.",
+                    nameof(Session.FechaHora));
             }
         }
     }

@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using KineGestion.Core;
 using KineGestion.Core.Entities;
+using KineGestion.Web.Mapping;
 using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace KineGestion.Web.Models.ViewModels
@@ -19,8 +21,11 @@ namespace KineGestion.Web.Models.ViewModels
         [Display(Name = "Observaciones")]
         public string? Observaciones { get; set; }
 
+        [Display(Name = "Estado de sesión")]
+        public SessionStatus Status { get; set; } = SessionStatus.Pending;
+
         [Display(Name = "Estado de pago")]
-        public bool EstadoPago { get; set; }
+        public PaymentStatus PaymentStatus { get; set; } = PaymentStatus.Pending;
 
         [Range(1, 365, ErrorMessage = "El numero de sesion debe ser mayor a 0.")]
         [Display(Name = "Nro. sesion en tratamiento")]
@@ -63,48 +68,15 @@ namespace KineGestion.Web.Models.ViewModels
         public IEnumerable<SelectListItem> Profesionales { get; set; } = new List<SelectListItem>();
         public IEnumerable<SelectListItem> Tratamientos { get; set; } = new List<SelectListItem>();
         public IEnumerable<SelectListItem> Consultorios { get; set; } = new List<SelectListItem>();
+        public IEnumerable<SelectListItem> EstadosSesion { get; set; } = new List<SelectListItem>();
+        public IEnumerable<SelectListItem> EstadosPago { get; set; } = new List<SelectListItem>();
 
-        /// <summary>Mapeo completo — usar solo en detalle (contexto profesional).</summary>
-        public static SessionViewModel FromEntity(Session session) => new()
-        {
-            Id = session.Id,
-            FechaHora = session.FechaHora,
-            Observaciones = session.Observaciones,
-            InternalNotes = session.InternalNotes,
-            Evolution = session.Evolution,
-            EstadoPago = session.EstadoPago,
-            NroSesionEnTratamiento = session.NroSesionEnTratamiento,
-            OfficeId = session.OfficeId,
-            PacienteId = session.PatientId,
-            ProfesionalId = session.ProfessionalId,
-            TratamientoId = session.TreatmentId,
-            PacienteNombre = session.Patient is null ? string.Empty : $"{session.Patient.Apellido}, {session.Patient.Nombre}",
-            ProfesionalNombre = session.Professional is null ? string.Empty : $"{session.Professional.Apellido}, {session.Professional.Nombre}",
-            TratamientoDescripcion = session.Treatment?.Descripcion,
-            OfficeNombre = session.Office?.Name
-        };
+        public static SessionViewModel FromEntity(Session session)
+            => MappingHelper.ToSessionViewModel(session, includeEvolution: true);
 
-        /// <summary>Mapeo administrativo: Evolution queda null intencionalmente.</summary>
         public static SessionViewModel FromEntityForAdmin(Session session)
-        {
-            var vm = FromEntity(session);
-            vm.Evolution = null;
-            return vm;
-        }
+            => MappingHelper.ToSessionViewModel(session, includeEvolution: false);
 
-        public Session ToEntity() => new()
-        {
-            Id = Id,
-            FechaHora = FechaHora,
-            Observaciones = Observaciones,
-            InternalNotes = InternalNotes,
-            Evolution = Evolution,
-            EstadoPago = EstadoPago,
-            NroSesionEnTratamiento = NroSesionEnTratamiento,
-            OfficeId = OfficeId,
-            PatientId = PacienteId,
-            ProfessionalId = ProfesionalId,
-            TreatmentId = TratamientoId
-        };
+        public Session ToEntity() => MappingHelper.ToSessionEntity(this);
     }
 }

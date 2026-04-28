@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using KineGestion.Core.Entities;
+using KineGestion.Web.Mapping;
 
 namespace KineGestion.Web.Models.ViewModels
 {
@@ -15,18 +16,9 @@ namespace KineGestion.Web.Models.ViewModels
         [Display(Name = "Activo")]
         public bool IsActive { get; set; } = true;
 
-        public static OfficeViewModel FromEntity(Office office) => new()
-        {
-            Id = office.Id,
-            Name = office.Name,
-            IsActive = office.IsActive
-        };
+        public static OfficeViewModel FromEntity(Office office)
+            => MappingHelper.ToOfficeViewModel(office);
 
-        public Office ToEntity() => new()
-        {
-            Id = Id,
-            Name = Name,
-            IsActive = IsActive
-        };
+        public Office ToEntity() => MappingHelper.ToOfficeEntity(this);
     }
 }

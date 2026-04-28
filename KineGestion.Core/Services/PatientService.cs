@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using KineGestion.Core.Entities;
+using KineGestion.Core.Exceptions;
 using KineGestion.Core.Interfaces;
 
 namespace KineGestion.Core.Services
@@ -43,8 +44,9 @@ namespace KineGestion.Core.Services
         {
             bool existe = await _repository.ExistsByDniAsync(dni, excludeId);
             if (existe)
-                throw new InvalidOperationException(
-                    $"El DNI '{dni}' ya se encuentra registrado en el sistema.");
+                throw new BusinessValidationException(
+                    $"El DNI '{dni}' ya se encuentra registrado en el sistema.",
+                    nameof(Patient.DNI));
         }
 
         /// <summary>Valida unicidad de DNI y luego delega la persistencia al Repository.</summary>
@@ -73,8 +75,9 @@ namespace KineGestion.Core.Services
             private static void ValidateFechaNacimiento(DateTime fechaNacimiento)
             {
                 if (fechaNacimiento.Date >= DateTime.Today)
-                    throw new InvalidOperationException(
-                        "La fecha de nacimiento no puede ser igual o posterior a la fecha actual.");
+                    throw new BusinessValidationException(
+                        "La fecha de nacimiento no puede ser igual o posterior a la fecha actual.",
+                        nameof(Patient.FechaNacimiento));
             }
     }
 }

@@ -1,4 +1,5 @@
 @model KineGestion.Web.Models.ViewModels.SessionViewModel
+@using KineGestion.Core
 
 @{
     ViewData["Title"] = "Detalle de Sesión";
@@ -25,7 +26,7 @@
                 <p style="margin:0;font-size:.78rem;color:var(--kg-text-muted)">@Model.FechaHora.ToString("dd/MM/yyyy") a las @Model.FechaHora.ToString("HH:mm") hs</p>
             </div>
         </div>
-        @if (Model.EstadoPago)
+        @if (Model.PaymentStatus == PaymentStatus.Paid)
         {
             <span class="kg-badge kg-badge-success"><i class="bi bi-check-circle-fill"></i> Pagada</span>
         }
@@ -59,13 +60,30 @@
             <div class="kg-detail-item">
                 <dt>Estado de pago</dt>
                 <dd>
-                    @if (Model.EstadoPago)
+                    @if (Model.PaymentStatus == PaymentStatus.Paid)
                     {
                         <span class="kg-badge kg-badge-success"><i class="bi bi-check-circle-fill"></i> Pagada</span>
                     }
                     else
                     {
                         <span class="kg-badge kg-badge-warning"><i class="bi bi-clock-fill"></i> Pendiente</span>
+                    }
+                </dd>
+            </div>
+            <div class="kg-detail-item">
+                <dt>Estado de sesión</dt>
+                <dd>
+                    @if (Model.Status == SessionStatus.Completed)
+                    {
+                        <span class="kg-badge kg-badge-success">Completada</span>
+                    }
+                    else if (Model.Status == SessionStatus.Canceled)
+                    {
+                        <span class="kg-badge kg-badge-danger">Cancelada</span>
+                    }
+                    else
+                    {
+                        <span class="kg-badge kg-badge-warning">Pendiente</span>
                     }
                 </dd>
             </div>

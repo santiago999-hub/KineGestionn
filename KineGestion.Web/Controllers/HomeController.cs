@@ -43,8 +43,14 @@ public class HomeController : Controller
     }
 
     [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
-    public IActionResult Error()
+    public IActionResult Error(string? friendlyMessage = null)
     {
-        return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
+        return View(new ErrorViewModel
+        {
+            RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier,
+            FriendlyMessage = string.IsNullOrWhiteSpace(friendlyMessage)
+                ? "Ocurrió un error inesperado al procesar la solicitud."
+                : friendlyMessage
+        });
     }
 }

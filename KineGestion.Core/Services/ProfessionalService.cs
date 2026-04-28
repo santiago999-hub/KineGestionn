@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using KineGestion.Core.Entities;
+using KineGestion.Core.Exceptions;
 using KineGestion.Core.Interfaces;
 
 namespace KineGestion.Core.Services
@@ -28,8 +29,9 @@ namespace KineGestion.Core.Services
         {
             bool existe = await _repository.ExistsByMatriculaAsync(matricula, excludeId);
             if (existe)
-                throw new InvalidOperationException(
-                    $"La matrícula '{matricula}' ya se encuentra registrada en el sistema.");
+                throw new BusinessValidationException(
+                    $"La matrícula '{matricula}' ya se encuentra registrada en el sistema.",
+                    nameof(Professional.Matricula));
         }
 
         public async Task<Professional> CreateAsync(Professional professional)

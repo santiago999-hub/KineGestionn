@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
+using KineGestion.Core.Exceptions;
 using KineGestion.Core.Interfaces;
 using KineGestion.Web.Models.ViewModels;
 
@@ -48,11 +49,10 @@ namespace KineGestion.Web.Controllers
                 TempData["Success"] = $"Paciente {viewModel.Nombre} {viewModel.Apellido} registrado correctamente.";
                 return RedirectToAction(nameof(Index));
             }
-            catch (InvalidOperationException ex)
+            catch (BusinessValidationException ex)
             {
-                // Captura la excepción de negocio (DNI duplicado) y la muestra
-                // como error del campo DNI en el formulario — sin pantalla de error.
-                ModelState.AddModelError(nameof(viewModel.DNI), ex.Message);
+                var key = string.IsNullOrWhiteSpace(ex.PropertyName) ? nameof(viewModel.DNI) : ex.PropertyName;
+                ModelState.AddModelError(key, ex.Message);
                 return View(viewModel);
             }
         }
@@ -85,9 +85,10 @@ namespace KineGestion.Web.Controllers
                 TempData["Success"] = "Paciente actualizado correctamente.";
                 return RedirectToAction(nameof(Index));
             }
-            catch (InvalidOperationException ex)
+            catch (BusinessValidationException ex)
             {
-                ModelState.AddModelError(nameof(viewModel.DNI), ex.Message);
+                var key = string.IsNullOrWhiteSpace(ex.PropertyName) ? nameof(viewModel.DNI) : ex.PropertyName;
+                ModelState.AddModelError(key, ex.Message);
                 return View(viewModel);
             }
         }

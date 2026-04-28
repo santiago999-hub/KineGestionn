@@ -2,6 +2,7 @@ using KineGestion.Core.Interfaces;
 using KineGestion.Core.Services;
 using KineGestion.Data.Context;
 using KineGestion.Data.Repositories;
+using KineGestion.Web.Middleware;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -41,6 +42,8 @@ if (!app.Environment.IsDevelopment())
     app.UseExceptionHandler("/Home/Error");
     app.UseHsts();
 }
+
+app.UseMiddleware<GlobalExceptionMiddleware>();
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();

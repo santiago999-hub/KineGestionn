@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace KineGestion.Core.Entities
 {
-    public class Equipment
+    public class Equipment : BaseEntity
     {
         public int Id { get; set; }
 

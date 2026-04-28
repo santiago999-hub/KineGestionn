@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace KineGestion.Core.Entities
 {
-    public class Office
+    public class Office : BaseEntity
     {
         public int Id { get; set; }
 

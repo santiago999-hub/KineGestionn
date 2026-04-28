@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using KineGestion.Core.Exceptions;
 using KineGestion.Core.Interfaces;
 using KineGestion.Web.Models.ViewModels;
 using Microsoft.AspNetCore.Mvc;
@@ -42,9 +43,10 @@ namespace KineGestion.Web.Controllers
                 TempData["Success"] = $"Profesional {viewModel.Nombre} {viewModel.Apellido} registrado correctamente.";
                 return RedirectToAction(nameof(Index));
             }
-            catch (InvalidOperationException ex)
+            catch (BusinessValidationException ex)
             {
-                ModelState.AddModelError(nameof(viewModel.Matricula), ex.Message);
+                var key = string.IsNullOrWhiteSpace(ex.PropertyName) ? nameof(viewModel.Matricula) : ex.PropertyName;
+                ModelState.AddModelError(key, ex.Message);
                 return View(viewModel);
             }
         }
@@ -75,9 +77,10 @@ namespace KineGestion.Web.Controllers
                 TempData["Success"] = "Profesional actualizado correctamente.";
                 return RedirectToAction(nameof(Index));
             }
-            catch (InvalidOperationException ex)
+            catch (BusinessValidationException ex)
             {
-                ModelState.AddModelError(nameof(viewModel.Matricula), ex.Message);
+                var key = string.IsNullOrWhiteSpace(ex.PropertyName) ? nameof(viewModel.Matricula) : ex.PropertyName;
+                ModelState.AddModelError(key, ex.Message);
                 return View(viewModel);
             }
         }

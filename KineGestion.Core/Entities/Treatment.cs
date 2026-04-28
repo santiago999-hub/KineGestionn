@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace KineGestion.Core.Entities
 {
-    public class Treatment
+    public class Treatment : BaseEntity
     {
         public int Id { get; set; }
 

@@ -1,5 +1,9 @@
 using KineGestion.Core.Entities;
 using Microsoft.EntityFrameworkCore;
+using System;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace KineGestion.Data.Context
 {
@@ -17,6 +21,13 @@ namespace KineGestion.Data.Context
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+
+            ConfigureAuditableEntity<Patient>(modelBuilder);
+            ConfigureAuditableEntity<Professional>(modelBuilder);
+            ConfigureAuditableEntity<Treatment>(modelBuilder);
+            ConfigureAuditableEntity<Session>(modelBuilder);
+            ConfigureAuditableEntity<Office>(modelBuilder);
+            ConfigureAuditableEntity<Equipment>(modelBuilder);
 
             modelBuilder.Entity<Patient>(entity =>
             {
@@ -53,6 +64,8 @@ namespace KineGestion.Data.Context
                 entity.HasKey(s => s.Id);
                 entity.Property(s => s.Evolution).HasMaxLength(4000);
                 entity.Property(s => s.InternalNotes).HasMaxLength(2000);
+                entity.Property(s => s.Status).IsRequired();
+                entity.Property(s => s.PaymentStatus).IsRequired();
 
                 entity.HasOne(s => s.Patient)
                     .WithMany(p => p.Sesiones)
@@ -91,6 +104,56 @@ namespace KineGestion.Data.Context
                     .HasForeignKey(e => e.OfficeId)
                     .OnDelete(DeleteBehavior.SetNull);
             });
+        }
+
+        public override int SaveChanges()
+        {
+            ApplyAuditInfo();
+            return base.SaveChanges();
+        }
+
+        public override int SaveChanges(bool acceptAllChangesOnSuccess)
+        {
+            ApplyAuditInfo();
+            return base.SaveChanges(acceptAllChangesOnSuccess);
+        }
+
+        public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+        {
+            ApplyAuditInfo();
+            return base.SaveChangesAsync(cancellationToken);
+        }
+
+        public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
+        {
+            ApplyAuditInfo();
+            return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+        }
+
+        private static void ConfigureAuditableEntity<TEntity>(ModelBuilder modelBuilder)
+            where TEntity : BaseEntity
+        {
+            modelBuilder.Entity<TEntity>().Property(e => e.CreatedAt).IsRequired();
+            modelBuilder.Entity<TEntity>().Property(e => e.UpdatedAt).IsRequired();
+        }
+
+        private void ApplyAuditInfo()
+        {
+            var now = DateTime.UtcNow;
+
+            var entries = ChangeTracker
+                .Entries<BaseEntity>()
+                .Where(e => e.State == EntityState.Added || e.State == EntityState.Modified);
+
+            foreach (var entry in entries)
+            {
+                entry.Entity.UpdatedAt = now;
+
+                if (entry.State == EntityState.Added)
+                    entry.Entity.CreatedAt = now;
+                else
+                    entry.Property(p => p.CreatedAt).IsModified = false;
+            }
         }
     }
 }
