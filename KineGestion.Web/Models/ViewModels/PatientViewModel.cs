@@ -34,10 +34,9 @@ namespace KineGestion.Web.Models.ViewModels
         [Display(Name = "Fecha de Nacimiento")]
         public DateTime FechaNacimiento { get; set; }
 
-        [Required(ErrorMessage = "La obra social es obligatoria. Si no posee, seleccione 'Sin obra social'.")]
         [StringLength(150)]
         [Display(Name = "Obra Social")]
-        public string ObraSocial { get; set; } = string.Empty;
+        public string? ObraSocial { get; set; }
 
         [Phone(ErrorMessage = "El formato del teléfono no es válido.")]
         [StringLength(20)]

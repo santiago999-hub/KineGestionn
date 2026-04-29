@@ -108,7 +108,25 @@ namespace KineGestion.Web.Controllers
             if (professional is null)
                 return NotFound();
 
-            return View(ProfessionalViewModel.FromEntity(professional));
+            var sessions = await _sessionService.GetByProfessionalIdAsync(id);
+
+            var model = new ProfessionalDetailsViewModel
+            {
+                Professional = ProfessionalViewModel.FromEntity(professional),
+                Sessions = sessions.Select(s => new SessionViewModel
+                {
+                    Id              = s.Id,
+                    FechaHora       = s.FechaHora,
+                    PacienteNombre  = s.Patient != null ? $"{s.Patient.Nombre} {s.Patient.Apellido}" : "-",
+                    TratamientoDescripcion = s.Treatment?.Descripcion ?? "-",
+                    OfficeNombre    = s.Office?.Name ?? "-",
+                    Status          = s.Status,
+                    PaymentStatus   = s.PaymentStatus,
+                    NroSesionEnTratamiento = s.NroSesionEnTratamiento
+                }).ToList()
+            };
+
+            return View(model);
         }
 
         public async Task<IActionResult> Delete(int id)

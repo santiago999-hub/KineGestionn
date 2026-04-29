@@ -1,7 +1,9 @@
-@model KineGestion.Web.Models.ViewModels.ProfessionalViewModel
+@model KineGestion.Web.Models.ViewModels.ProfessionalDetailsViewModel
+@using KineGestion.Core
 
 @{
     ViewData["Title"] = "Detalle del Profesional";
+    var p = Model.Professional;
 }
 
 <div class="kg-page-header">
@@ -18,14 +20,14 @@
     <div class="kg-form-header" style="justify-content:space-between">
         <div style="display:flex;align-items:center;gap:12px">
             <div style="width:48px;height:48px;border-radius:50%;background:#e0f2fe;color:#0284c7;display:flex;align-items:center;justify-content:center;font-size:1.2rem;font-weight:700">
-                @(Model.Nombre.Length > 0 ? Model.Nombre[0].ToString().ToUpper() : "?")@(Model.Apellido.Length > 0 ? Model.Apellido[0].ToString().ToUpper() : "")
+                @(p.Nombre.Length > 0 ? p.Nombre[0].ToString().ToUpper() : "?")@(p.Apellido.Length > 0 ? p.Apellido[0].ToString().ToUpper() : "")
             </div>
             <div>
-                <h4 style="margin:0">@Model.Apellido, @Model.Nombre</h4>
-                <p style="margin:0;font-size:.78rem;color:var(--kg-text-muted)">Matr. @Model.Matricula</p>
+                <h4 style="margin:0">@p.Apellido, @p.Nombre</h4>
+                <p style="margin:0;font-size:.78rem;color:var(--kg-text-muted)">Matr. @p.Matricula</p>
             </div>
         </div>
-        @if (Model.IsActivo)
+        @if (p.IsActivo)
         {
             <span class="kg-badge kg-badge-success"><i class="bi bi-circle-fill" style="font-size:.45rem"></i> Activo</span>
         }
@@ -38,22 +40,97 @@
         <div class="kg-detail-grid">
             <div class="kg-detail-item">
                 <dt>Nombre completo</dt>
-                <dd>@Model.Apellido, @Model.Nombre</dd>
+                <dd>@p.Apellido, @p.Nombre</dd>
             </div>
             <div class="kg-detail-item">
                 <dt>Matrícula</dt>
-                <dd><span class="kg-badge kg-badge-info">@Model.Matricula</span></dd>
+                <dd><span class="kg-badge kg-badge-info">@p.Matricula</span></dd>
             </div>
             <div class="kg-detail-item">
                 <dt>Especialidad</dt>
-                <dd>@Model.Especialidad</dd>
+                <dd>@p.Especialidad</dd>
             </div>
         </div>
     </div>
     <div class="kg-form-footer">
         <a asp-action="Index" class="btn-kg-outline"><i class="bi bi-arrow-left"></i> Volver</a>
-        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn-kg-warning">
+        <a asp-action="Edit" asp-route-id="@p.Id" class="btn-kg-warning">
             <i class="bi bi-pencil-fill"></i> Editar
         </a>
     </div>
+</div>
+
+<div class="kg-card" style="margin-top:20px">
+    <div class="kg-card-header">
+        <h5 class="kg-card-header-title">
+            <i class="bi bi-calendar2-check-fill"></i> Últimas Sesiones
+        </h5>
+        <span class="kg-badge kg-badge-muted">@Model.Sessions.Count() sesión(es)</span>
+    </div>
+
+    @if (!Model.Sessions.Any())
+    {
+        <div class="kg-empty" style="padding:24px">
+            <p style="color:var(--kg-text-muted);margin:0">Este profesional no tiene sesiones registradas.</p>
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="kg-table">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Paciente</th>
+                        <th>Tratamiento</th>
+                        <th>Consultorio</th>
+                        <th>Estado</th>
+                        <th>Pago</th>
+                        <th style="text-align:right">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var s in Model.Sessions)
+                    {
+                        <tr>
+                            <td style="white-space:nowrap">@s.FechaHora.ToString("dd/MM/yyyy HH:mm")</td>
+                            <td>@(s.PacienteNombre ?? "—")</td>
+                            <td>@(s.TratamientoDescripcion ?? "—")</td>
+                            <td>@(s.OfficeNombre ?? "—")</td>
+                            <td>
+                                @if (s.Status == SessionStatus.Completed)
+                                {
+                                    <span class="kg-badge kg-badge-success">Completada</span>
+                                }
+                                else if (s.Status == SessionStatus.Canceled)
+                                {
+                                    <span class="kg-badge kg-badge-danger">Cancelada</span>
+                                }
+                                else
+                                {
+                                    <span class="kg-badge kg-badge-warning">Pendiente</span>
+                                }
+                            </td>
+                            <td>
+                                @if (s.PaymentStatus == PaymentStatus.Paid)
+                                {
+                                    <span class="kg-badge kg-badge-success"><i class="bi bi-check-circle-fill"></i> Pagada</span>
+                                }
+                                else
+                                {
+                                    <span class="kg-badge kg-badge-muted">Pendiente</span>
+                                }
+                            </td>
+                            <td>
+                                <div class="kg-action-btns" style="justify-content:flex-end">
+                                    <a asp-controller="Sessions" asp-action="Details" asp-route-id="@s.Id" class="kg-action-btn view" title="Ver detalle"><i class="bi bi-eye-fill"></i></a>
+                                    <a asp-controller="Sessions" asp-action="Edit" asp-route-id="@s.Id" class="kg-action-btn edit" title="Editar"><i class="bi bi-pencil-fill"></i></a>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
 </div>

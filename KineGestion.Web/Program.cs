@@ -91,11 +91,13 @@ using (var scope = app.Services.CreateScope())
     }
 
     // Usuario admin por defecto — cambiar contraseña después del primer login
-    const string adminEmail = "admin@kinegestion.com";
+    var config = scope.ServiceProvider.GetRequiredService<IConfiguration>();
+    var adminEmail = config["Seed:AdminEmail"] ?? "admin@kinegestion.com";
+    var adminPassword = config["Seed:AdminPassword"] ?? "Admin1234";
     if (await userManager.FindByEmailAsync(adminEmail) is null)
     {
         var admin = new IdentityUser { UserName = adminEmail, Email = adminEmail, EmailConfirmed = true };
-        var result = await userManager.CreateAsync(admin, "Admin1234");
+        var result = await userManager.CreateAsync(admin, adminPassword);
         if (result.Succeeded)
             await userManager.AddToRoleAsync(admin, "Admin");
     }

@@ -100,6 +100,17 @@ namespace KineGestion.Data.Repositories
                              .OrderBy(s => s.NroSesionEnTratamiento)
                              .ToListAsync();
 
+        public async Task<IEnumerable<Session>> GetByProfessionalIdAsync(int professionalId)
+            => await _context.Sessions
+                             .AsNoTracking()
+                             .Where(s => s.ProfessionalId == professionalId)
+                             .Include(s => s.Patient)
+                             .Include(s => s.Treatment)
+                             .Include(s => s.Office)
+                             .OrderByDescending(s => s.FechaHora)
+                             .Take(20)
+                             .ToListAsync();
+
         public async Task<IEnumerable<Session>> GetByTreatmentIdAsync(int treatmentId)
             => await _context.Sessions
                              .AsNoTracking()

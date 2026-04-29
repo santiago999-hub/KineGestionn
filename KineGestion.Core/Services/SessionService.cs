@@ -51,6 +51,9 @@ namespace KineGestion.Core.Services
         public async Task<IEnumerable<Session>> GetByPatientIdAsync(int patientId)
             => await _repository.GetByPatientIdAsync(patientId);
 
+        public async Task<IEnumerable<Session>> GetByProfessionalIdAsync(int professionalId)
+            => await _repository.GetByProfessionalIdAsync(professionalId);
+
         public async Task<int> CountAsync()
             => await _repository.CountAsync();
 

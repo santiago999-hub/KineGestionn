@@ -40,7 +40,7 @@
                 </div>
                 <div class="col-md-6">
                     <label asp-for="PacienteId" class="form-label"></label>
-                    <select asp-for="PacienteId" asp-items="Model.Pacientes" class="form-select">
+                    <select asp-for="PacienteId" id="PacienteId" asp-items="Model.Pacientes" class="form-select">
                         <option value="">Seleccione paciente...</option>
                     </select>
                     <span asp-validation-for="PacienteId" class="text-danger small"></span>
@@ -54,7 +54,7 @@
                 </div>
                 <div class="col-md-6">
                     <label asp-for="TratamientoId" class="form-label"></label>
-                    <select asp-for="TratamientoId" asp-items="Model.Tratamientos" class="form-select">
+                    <select asp-for="TratamientoId" id="TratamientoId" class="form-select">
                         <option value="">Seleccione tratamiento...</option>
                     </select>
                     <span asp-validation-for="TratamientoId" class="text-danger small"></span>
@@ -116,4 +116,46 @@
 
 @section Scripts {
     @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script>
+    (function () {
+        const pacienteSelect    = document.getElementById('PacienteId');
+        const tratamientoSelect = document.getElementById('TratamientoId');
+        const selectedTratId    = @Model.TratamientoId;
+
+        async function cargarTratamientos(patientId, preselect) {
+            tratamientoSelect.innerHTML = '<option value="">Cargando...</option>';
+            tratamientoSelect.disabled = true;
+            if (!patientId) {
+                tratamientoSelect.innerHTML = '<option value="">Seleccione tratamiento...</option>';
+                tratamientoSelect.disabled = false;
+                return;
+            }
+            try {
+                const resp = await fetch(`/Sessions/ByPatient?patientId=${patientId}`);
+                const data = await resp.json();
+                tratamientoSelect.innerHTML = '<option value="">Seleccione tratamiento...</option>';
+                data.forEach(t => {
+                    const opt = document.createElement('option');
+                    opt.value = t.id;
+                    opt.textContent = t.descripcion;
+                    if (preselect && t.id === preselect) opt.selected = true;
+                    tratamientoSelect.appendChild(opt);
+                });
+                if (data.length === 0) {
+                    tratamientoSelect.innerHTML = '<option value="">Sin tratamientos para este paciente</option>';
+                    tratamientoSelect.disabled = true;
+                } else {
+                    tratamientoSelect.disabled = false;
+                }
+            } catch {
+                tratamientoSelect.innerHTML = '<option value="">Error al cargar</option>';
+            }
+        }
+
+        // Al cargar la página, traer tratamientos del paciente ya seleccionado
+        if (pacienteSelect.value) cargarTratamientos(parseInt(pacienteSelect.value, 10), selectedTratId);
+
+        pacienteSelect.addEventListener('change', () => cargarTratamientos(parseInt(pacienteSelect.value, 10), null));
+    })();
+    </script>
 }

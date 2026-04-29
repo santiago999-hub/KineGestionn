@@ -23,9 +23,8 @@ namespace KineGestion.Core.Entities
         [Required]
         public DateTime FechaNacimiento { get; set; }
 
-        [Required]
         [StringLength(150)]
-        public string ObraSocial { get; set; } = string.Empty;
+        public string? ObraSocial { get; set; }
 
         [StringLength(20)]
         public string? Telefono { get; set; }

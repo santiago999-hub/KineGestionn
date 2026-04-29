@@ -71,6 +71,20 @@ namespace KineGestion.Web.Controllers
             return View(viewModel);
         }
 
+        [HttpGet]
+        public async Task<IActionResult> ByPatient(int patientId)
+        {
+            if (patientId <= 0)
+                return Json(Array.Empty<object>());
+
+            var treatments = await _treatmentService.GetByPatientIdAsync(patientId);
+            var result = treatments
+                .Select(t => new { id = t.Id, descripcion = t.Descripcion })
+                .ToList();
+
+            return Json(result);
+        }
+
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(SessionViewModel viewModel)
@@ -174,10 +188,15 @@ namespace KineGestion.Web.Controllers
 
         private async Task LoadSelectListsAsync(SessionViewModel viewModel)
         {
-            var patients = await _patientService.GetAllAsync();
-            var professionals = await _professionalService.GetActiveProfessionalsAsync();
-            var treatments = await _treatmentService.GetAllAsync();
-            var offices = await _officeService.GetActiveAsync();
+            var patientsTask      = _patientService.GetAllAsync();
+            var professionalsTask = _professionalService.GetActiveProfessionalsAsync();
+            var treatmentsTask    = _treatmentService.GetAllAsync();
+            var officesTask       = _officeService.GetActiveAsync();
+            await Task.WhenAll(patientsTask, professionalsTask, treatmentsTask, officesTask);
+            var patients      = patientsTask.Result;
+            var professionals = professionalsTask.Result;
+            var treatments    = treatmentsTask.Result;
+            var offices       = officesTask.Result;
 
             viewModel.Pacientes = patients
                 .Select(p => new SelectListItem
