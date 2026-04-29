@@ -11,12 +11,14 @@ namespace KineGestion.Tests
     public class OfficeServiceTests
     {
         private readonly Mock<IOfficeRepository> _repositoryMock;
+        private readonly Mock<ISessionRepository> _sessionRepositoryMock;
         private readonly OfficeService _service;
 
         public OfficeServiceTests()
         {
             _repositoryMock = new Mock<IOfficeRepository>();
-            _service = new OfficeService(_repositoryMock.Object);
+            _sessionRepositoryMock = new Mock<ISessionRepository>();
+            _service = new OfficeService(_repositoryMock.Object, _sessionRepositoryMock.Object);
         }
 
         [Fact]
@@ -93,6 +95,33 @@ namespace KineGestion.Tests
                 Name = "Consultorio A",
                 IsActive = true
             };
+        }
+
+        [Fact]
+        public async Task DeleteAsync_ShouldThrow_WhenOfficeHasSessions()
+        {
+            _sessionRepositoryMock
+                .Setup(r => r.CountByOfficeIdAsync(1))
+                .ReturnsAsync(2);
+
+            await Assert.ThrowsAsync<BusinessValidationException>(() => _service.DeleteAsync(1));
+            _repositoryMock.Verify(r => r.DeleteAsync(It.IsAny<int>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task DeleteAsync_ShouldDelete_WhenOfficeHasNoSessions()
+        {
+            _sessionRepositoryMock
+                .Setup(r => r.CountByOfficeIdAsync(1))
+                .ReturnsAsync(0);
+
+            _repositoryMock
+                .Setup(r => r.DeleteAsync(1))
+                .Returns(Task.CompletedTask);
+
+            await _service.DeleteAsync(1);
+
+            _repositoryMock.Verify(r => r.DeleteAsync(1), Times.Once);
         }
     }
 }

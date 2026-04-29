@@ -9,10 +9,12 @@ namespace KineGestion.Core.Services
     public class OfficeService : IOfficeService
     {
         private readonly IOfficeRepository _repository;
+        private readonly ISessionRepository _sessionRepository;
 
-        public OfficeService(IOfficeRepository repository)
+        public OfficeService(IOfficeRepository repository, ISessionRepository sessionRepository)
         {
             _repository = repository;
+            _sessionRepository = sessionRepository;
         }
 
         public async Task<Office?> GetByIdAsync(int id)
@@ -37,7 +39,15 @@ namespace KineGestion.Core.Services
         }
 
         public async Task DeleteAsync(int id)
-            => await _repository.DeleteAsync(id);
+        {
+            int sesiones = await _sessionRepository.CountByOfficeIdAsync(id);
+            if (sesiones > 0)
+                throw new BusinessValidationException(
+                    $"No se puede eliminar el consultorio porque tiene {sesiones} sesión(es) asociada(s).",
+                    string.Empty);
+
+            await _repository.DeleteAsync(id);
+        }
 
         private async Task ValidateNameUniquenessAsync(string name, int? excludeId = null)
         {

@@ -35,6 +35,11 @@ namespace KineGestion.Data.Repositories
                              .Include(t => t.Patient)
                              .ToListAsync();
 
+        public async Task<int> CountByPatientIdAsync(int patientId)
+            => await _context.Treatments
+                             .AsNoTracking()
+                             .CountAsync(t => t.PatientId == patientId);
+
         public async Task<Treatment> AddAsync(Treatment treatment)
         {
             _context.Treatments.Add(treatment);

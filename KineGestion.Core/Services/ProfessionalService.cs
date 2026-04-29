@@ -10,10 +10,12 @@ namespace KineGestion.Core.Services
     public class ProfessionalService : IProfessionalService
     {
         private readonly IProfessionalRepository _repository;
+        private readonly ISessionRepository _sessionRepository;
 
-        public ProfessionalService(IProfessionalRepository repository)
+        public ProfessionalService(IProfessionalRepository repository, ISessionRepository sessionRepository)
         {
             _repository = repository;
+            _sessionRepository = sessionRepository;
         }
 
         public async Task<Professional?> GetByIdAsync(int id)
@@ -48,6 +50,14 @@ namespace KineGestion.Core.Services
         }
 
         public async Task DeleteAsync(int id)
-            => await _repository.DeleteAsync(id);
+        {
+            int sesiones = await _sessionRepository.CountByProfessionalIdAsync(id);
+            if (sesiones > 0)
+                throw new BusinessValidationException(
+                    $"No se puede eliminar el profesional porque tiene {sesiones} sesión(es) registrada(s).",
+                    string.Empty);
+
+            await _repository.DeleteAsync(id);
+        }
     }
 }

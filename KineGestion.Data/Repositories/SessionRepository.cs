@@ -125,6 +125,21 @@ namespace KineGestion.Data.Repositories
                              .AsNoTracking()
                              .CountAsync(s => s.TreatmentId == treatmentId);
 
+        public async Task<int> CountByPatientIdAsync(int patientId)
+            => await _context.Sessions
+                             .AsNoTracking()
+                             .CountAsync(s => s.PatientId == patientId);
+
+        public async Task<int> CountByProfessionalIdAsync(int professionalId)
+            => await _context.Sessions
+                             .AsNoTracking()
+                             .CountAsync(s => s.ProfessionalId == professionalId);
+
+        public async Task<int> CountByOfficeIdAsync(int officeId)
+            => await _context.Sessions
+                             .AsNoTracking()
+                             .CountAsync(s => s.OfficeId == officeId);
+
         public async Task<Session> AddAsync(Session session)
         {
             _context.Sessions.Add(session);

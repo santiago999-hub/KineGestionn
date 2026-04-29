@@ -12,12 +12,14 @@ namespace KineGestion.Tests
     public class ProfessionalServiceTests
     {
         private readonly Mock<IProfessionalRepository> _repositoryMock;
+        private readonly Mock<ISessionRepository> _sessionRepositoryMock;
         private readonly ProfessionalService _service;
 
         public ProfessionalServiceTests()
         {
             _repositoryMock = new Mock<IProfessionalRepository>();
-            _service = new ProfessionalService(_repositoryMock.Object);
+            _sessionRepositoryMock = new Mock<ISessionRepository>();
+            _service = new ProfessionalService(_repositoryMock.Object, _sessionRepositoryMock.Object);
         }
 
         [Fact]
@@ -103,6 +105,33 @@ namespace KineGestion.Tests
                 Especialidad = "Deportiva",
                 IsActivo = true
             };
+        }
+
+        [Fact]
+        public async Task DeleteAsync_ShouldThrow_WhenProfessionalHasSessions()
+        {
+            _sessionRepositoryMock
+                .Setup(r => r.CountByProfessionalIdAsync(1))
+                .ReturnsAsync(4);
+
+            await Assert.ThrowsAsync<BusinessValidationException>(() => _service.DeleteAsync(1));
+            _repositoryMock.Verify(r => r.DeleteAsync(It.IsAny<int>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task DeleteAsync_ShouldDelete_WhenProfessionalHasNoSessions()
+        {
+            _sessionRepositoryMock
+                .Setup(r => r.CountByProfessionalIdAsync(1))
+                .ReturnsAsync(0);
+
+            _repositoryMock
+                .Setup(r => r.DeleteAsync(1))
+                .Returns(Task.CompletedTask);
+
+            await _service.DeleteAsync(1);
+
+            _repositoryMock.Verify(r => r.DeleteAsync(1), Times.Once);
         }
     }
 }

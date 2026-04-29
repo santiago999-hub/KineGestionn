@@ -13,12 +13,19 @@ namespace KineGestion.Tests
     public class PatientServiceTests
     {
         private readonly Mock<IPatientRepository> _repositoryMock;
+        private readonly Mock<ITreatmentRepository> _treatmentRepositoryMock;
+        private readonly Mock<ISessionRepository> _sessionRepositoryMock;
         private readonly PatientService _service;
 
         public PatientServiceTests()
         {
             _repositoryMock = new Mock<IPatientRepository>();
-            _service = new PatientService(_repositoryMock.Object);
+            _treatmentRepositoryMock = new Mock<ITreatmentRepository>();
+            _sessionRepositoryMock = new Mock<ISessionRepository>();
+            _service = new PatientService(
+                _repositoryMock.Object,
+                _treatmentRepositoryMock.Object,
+                _sessionRepositoryMock.Object);
         }
 
         [Fact]
@@ -94,6 +101,52 @@ namespace KineGestion.Tests
                 ObraSocial = "OSDE",
                 IsActivo = true
             };
+        }
+
+        [Fact]
+        public async Task DeleteAsync_ShouldThrow_WhenPatientHasTreatments()
+        {
+            _treatmentRepositoryMock
+                .Setup(r => r.CountByPatientIdAsync(1))
+                .ReturnsAsync(3);
+
+            await Assert.ThrowsAsync<BusinessValidationException>(() => _service.DeleteAsync(1));
+            _repositoryMock.Verify(r => r.DeleteAsync(It.IsAny<int>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task DeleteAsync_ShouldThrow_WhenPatientHasSessionsOnly()
+        {
+            _treatmentRepositoryMock
+                .Setup(r => r.CountByPatientIdAsync(1))
+                .ReturnsAsync(0);
+
+            _sessionRepositoryMock
+                .Setup(r => r.CountByPatientIdAsync(1))
+                .ReturnsAsync(2);
+
+            await Assert.ThrowsAsync<BusinessValidationException>(() => _service.DeleteAsync(1));
+            _repositoryMock.Verify(r => r.DeleteAsync(It.IsAny<int>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task DeleteAsync_ShouldDelete_WhenPatientHasNoDependencies()
+        {
+            _treatmentRepositoryMock
+                .Setup(r => r.CountByPatientIdAsync(1))
+                .ReturnsAsync(0);
+
+            _sessionRepositoryMock
+                .Setup(r => r.CountByPatientIdAsync(1))
+                .ReturnsAsync(0);
+
+            _repositoryMock
+                .Setup(r => r.DeleteAsync(1))
+                .Returns(Task.CompletedTask);
+
+            await _service.DeleteAsync(1);
+
+            _repositoryMock.Verify(r => r.DeleteAsync(1), Times.Once);
         }
     }
 }

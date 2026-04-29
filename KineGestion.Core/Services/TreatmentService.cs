@@ -10,10 +10,12 @@ namespace KineGestion.Core.Services
     public class TreatmentService : ITreatmentService
     {
         private readonly ITreatmentRepository _repository;
+        private readonly ISessionRepository _sessionRepository;
 
-        public TreatmentService(ITreatmentRepository repository)
+        public TreatmentService(ITreatmentRepository repository, ISessionRepository sessionRepository)
         {
             _repository = repository;
+            _sessionRepository = sessionRepository;
         }
 
         public async Task<Treatment?> GetByIdAsync(int id)
@@ -38,7 +40,15 @@ namespace KineGestion.Core.Services
         }
 
         public async Task DeleteAsync(int id)
-            => await _repository.DeleteAsync(id);
+        {
+            int sesiones = await _sessionRepository.CountByTreatmentIdAsync(id);
+            if (sesiones > 0)
+                throw new BusinessValidationException(
+                    $"No se puede eliminar el tratamiento porque tiene {sesiones} sesión(es) asociada(s).",
+                    string.Empty);
+
+            await _repository.DeleteAsync(id);
+        }
 
         private static void ValidateTreatment(Treatment treatment)
         {

@@ -13,12 +13,14 @@ namespace KineGestion.Tests
     public class TreatmentServiceTests
     {
         private readonly Mock<ITreatmentRepository> _repositoryMock;
+        private readonly Mock<ISessionRepository> _sessionRepositoryMock;
         private readonly TreatmentService _service;
 
         public TreatmentServiceTests()
         {
             _repositoryMock = new Mock<ITreatmentRepository>();
-            _service = new TreatmentService(_repositoryMock.Object);
+            _sessionRepositoryMock = new Mock<ISessionRepository>();
+            _service = new TreatmentService(_repositoryMock.Object, _sessionRepositoryMock.Object);
         }
 
         [Fact]
@@ -82,6 +84,17 @@ namespace KineGestion.Tests
 
             await Assert.ThrowsAsync<BusinessValidationException>(() => _service.UpdateAsync(treatment));
             _repositoryMock.Verify(r => r.UpdateAsync(It.IsAny<Treatment>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task DeleteAsync_ShouldThrow_WhenTreatmentHasSessions()
+        {
+            _sessionRepositoryMock
+                .Setup(r => r.CountByTreatmentIdAsync(9))
+                .ReturnsAsync(5);
+
+            await Assert.ThrowsAsync<BusinessValidationException>(() => _service.DeleteAsync(9));
+            _repositoryMock.Verify(r => r.DeleteAsync(It.IsAny<int>()), Times.Never);
         }
 
         [Fact]

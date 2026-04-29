@@ -15,12 +15,17 @@ namespace KineGestion.Core.Services
     public class PatientService : IPatientService
     {
         private readonly IPatientRepository _repository;
+        private readonly ITreatmentRepository _treatmentRepository;
+        private readonly ISessionRepository _sessionRepository;
 
-        // Dependency Injection: el contenedor de ASP.NET Core inyecta
-        // automáticamente la implementación concreta (PatientRepository).
-        public PatientService(IPatientRepository repository)
+        public PatientService(
+            IPatientRepository repository,
+            ITreatmentRepository treatmentRepository,
+            ISessionRepository sessionRepository)
         {
             _repository = repository;
+            _treatmentRepository = treatmentRepository;
+            _sessionRepository = sessionRepository;
         }
 
         public async Task<Patient?> GetByIdAsync(int id)
@@ -66,7 +71,21 @@ namespace KineGestion.Core.Services
         }
 
         public async Task DeleteAsync(int id)
-                => await _repository.DeleteAsync(id);
+        {
+            int tratamientos = await _treatmentRepository.CountByPatientIdAsync(id);
+            if (tratamientos > 0)
+                throw new BusinessValidationException(
+                    $"No se puede eliminar el paciente porque tiene {tratamientos} tratamiento(s) registrado(s). Elimine primero los tratamientos asociados.",
+                    string.Empty);
+
+            int sesiones = await _sessionRepository.CountByPatientIdAsync(id);
+            if (sesiones > 0)
+                throw new BusinessValidationException(
+                    $"No se puede eliminar el paciente porque tiene {sesiones} sesión(es) registrada(s). Elimine primero las sesiones asociadas.",
+                    string.Empty);
+
+            await _repository.DeleteAsync(id);
+        }
 
             /// <summary>
             /// LÓGICA DE NEGOCIO: la fecha de nacimiento no puede ser futura.
