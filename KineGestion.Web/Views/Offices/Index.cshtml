@@ -1,4 +1,4 @@
-@model IEnumerable<KineGestion.Web.Models.ViewModels.OfficeViewModel>
+@model KineGestion.Web.Models.ViewModels.OfficeIndexViewModel
 
 @{
     ViewData["Title"] = "Consultorios";
@@ -19,18 +19,23 @@
         <h5 class="kg-card-header-title">
             <i class="bi bi-building"></i> Listado de Consultorios
         </h5>
-        <span class="kg-badge kg-badge-muted">@Model.Count() registros</span>
+        <span class="kg-badge kg-badge-muted">@Model.TotalCount registros</span>
     </div>
 
-    @if (TempData["Success"] != null)
-    {
-        <div class="alert alert-success alert-dismissible fade show mx-4 mt-3" role="alert">
-            <i class="bi bi-check-circle-fill me-2"></i>@TempData["Success"]
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    <form method="get" class="px-3 pt-3 pb-1">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-6">
+                <label class="form-label small text-muted">Buscar</label>
+                <input name="search" value="@Model.Search" class="form-control" placeholder="Nombre del consultorio" />
+            </div>
+            <div class="col-md-3 d-flex gap-2">
+                <button type="submit" class="btn-kg-primary w-100"><i class="bi bi-search"></i></button>
+                <a asp-action="Index" class="btn-kg-outline w-100"><i class="bi bi-x-lg"></i></a>
+            </div>
         </div>
-    }
+    </form>
 
-    @if (!Model.Any())
+    @if (!Model.Items.Any())
     {
         <div class="kg-empty">
             <div class="kg-empty-icon"><i class="bi bi-building"></i></div>
@@ -53,7 +58,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach (var o in Model)
+                    @foreach (var o in Model.Items)
                     {
                         <tr>
                             <td>
@@ -76,15 +81,9 @@
                             </td>
                             <td style="text-align:right">
                                 <div style="display:flex;gap:6px;justify-content:flex-end">
-                                    <a asp-action="Details" asp-route-id="@o.Id" class="btn btn-sm btn-outline-secondary" title="Ver detalle">
-                                        <i class="bi bi-eye"></i>
-                                    </a>
-                                    <a asp-action="Edit" asp-route-id="@o.Id" class="btn btn-sm btn-outline-primary" title="Editar">
-                                        <i class="bi bi-pencil"></i>
-                                    </a>
-                                    <a asp-action="Delete" asp-route-id="@o.Id" class="btn btn-sm btn-outline-danger" title="Eliminar">
-                                        <i class="bi bi-trash"></i>
-                                    </a>
+                                    <a asp-action="Details" asp-route-id="@o.Id" class="kg-action-btn view" title="Ver detalle"><i class="bi bi-eye-fill"></i></a>
+                                    <a asp-action="Edit" asp-route-id="@o.Id" class="kg-action-btn edit" title="Editar"><i class="bi bi-pencil-fill"></i></a>
+                                    <a asp-action="Delete" asp-route-id="@o.Id" class="kg-action-btn del" title="Eliminar"><i class="bi bi-trash-fill"></i></a>
                                 </div>
                             </td>
                         </tr>
@@ -92,5 +91,19 @@
                 </tbody>
             </table>
         </div>
+        <div style="padding:12px 18px;border-top:1px solid var(--kg-border);font-size:.76rem;color:var(--kg-text-muted)">
+            Mostrando @Model.Items.Count() de @Model.TotalCount consultorios
+        </div>
+
+        @if (Model.TotalPages > 1)
+        {
+            <div style="padding:12px 18px;border-top:1px solid var(--kg-border);display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+                <span style="font-size:.78rem;color:var(--kg-text-muted)">Página @Model.Page de @Model.TotalPages</span>
+                <div style="display:flex;gap:6px">
+                    <a asp-action="Index" asp-route-page="@(Model.Page - 1)" asp-route-pageSize="@Model.PageSize" asp-route-search="@Model.Search" class="btn-kg-outline @(Model.Page <= 1 ? "disabled" : "")">Anterior</a>
+                    <a asp-action="Index" asp-route-page="@(Model.Page + 1)" asp-route-pageSize="@Model.PageSize" asp-route-search="@Model.Search" class="btn-kg-outline @(Model.Page >= Model.TotalPages ? "disabled" : "")">Siguiente</a>
+                </div>
+            </div>
+        }
     }
 </div>

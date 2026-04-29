@@ -35,6 +35,25 @@ namespace KineGestion.Data.Repositories
                 .OrderBy(o => o.Name)
                 .ToListAsync();
 
+        public async Task<(IEnumerable<Office> Offices, int TotalCount)> GetPagedAsync(int page, int pageSize, string? search)
+        {
+            var query = _context.Offices.AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(search))
+                query = query.Where(o => o.Name.Contains(search));
+
+            int totalCount = await query.CountAsync();
+
+            var offices = await query
+                .OrderBy(o => o.Name)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Include(o => o.Equipments)
+                .ToListAsync();
+
+            return (offices, totalCount);
+        }
+
         public async Task<bool> ExistsByNameAsync(string name, int? excludeId = null)
             => await _context.Offices
                 .AnyAsync(o => o.Name.ToLower() == name.ToLower()

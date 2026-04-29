@@ -22,11 +22,11 @@
             <p style="color:#dc2626">El tratamiento <strong>@Model.Descripcion</strong> del paciente <strong>@Model.PacienteNombre</strong> será eliminado permanentemente.</p>
         </div>
     </div>
-    @if (Model.CantidadSesionesTotales > 0)
+    @if ((int)ViewBag.SessionCount > 0)
     {
         <div class="alert alert-warning mx-4 mt-3" role="alert">
             <i class="bi bi-exclamation-triangle-fill me-2"></i>
-            <strong>No se puede eliminar este tratamiento</strong> porque tiene <strong>@Model.CantidadSesionesTotales sesión(es)</strong> registrada(s). Eliminá primero esas sesiones.
+            <strong>No se puede eliminar este tratamiento</strong> porque tiene <strong>@ViewBag.SessionCount sesión(es)</strong> registrada(s). Eliminá primero esas sesiones.
         </div>
     }
     <div class="kg-form-body">
@@ -51,7 +51,7 @@
     </div>
     <div class="kg-form-footer">
         <a asp-action="Index" class="btn-kg-outline"><i class="bi bi-x-lg"></i> Cancelar</a>
-        @if (Model.CantidadSesionesTotales == 0)
+        @if ((int)ViewBag.SessionCount == 0)
         {
             <form asp-action="Delete" asp-route-id="@Model.Id" method="post" style="display:inline">
                 @Html.AntiForgeryToken()

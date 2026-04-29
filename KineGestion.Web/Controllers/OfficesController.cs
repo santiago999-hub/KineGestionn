@@ -20,11 +20,24 @@ namespace KineGestion.Web.Controllers
         }
 
         // GET: /Offices
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(string? search, int page = 1, int pageSize = 10)
         {
-            var offices = await _officeService.GetAllAsync();
+            if (page < 1) page = 1;
+            if (pageSize is < 5 or > 50) pageSize = 10;
+
+            var (offices, totalCount) = await _officeService.GetPagedAsync(page, pageSize, search);
             var viewModels = System.Linq.Enumerable.Select(offices, OfficeViewModel.FromEntity);
-            return View(viewModels);
+
+            var model = new OfficeIndexViewModel
+            {
+                Items = viewModels,
+                Search = search,
+                Page = page,
+                PageSize = pageSize,
+                TotalCount = totalCount
+            };
+
+            return View(model);
         }
 
         // GET: /Offices/Create

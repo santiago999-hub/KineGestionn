@@ -26,6 +26,9 @@ namespace KineGestion.Core.Services
         public async Task<IEnumerable<Office>> GetActiveAsync()
             => await _repository.GetActiveAsync();
 
+        public async Task<(IEnumerable<Office> Offices, int TotalCount)> GetPagedAsync(int page, int pageSize, string? search)
+            => await _repository.GetPagedAsync(page, pageSize, search);
+
         public async Task<Office> CreateAsync(Office office)
         {
             await ValidateNameUniquenessAsync(office.Name);

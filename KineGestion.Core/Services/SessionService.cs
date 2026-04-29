@@ -54,6 +54,9 @@ namespace KineGestion.Core.Services
         public async Task<int> CountAsync()
             => await _repository.CountAsync();
 
+        public async Task<int> CountByTreatmentIdAsync(int treatmentId)
+            => await _repository.CountByTreatmentIdAsync(treatmentId);
+
         public async Task<int> CountByPatientIdAsync(int patientId)
             => await _repository.CountByPatientIdAsync(patientId);
 

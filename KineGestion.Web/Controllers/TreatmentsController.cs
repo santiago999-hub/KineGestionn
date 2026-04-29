@@ -15,11 +15,13 @@ namespace KineGestion.Web.Controllers
     {
         private readonly ITreatmentService _treatmentService;
         private readonly IPatientService _patientService;
+        private readonly ISessionService _sessionService;
 
-        public TreatmentsController(ITreatmentService treatmentService, IPatientService patientService)
+        public TreatmentsController(ITreatmentService treatmentService, IPatientService patientService, ISessionService sessionService)
         {
             _treatmentService = treatmentService;
             _patientService = patientService;
+            _sessionService = sessionService;
         }
 
         // GET: /Treatments
@@ -140,6 +142,8 @@ namespace KineGestion.Web.Controllers
             var treatment = await _treatmentService.GetByIdAsync(id);
             if (treatment is null)
                 return NotFound();
+
+            ViewBag.SessionCount = await _sessionService.CountByTreatmentIdAsync(id);
 
             return View(TreatmentViewModel.FromEntity(treatment));
         }

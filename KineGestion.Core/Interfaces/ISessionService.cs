@@ -13,6 +13,7 @@ namespace KineGestion.Core.Interfaces
         Task<IEnumerable<Session>> GetAllAsync();
         Task<IEnumerable<Session>> GetByPatientIdAsync(int patientId);
         Task<int> CountAsync();
+        Task<int> CountByTreatmentIdAsync(int treatmentId);
         Task<int> CountByPatientIdAsync(int patientId);
         Task<int> CountByProfessionalIdAsync(int professionalId);
         Task<int> CountByOfficeIdAsync(int officeId);
