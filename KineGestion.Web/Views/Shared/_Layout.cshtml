@@ -85,8 +85,14 @@
                     <div class="kg-avatar">
                         <i class="bi bi-person-fill"></i>
                     </div>
-                    <span class="d-none d-md-inline">Admin</span>
+                    <span class="d-none d-md-inline">@User.Identity?.Name</span>
                 </div>
+                <form asp-controller="Account" asp-action="Logout" method="post" class="d-inline ms-2">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-link p-0" style="color:var(--kg-text-muted);font-size:.85rem" title="Cerrar sesión">
+                        <i class="bi bi-box-arrow-right"></i>
+                    </button>
+                </form>
             </div>
         </header>
 

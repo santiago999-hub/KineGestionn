@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using System;
 using Microsoft.EntityFrameworkCore;
+using KineGestion.Core;
 using KineGestion.Core.Entities;
 using KineGestion.Core.Interfaces;
 using KineGestion.Data.Context;
@@ -35,6 +36,59 @@ namespace KineGestion.Data.Repositories
                              .Include(s => s.Office)
                              .OrderByDescending(s => s.FechaHora)
                              .ToListAsync();
+
+        public async Task<(IEnumerable<Session> Sessions, int TotalCount)> GetPagedForAdminAsync(
+            int page,
+            int pageSize,
+            string? search,
+            SessionStatus? status,
+            PaymentStatus? paymentStatus,
+            string? sortBy,
+            string? sortDir)
+        {
+            var query = _context.Sessions
+                .AsNoTracking()
+                .Include(s => s.Patient)
+                .Include(s => s.Professional)
+                .Include(s => s.Treatment)
+                .Include(s => s.Office)
+                .AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var term = search.Trim();
+                query = query.Where(s =>
+                    (s.Patient != null && (s.Patient.Nombre + " " + s.Patient.Apellido).Contains(term)) ||
+                    (s.Professional != null && (s.Professional.Nombre + " " + s.Professional.Apellido).Contains(term)) ||
+                    (s.Treatment != null && s.Treatment.Descripcion.Contains(term)));
+            }
+
+            if (status.HasValue)
+                query = query.Where(s => s.Status == status.Value);
+
+            if (paymentStatus.HasValue)
+                query = query.Where(s => s.PaymentStatus == paymentStatus.Value);
+
+            var sortField = string.IsNullOrWhiteSpace(sortBy) ? "fecha" : sortBy.Trim().ToLowerInvariant();
+            var descending = !string.Equals(sortDir, "asc", StringComparison.OrdinalIgnoreCase);
+
+            query = (sortField, descending) switch
+            {
+                ("estado", true) => query.OrderByDescending(s => s.Status).ThenByDescending(s => s.FechaHora),
+                ("estado", false) => query.OrderBy(s => s.Status).ThenByDescending(s => s.FechaHora),
+                (_, true) => query.OrderByDescending(s => s.FechaHora),
+                _ => query.OrderBy(s => s.FechaHora)
+            };
+
+            int totalCount = await query.CountAsync();
+
+            var sessions = await query
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return (sessions, totalCount);
+        }
 
         public async Task<IEnumerable<Session>> GetByPatientIdAsync(int patientId)
             => await _context.Sessions

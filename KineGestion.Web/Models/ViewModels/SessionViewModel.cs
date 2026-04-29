@@ -63,6 +63,7 @@ namespace KineGestion.Web.Models.ViewModels
         public string? ProfesionalNombre { get; set; }
         public string? TratamientoDescripcion { get; set; }
         public string? OfficeNombre { get; set; }
+        public bool EvolutionBloqueada { get; set; }
 
         public IEnumerable<SelectListItem> Pacientes { get; set; } = new List<SelectListItem>();
         public IEnumerable<SelectListItem> Profesionales { get; set; } = new List<SelectListItem>();

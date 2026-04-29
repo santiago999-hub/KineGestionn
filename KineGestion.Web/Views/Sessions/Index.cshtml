@@ -1,4 +1,4 @@
-@model IEnumerable<KineGestion.Web.Models.ViewModels.SessionViewModel>
+@model KineGestion.Web.Models.ViewModels.SessionIndexViewModel
 @using KineGestion.Core
 
 @{
@@ -20,10 +20,66 @@
         <h5 class="kg-card-header-title">
             <i class="bi bi-calendar2-check-fill"></i> Historial de Sesiones
         </h5>
-        <span class="kg-badge kg-badge-muted">@Model.Count() registros</span>
+        <span class="kg-badge kg-badge-muted">@Model.TotalCount registros</span>
     </div>
 
-    @if (!Model.Any())
+    <form method="get" class="px-3 pt-3 pb-1">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label small text-muted">Buscar</label>
+                <input name="search" value="@Model.Search" class="form-control" placeholder="Paciente, profesional o tratamiento" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small text-muted">Estado</label>
+                <select name="status" class="form-select">
+                    <option value="">Todos</option>
+                    <option value="Pending" selected="@(Model.Status == SessionStatus.Pending)">Pendiente</option>
+                    <option value="Completed" selected="@(Model.Status == SessionStatus.Completed)">Completada</option>
+                    <option value="Canceled" selected="@(Model.Status == SessionStatus.Canceled)">Cancelada</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small text-muted">Pago</label>
+                <select name="paymentStatus" class="form-select">
+                    <option value="">Todos</option>
+                    <option value="Pending" selected="@(Model.PaymentStatus == PaymentStatus.Pending)">Pendiente</option>
+                    <option value="Paid" selected="@(Model.PaymentStatus == PaymentStatus.Paid)">Pagada</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small text-muted">Orden</label>
+                <select name="sortBy" class="form-select">
+                    <option value="fecha" selected="@(Model.SortBy == "fecha")">Fecha</option>
+                    <option value="estado" selected="@(Model.SortBy == "estado")">Estado</option>
+                </select>
+                <input type="hidden" name="sortDir" value="@Model.SortDir" />
+            </div>
+            <div class="col-md-2 d-flex gap-2">
+                <button type="submit" class="btn-kg-primary w-100"><i class="bi bi-search"></i></button>
+                <a asp-action="Index" class="btn-kg-outline w-100"><i class="bi bi-x-lg"></i></a>
+            </div>
+        </div>
+    </form>
+
+    <div class="px-3 pb-2" style="display:flex;justify-content:flex-end">
+        @{
+            var nextDir = Model.SortDir == "asc" ? "desc" : "asc";
+            var icon = Model.SortDir == "asc" ? "bi-sort-up" : "bi-sort-down";
+        }
+        <a asp-action="Index"
+           asp-route-search="@Model.Search"
+           asp-route-status="@Model.Status"
+           asp-route-paymentStatus="@Model.PaymentStatus"
+           asp-route-sortBy="@Model.SortBy"
+           asp-route-sortDir="@nextDir"
+           asp-route-page="1"
+           asp-route-pageSize="@Model.PageSize"
+           class="btn-kg-outline" style="font-size:.78rem">
+            <i class="bi @icon"></i> Dirección: @(Model.SortDir == "asc" ? "Ascendente" : "Descendente")
+        </a>
+    </div>
+
+    @if (!Model.Items.Any())
     {
         <div class="kg-empty">
             <div class="kg-empty-icon"><i class="bi bi-calendar2-x"></i></div>
@@ -52,7 +108,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach (var s in Model)
+                    @foreach (var s in Model.Items)
                     {
                         <tr>
                             <td>
@@ -105,7 +161,18 @@
             </table>
         </div>
         <div style="padding:12px 18px;border-top:1px solid var(--kg-border);font-size:.76rem;color:var(--kg-text-muted)">
-            Mostrando @Model.Count() sesiones — pagadas: @Model.Count(s => s.PaymentStatus == PaymentStatus.Paid) | pendientes: @Model.Count(s => s.PaymentStatus == PaymentStatus.Pending)
+            Mostrando @Model.Items.Count() de @Model.TotalCount sesiones — pagadas: @Model.Items.Count(s => s.PaymentStatus == PaymentStatus.Paid) | pendientes: @Model.Items.Count(s => s.PaymentStatus == PaymentStatus.Pending)
         </div>
+
+        @if (Model.TotalPages > 1)
+        {
+            <div style="padding:12px 18px;border-top:1px solid var(--kg-border);display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+                <span style="font-size:.78rem;color:var(--kg-text-muted)">Página @Model.Page de @Model.TotalPages</span>
+                <div style="display:flex;gap:6px">
+                    <a asp-action="Index" asp-route-page="@(Model.Page - 1)" asp-route-pageSize="@Model.PageSize" asp-route-search="@Model.Search" asp-route-status="@Model.Status" asp-route-paymentStatus="@Model.PaymentStatus" asp-route-sortBy="@Model.SortBy" asp-route-sortDir="@Model.SortDir" class="btn-kg-outline @(Model.Page <= 1 ? "disabled" : "")">Anterior</a>
+                    <a asp-action="Index" asp-route-page="@(Model.Page + 1)" asp-route-pageSize="@Model.PageSize" asp-route-search="@Model.Search" asp-route-status="@Model.Status" asp-route-paymentStatus="@Model.PaymentStatus" asp-route-sortBy="@Model.SortBy" asp-route-sortDir="@Model.SortDir" class="btn-kg-outline @(Model.Page >= Model.TotalPages ? "disabled" : "")">Siguiente</a>
+                </div>
+            </div>
+        }
     }
 </div>

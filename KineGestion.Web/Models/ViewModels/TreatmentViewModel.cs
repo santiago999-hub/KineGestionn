@@ -30,6 +30,7 @@ namespace KineGestion.Web.Models.ViewModels
 
         // Datos de solo lectura para vistas de detalle
         public string? PacienteNombre { get; set; }
+        public int SesionesRealizadas { get; set; }
 
         // SelectList para el formulario
         public IEnumerable<SelectListItem> Pacientes { get; set; } = new List<SelectListItem>();
@@ -43,7 +44,8 @@ namespace KineGestion.Web.Models.ViewModels
             PacienteId = treatment.PatientId,
             PacienteNombre = treatment.Patient is null
                 ? string.Empty
-                : $"{treatment.Patient.Apellido}, {treatment.Patient.Nombre}"
+                : $"{treatment.Patient.Apellido}, {treatment.Patient.Nombre}",
+            SesionesRealizadas = treatment.Sesiones?.Count ?? 0
         };
 
         public Treatment ToEntity() => new()

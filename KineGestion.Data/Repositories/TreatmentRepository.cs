@@ -25,6 +25,7 @@ namespace KineGestion.Data.Repositories
             => await _context.Treatments
                              .AsNoTracking()
                              .Include(t => t.Patient)
+                             .Include(t => t.Sesiones)
                              .ToListAsync();
 
         public async Task<IEnumerable<Treatment>> GetByPatientIdAsync(int patientId)

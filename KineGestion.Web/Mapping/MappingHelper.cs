@@ -24,7 +24,8 @@ namespace KineGestion.Web.Mapping
                 PacienteNombre = session.Patient is null ? string.Empty : $"{session.Patient.Apellido}, {session.Patient.Nombre}",
                 ProfesionalNombre = session.Professional is null ? string.Empty : $"{session.Professional.Apellido}, {session.Professional.Nombre}",
                 TratamientoDescripcion = session.Treatment?.Descripcion,
-                OfficeNombre = session.Office?.Name
+                OfficeNombre = session.Office?.Name,
+                EvolutionBloqueada = session.EvolutionLockedAt.HasValue
             };
         }
 

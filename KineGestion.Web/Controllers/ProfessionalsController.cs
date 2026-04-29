@@ -4,10 +4,12 @@ using System.Threading.Tasks;
 using KineGestion.Core.Exceptions;
 using KineGestion.Core.Interfaces;
 using KineGestion.Web.Models.ViewModels;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace KineGestion.Web.Controllers
 {
+    [Authorize(Roles = "Admin")]
     public class ProfessionalsController : Controller
     {
         private readonly IProfessionalService _professionalService;

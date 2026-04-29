@@ -1,10 +1,12 @@
 using System.Threading.Tasks;
 using KineGestion.Core.Interfaces;
 using KineGestion.Web.Models.ViewModels;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace KineGestion.Web.Controllers
 {
+    [Authorize(Roles = "Admin")]
     public class OfficesController : Controller
     {
         private readonly IOfficeService _officeService;

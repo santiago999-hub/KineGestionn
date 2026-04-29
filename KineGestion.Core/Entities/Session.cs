@@ -8,10 +8,10 @@ namespace KineGestion.Core.Entities
     {
         public int Id { get; set; }
 
-        [Required(ErrorMessage = "La fecha y hora de la sesión es obligatoria.")]
+        [Required]
         public DateTime FechaHora { get; set; }
 
-        [StringLength(1000, ErrorMessage = "Las observaciones no pueden superar los 1000 caracteres.")]
+        [StringLength(1000)]
         public string? Observaciones { get; set; }
 
         [StringLength(4000)]
@@ -24,7 +24,6 @@ namespace KineGestion.Core.Entities
 
         public PaymentStatus PaymentStatus { get; set; } = PaymentStatus.Pending;
 
-        [Range(1, 365, ErrorMessage = "El número de sesión debe ser mayor a 0.")]
         public int NroSesionEnTratamiento { get; set; }
 
         [Required]
@@ -37,6 +36,12 @@ namespace KineGestion.Core.Entities
         public int TreatmentId { get; set; }
 
         public int? OfficeId { get; set; }
+
+        /// <summary>
+        /// Fecha en que se firmó/bloqueó la evolución clínica.
+        /// Una vez establecida, el campo Evolution no puede modificarse.
+        /// </summary>
+        public DateTime? EvolutionLockedAt { get; set; }
 
         public virtual Patient? Patient { get; set; }
         public virtual Professional? Professional { get; set; }

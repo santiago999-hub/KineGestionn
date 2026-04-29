@@ -8,32 +8,28 @@ namespace KineGestion.Core.Entities
     {
         public int Id { get; set; }
 
-        [Required(ErrorMessage = "El nombre es obligatorio.")]
-        [StringLength(100, ErrorMessage = "El nombre no puede superar los 100 caracteres.")]
+        [Required]
+        [StringLength(100)]
         public string Nombre { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "El apellido es obligatorio.")]
-        [StringLength(100, ErrorMessage = "El apellido no puede superar los 100 caracteres.")]
+        [Required]
+        [StringLength(100)]
         public string Apellido { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "El DNI es obligatorio.")]
-        [StringLength(8, MinimumLength = 7, ErrorMessage = "El DNI debe tener entre 7 y 8 dígitos.")]
-        [RegularExpression(@"^\d+$", ErrorMessage = "El DNI solo debe contener dígitos.")]
+        [Required]
+        [StringLength(8, MinimumLength = 7)]
         public string DNI { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "La fecha de nacimiento es obligatoria.")]
-        [DataType(DataType.Date)]
+        [Required]
         public DateTime FechaNacimiento { get; set; }
 
-        [Required(ErrorMessage = "La obra social es obligatoria. Si no posee, seleccione 'Sin obra social'.")]
-        [StringLength(150, ErrorMessage = "La obra social no puede superar los 150 caracteres.")]
+        [Required]
+        [StringLength(150)]
         public string ObraSocial { get; set; } = string.Empty;
 
-        [Phone(ErrorMessage = "El formato del teléfono no es válido.")]
         [StringLength(20)]
         public string? Telefono { get; set; }
 
-        [EmailAddress(ErrorMessage = "El formato del email no es válido.")]
         [StringLength(150)]
         public string? Email { get; set; }
 

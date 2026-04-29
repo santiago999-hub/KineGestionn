@@ -5,11 +5,13 @@ using KineGestion.Core;
 using KineGestion.Core.Exceptions;
 using KineGestion.Core.Interfaces;
 using KineGestion.Web.Models.ViewModels;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace KineGestion.Web.Controllers
 {
+    [Authorize(Roles = "Admin,Kinesiologo")]
     public class SessionsController : Controller
     {
         private readonly ISessionService _sessionService;
@@ -33,11 +35,28 @@ namespace KineGestion.Web.Controllers
         }
 
         // Listado administrativo: no incluye Evolution
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(string? search, SessionStatus? status, PaymentStatus? paymentStatus, string? sortBy = "fecha", string? sortDir = "desc", int page = 1, int pageSize = 10)
         {
-            var sessions = await _sessionService.GetAllForAdminAsync();
-            var viewModels = sessions.Select(SessionViewModel.FromEntityForAdmin);
-            return View(viewModels);
+            if (page < 1) page = 1;
+            if (pageSize is < 5 or > 50) pageSize = 10;
+
+            var (sessions, totalCount) = await _sessionService.GetPagedForAdminAsync(page, pageSize, search, status, paymentStatus, sortBy, sortDir);
+            var viewModels = sessions.Select(SessionViewModel.FromEntityForAdmin).ToList();
+
+            var model = new SessionIndexViewModel
+            {
+                Items = viewModels,
+                Search = search,
+                Status = status,
+                PaymentStatus = paymentStatus,
+                SortBy = string.IsNullOrWhiteSpace(sortBy) ? "fecha" : sortBy,
+                SortDir = string.IsNullOrWhiteSpace(sortDir) ? "desc" : sortDir,
+                Page = page,
+                PageSize = pageSize,
+                TotalCount = totalCount
+            };
+
+            return View(model);
         }
 
         public async Task<IActionResult> Create(int? patientId = null)
@@ -132,6 +151,7 @@ namespace KineGestion.Web.Controllers
         }
 
         // GET: /Sessions/Delete/5
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Delete(int id)
         {
             var session = await _sessionService.GetByIdAsync(id);
@@ -144,6 +164,7 @@ namespace KineGestion.Web.Controllers
         // POST: /Sessions/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
             await _sessionService.DeleteAsync(id);

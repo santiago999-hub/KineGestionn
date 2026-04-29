@@ -41,7 +41,7 @@
                     <tr>
                         <th>Tratamiento</th>
                         <th>Paciente</th>
-                        <th>Sesiones totales</th>
+                        <th>Progreso</th>
                         <th>Fecha inicio</th>
                         <th style="text-align:right">Acciones</th>
                     </tr>
@@ -60,9 +60,21 @@
                             </td>
                             <td>@(t.PacienteNombre ?? "—")</td>
                             <td>
-                                <span class="kg-badge kg-badge-primary">
-                                    <i class="bi bi-calendar2-check"></i> @t.CantidadSesionesTotales sesiones
-                                </span>
+                                @{
+                                    var pct = t.CantidadSesionesTotales > 0
+                                        ? (int)Math.Round((double)t.SesionesRealizadas / t.CantidadSesionesTotales * 100)
+                                        : 0;
+                                    var barColor = pct >= 100 ? "#16a34a" : pct >= 50 ? "#2563eb" : "#f59e0b";
+                                }
+                                <div style="min-width:130px">
+                                    <div style="display:flex;justify-content:space-between;font-size:.76rem;margin-bottom:4px">
+                                        <span style="font-weight:600;color:var(--kg-text)">@t.SesionesRealizadas / @t.CantidadSesionesTotales</span>
+                                        <span style="color:var(--kg-text-muted)">@pct%</span>
+                                    </div>
+                                    <div style="height:6px;border-radius:99px;background:var(--kg-border)">
+                                        <div style="height:6px;border-radius:99px;width:@(pct)%;background:@barColor;transition:width .3s"></div>
+                                    </div>
+                                </div>
                             </td>
                             <td>@t.FechaInicio.ToString("dd/MM/yyyy")</td>
                             <td>

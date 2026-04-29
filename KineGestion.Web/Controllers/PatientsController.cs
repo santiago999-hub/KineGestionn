@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using KineGestion.Core.Exceptions;
 using KineGestion.Core.Interfaces;
@@ -8,6 +9,7 @@ using KineGestion.Web.Models.ViewModels;
 
 namespace KineGestion.Web.Controllers
 {
+    [Authorize(Roles = "Admin")]
     public class PatientsController : Controller
     {
         private readonly IPatientService _patientService;

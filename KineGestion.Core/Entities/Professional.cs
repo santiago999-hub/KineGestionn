@@ -7,20 +7,20 @@ namespace KineGestion.Core.Entities
     {
         public int Id { get; set; }
 
-        [Required(ErrorMessage = "El nombre del profesional es obligatorio.")]
-        [StringLength(100, ErrorMessage = "El nombre no puede superar los 100 caracteres.")]
+        [Required]
+        [StringLength(100)]
         public string Nombre { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "El apellido del profesional es obligatorio.")]
-        [StringLength(100, ErrorMessage = "El apellido no puede superar los 100 caracteres.")]
+        [Required]
+        [StringLength(100)]
         public string Apellido { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "La matrícula es obligatoria.")]
-        [StringLength(20, ErrorMessage = "La matrícula no puede superar los 20 caracteres.")]
+        [Required]
+        [StringLength(20)]
         public string Matricula { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "La especialidad es obligatoria.")]
-        [StringLength(100, ErrorMessage = "La especialidad no puede superar los 100 caracteres.")]
+        [Required]
+        [StringLength(100)]
         public string Especialidad { get; set; } = string.Empty;
 
         /// <summary>

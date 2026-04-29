@@ -1,4 +1,6 @@
 using KineGestion.Core.Entities;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Linq;
@@ -7,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace KineGestion.Data.Context
 {
-    public class AppDbContext : DbContext
+    public class AppDbContext : IdentityDbContext<IdentityUser>
     {
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
@@ -21,6 +23,12 @@ namespace KineGestion.Data.Context
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+
+            // ─── GLOBAL QUERY FILTERS (Soft Delete) ──────────────────────────────
+            // Office no tiene dependencias inversas requeridas, filtro global seguro.
+            // Professional y Patient filtran IsActivo en sus repositorios
+            // para evitar NullRef en las navigation properties de Session.
+            modelBuilder.Entity<Office>().HasQueryFilter(o => o.IsActive);
 
             ConfigureAuditableEntity<Patient>(modelBuilder);
             ConfigureAuditableEntity<Professional>(modelBuilder);
