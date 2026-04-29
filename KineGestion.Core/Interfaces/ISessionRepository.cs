@@ -18,6 +18,7 @@ namespace KineGestion.Core.Interfaces
         Task<int> CountByPatientIdAsync(int patientId);
         Task<int> CountByProfessionalIdAsync(int professionalId);
         Task<int> CountByOfficeIdAsync(int officeId);
+        Task<int> CountAsync();
         Task<Session> AddAsync(Session session);
         Task<Session> UpdateAsync(Session session);
         Task DeleteAsync(int id);

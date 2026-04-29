@@ -10,6 +10,7 @@ namespace KineGestion.Core.Interfaces
         Task<IEnumerable<Professional>> GetAllAsync();
         Task<IEnumerable<Professional>> GetActiveProfessionalsAsync();
         Task<(IEnumerable<Professional> Professionals, int TotalCount)> GetPagedAsync(int page, int pageSize, string? search);
+        Task<int> CountActiveAsync();
         Task ValidateMatriculaUniquenessAsync(string matricula, int? excludeId = null);
         Task<Professional> CreateAsync(Professional professional);
         Task<Professional> UpdateAsync(Professional professional);

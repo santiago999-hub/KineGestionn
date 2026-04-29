@@ -44,6 +44,9 @@ namespace KineGestion.Core.Services
         public async Task<(IEnumerable<Patient> Patients, int TotalCount)> GetPagedAsync(int page, int pageSize, string? search)
             => await _repository.GetPagedAsync(page, pageSize, search);
 
+        public async Task<int> CountActiveAsync()
+            => await _repository.CountActiveAsync();
+
         /// <summary>
         /// LÓGICA DE NEGOCIO: un DNI no puede estar registrado dos veces.
         /// El Service sabe QUÉ validar; el Repository sabe CÓMO consultarlo.

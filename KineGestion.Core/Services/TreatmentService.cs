@@ -30,6 +30,9 @@ namespace KineGestion.Core.Services
         public async Task<(IEnumerable<Treatment> Treatments, int TotalCount)> GetPagedAsync(int page, int pageSize, string? search)
             => await _repository.GetPagedAsync(page, pageSize, search);
 
+        public async Task<int> CountAsync()
+            => await _repository.CountAsync();
+
         public async Task<Treatment> CreateAsync(Treatment treatment)
         {
             ValidateTreatment(treatment);

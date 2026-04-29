@@ -33,17 +33,19 @@ public class HomeController : Controller
 
     public async Task<IActionResult> Index()
     {
-        var activePatients = await _patientService.GetAllAsync();
-        var activeProfessionals = await _professionalService.GetActiveProfessionalsAsync();
-        var treatments = await _treatmentService.GetAllAsync();
-        var sessions = await _sessionService.GetAllForAdminAsync();
+        var countPatients = _patientService.CountActiveAsync();
+        var countProfessionals = _professionalService.CountActiveAsync();
+        var countTreatments = _treatmentService.CountAsync();
+        var countSessions = _sessionService.CountAsync();
+
+        await System.Threading.Tasks.Task.WhenAll(countPatients, countProfessionals, countTreatments, countSessions);
 
         var model = new HomeDashboardViewModel
         {
-            PacientesActivosCount = activePatients.Count(),
-            ProfesionalesActivosCount = activeProfessionals.Count(),
-            TratamientosCount = treatments.Count(),
-            SesionesCount = sessions.Count()
+            PacientesActivosCount = countPatients.Result,
+            ProfesionalesActivosCount = countProfessionals.Result,
+            TratamientosCount = countTreatments.Result,
+            SesionesCount = countSessions.Result
         };
 
         return View(model);

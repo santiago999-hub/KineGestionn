@@ -67,6 +67,9 @@ namespace KineGestion.Data.Repositories
             return (patients, totalCount);
         }
 
+        public async Task<int> CountActiveAsync()
+            => await _context.Patients.AsNoTracking().CountAsync(p => p.IsActivo);
+
         public async Task<Patient> AddAsync(Patient patient)
         {
             _context.Patients.Add(patient);

@@ -140,6 +140,9 @@ namespace KineGestion.Data.Repositories
                              .AsNoTracking()
                              .CountAsync(s => s.OfficeId == officeId);
 
+        public async Task<int> CountAsync()
+            => await _context.Sessions.AsNoTracking().CountAsync();
+
         public async Task<Session> AddAsync(Session session)
         {
             _context.Sessions.Add(session);

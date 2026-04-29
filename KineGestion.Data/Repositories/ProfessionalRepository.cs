@@ -54,6 +54,9 @@ namespace KineGestion.Data.Repositories
             return (professionals, totalCount);
         }
 
+        public async Task<int> CountActiveAsync()
+            => await _context.Professionals.AsNoTracking().CountAsync(p => p.IsActivo);
+
         public async Task<Professional> AddAsync(Professional professional)
         {
             _context.Professionals.Add(professional);

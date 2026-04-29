@@ -51,6 +51,9 @@ namespace KineGestion.Core.Services
         public async Task<IEnumerable<Session>> GetByPatientIdAsync(int patientId)
             => await _repository.GetByPatientIdAsync(patientId);
 
+        public async Task<int> CountAsync()
+            => await _repository.CountAsync();
+
         public async Task<Session> CreateAsync(Session session)
         {
             await ValidateProfessionalAvailabilityAsync(session.ProfessionalId, session.FechaHora);

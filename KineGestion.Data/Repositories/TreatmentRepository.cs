@@ -63,6 +63,9 @@ namespace KineGestion.Data.Repositories
             return (treatments, totalCount);
         }
 
+        public async Task<int> CountAsync()
+            => await _context.Treatments.AsNoTracking().CountAsync();
+
         public async Task<Treatment> AddAsync(Treatment treatment)
         {
             _context.Treatments.Add(treatment);
