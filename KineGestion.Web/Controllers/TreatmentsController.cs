@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using KineGestion.Core.Exceptions;
 using KineGestion.Core.Interfaces;
 using KineGestion.Web.Models.ViewModels;
 using Microsoft.AspNetCore.Authorization;
@@ -52,10 +53,20 @@ namespace KineGestion.Web.Controllers
                 return View(viewModel);
             }
 
-            var treatment = viewModel.ToEntity();
-            await _treatmentService.CreateAsync(treatment);
-            TempData["Success"] = $"Tratamiento '{viewModel.Descripcion}' registrado correctamente.";
-            return RedirectToAction(nameof(Index));
+            try
+            {
+                var treatment = viewModel.ToEntity();
+                await _treatmentService.CreateAsync(treatment);
+                TempData["Success"] = $"Tratamiento '{viewModel.Descripcion}' registrado correctamente.";
+                return RedirectToAction(nameof(Index));
+            }
+            catch (BusinessValidationException ex)
+            {
+                var key = string.IsNullOrWhiteSpace(ex.PropertyName) ? string.Empty : ex.PropertyName;
+                ModelState.AddModelError(key, ex.Message);
+                await LoadPatientsAsync(viewModel);
+                return View(viewModel);
+            }
         }
 
         // GET: /Treatments/Edit/5
@@ -84,10 +95,20 @@ namespace KineGestion.Web.Controllers
                 return View(viewModel);
             }
 
-            var treatment = viewModel.ToEntity();
-            await _treatmentService.UpdateAsync(treatment);
-            TempData["Success"] = "Tratamiento actualizado correctamente.";
-            return RedirectToAction(nameof(Index));
+            try
+            {
+                var treatment = viewModel.ToEntity();
+                await _treatmentService.UpdateAsync(treatment);
+                TempData["Success"] = "Tratamiento actualizado correctamente.";
+                return RedirectToAction(nameof(Index));
+            }
+            catch (BusinessValidationException ex)
+            {
+                var key = string.IsNullOrWhiteSpace(ex.PropertyName) ? string.Empty : ex.PropertyName;
+                ModelState.AddModelError(key, ex.Message);
+                await LoadPatientsAsync(viewModel);
+                return View(viewModel);
+            }
         }
 
         // GET: /Treatments/Details/5

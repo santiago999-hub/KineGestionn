@@ -1,4 +1,5 @@
 using System.Threading.Tasks;
+using KineGestion.Core.Exceptions;
 using KineGestion.Core.Interfaces;
 using KineGestion.Web.Models.ViewModels;
 using Microsoft.AspNetCore.Authorization;
@@ -36,9 +37,18 @@ namespace KineGestion.Web.Controllers
             if (!ModelState.IsValid)
                 return View(viewModel);
 
-            await _officeService.CreateAsync(viewModel.ToEntity());
-            TempData["Success"] = "Consultorio creado correctamente.";
-            return RedirectToAction(nameof(Index));
+            try
+            {
+                await _officeService.CreateAsync(viewModel.ToEntity());
+                TempData["Success"] = "Consultorio creado correctamente.";
+                return RedirectToAction(nameof(Index));
+            }
+            catch (BusinessValidationException ex)
+            {
+                var key = string.IsNullOrWhiteSpace(ex.PropertyName) ? string.Empty : ex.PropertyName;
+                ModelState.AddModelError(key, ex.Message);
+                return View(viewModel);
+            }
         }
 
         // GET: /Offices/Edit/5
@@ -62,9 +72,18 @@ namespace KineGestion.Web.Controllers
             if (!ModelState.IsValid)
                 return View(viewModel);
 
-            await _officeService.UpdateAsync(viewModel.ToEntity());
-            TempData["Success"] = "Consultorio actualizado correctamente.";
-            return RedirectToAction(nameof(Index));
+            try
+            {
+                await _officeService.UpdateAsync(viewModel.ToEntity());
+                TempData["Success"] = "Consultorio actualizado correctamente.";
+                return RedirectToAction(nameof(Index));
+            }
+            catch (BusinessValidationException ex)
+            {
+                var key = string.IsNullOrWhiteSpace(ex.PropertyName) ? string.Empty : ex.PropertyName;
+                ModelState.AddModelError(key, ex.Message);
+                return View(viewModel);
+            }
         }
 
         // GET: /Offices/Details/5
