@@ -24,7 +24,7 @@ namespace KineGestion.Web.Models.ViewModels
         [Display(Name = "Fecha de inicio")]
         public DateTime FechaInicio { get; set; }
 
-        [Required(ErrorMessage = "Debe seleccionar un paciente.")]
+        [Range(1, int.MaxValue, ErrorMessage = "Debe seleccionar un paciente.")]
         [Display(Name = "Paciente")]
         public int PacienteId { get; set; }
 

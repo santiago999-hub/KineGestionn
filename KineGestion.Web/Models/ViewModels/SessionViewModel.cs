@@ -31,15 +31,15 @@ namespace KineGestion.Web.Models.ViewModels
         [Display(Name = "Nro. sesion en tratamiento")]
         public int NroSesionEnTratamiento { get; set; }
 
-        [Required(ErrorMessage = "Debe seleccionar un paciente.")]
+        [Range(1, int.MaxValue, ErrorMessage = "Debe seleccionar un paciente.")]
         [Display(Name = "Paciente")]
         public int PacienteId { get; set; }
 
-        [Required(ErrorMessage = "Debe seleccionar un profesional.")]
+        [Range(1, int.MaxValue, ErrorMessage = "Debe seleccionar un profesional.")]
         [Display(Name = "Profesional")]
         public int ProfesionalId { get; set; }
 
-        [Required(ErrorMessage = "Debe seleccionar un tratamiento.")]
+        [Range(1, int.MaxValue, ErrorMessage = "Debe seleccionar un tratamiento.")]
         [Display(Name = "Tratamiento")]
         public int TratamientoId { get; set; }
 
