@@ -149,8 +149,15 @@ namespace KineGestion.Web.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            await _treatmentService.DeleteAsync(id);
-            TempData["Success"] = "Tratamiento eliminado correctamente.";
+            try
+            {
+                await _treatmentService.DeleteAsync(id);
+                TempData["Success"] = "Tratamiento eliminado correctamente.";
+            }
+            catch (BusinessValidationException ex)
+            {
+                TempData["Error"] = ex.Message;
+            }
             return RedirectToAction(nameof(Index));
         }
 
