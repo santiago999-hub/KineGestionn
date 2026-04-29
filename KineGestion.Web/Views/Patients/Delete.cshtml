@@ -22,6 +22,26 @@
             <p style="color:#dc2626">Esta acción desactivará a <strong>@Model.Apellido, @Model.Nombre</strong> pero conservará su historial clínico por seguridad legal.</p>
         </div>
     </div>
+    @if ((int)ViewBag.TreatmentCount > 0 || (int)ViewBag.SessionCount > 0)
+    {
+        <div class="alert alert-warning mx-4 mt-3" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            <strong>No se puede dar de baja a este paciente</strong> porque tiene
+            @if ((int)ViewBag.TreatmentCount > 0)
+            {
+                <strong>@ViewBag.TreatmentCount tratamiento(s)</strong>
+            }
+            @if ((int)ViewBag.TreatmentCount > 0 && (int)ViewBag.SessionCount > 0)
+            {
+                <text> y </text>
+            }
+            @if ((int)ViewBag.SessionCount > 0)
+            {
+                <strong>@ViewBag.SessionCount sesión(es)</strong>
+            }
+             asociado(s). Eliminá primero esos registros.
+        </div>
+    }
     <div class="kg-form-body">
         <div class="kg-detail-grid">
             <div class="kg-detail-item">
@@ -44,12 +64,15 @@
     </div>
     <div class="kg-form-footer">
         <a asp-action="Index" class="btn-kg-outline"><i class="bi bi-x-lg"></i> Cancelar</a>
-        <form asp-action="Delete" asp-route-id="@Model.Id" method="post" style="display:inline">
-            @Html.AntiForgeryToken()
-            <button type="submit" class="btn-kg-danger">
-                <i class="bi bi-trash-fill"></i> Confirmar Baja
-            </button>
-        </form>
+        @if ((int)ViewBag.TreatmentCount == 0 && (int)ViewBag.SessionCount == 0)
+        {
+            <form asp-action="Delete" asp-route-id="@Model.Id" method="post" style="display:inline">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn-kg-danger">
+                    <i class="bi bi-trash-fill"></i> Confirmar Baja
+                </button>
+            </form>
+        }
     </div>
 </div>
 

@@ -13,12 +13,16 @@ namespace KineGestion.Web.Controllers
     public class PatientsController : Controller
     {
         private readonly IPatientService _patientService;
+        private readonly ITreatmentService _treatmentService;
+        private readonly ISessionService _sessionService;
 
         // ASP.NET Core inyecta automáticamente IPatientService
         // gracias al registro AddScoped en Program.cs.
-        public PatientsController(IPatientService patientService)
+        public PatientsController(IPatientService patientService, ITreatmentService treatmentService, ISessionService sessionService)
         {
             _patientService = patientService;
+            _treatmentService = treatmentService;
+            _sessionService = sessionService;
         }
 
         // GET: /Patients
@@ -124,6 +128,9 @@ namespace KineGestion.Web.Controllers
             var patient = await _patientService.GetByIdAsync(id);
             if (patient is null)
                 return NotFound();
+
+            ViewBag.TreatmentCount = await _treatmentService.CountByPatientIdAsync(id);
+            ViewBag.SessionCount = await _sessionService.CountByPatientIdAsync(id);
 
             return View(PatientViewModel.FromEntity(patient));
         }

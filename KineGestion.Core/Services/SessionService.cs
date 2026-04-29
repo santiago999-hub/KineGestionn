@@ -54,6 +54,15 @@ namespace KineGestion.Core.Services
         public async Task<int> CountAsync()
             => await _repository.CountAsync();
 
+        public async Task<int> CountByPatientIdAsync(int patientId)
+            => await _repository.CountByPatientIdAsync(patientId);
+
+        public async Task<int> CountByProfessionalIdAsync(int professionalId)
+            => await _repository.CountByProfessionalIdAsync(professionalId);
+
+        public async Task<int> CountByOfficeIdAsync(int officeId)
+            => await _repository.CountByOfficeIdAsync(officeId);
+
         public async Task<Session> CreateAsync(Session session)
         {
             await ValidateProfessionalAvailabilityAsync(session.ProfessionalId, session.FechaHora);

@@ -13,10 +13,12 @@ namespace KineGestion.Web.Controllers
     public class ProfessionalsController : Controller
     {
         private readonly IProfessionalService _professionalService;
+        private readonly ISessionService _sessionService;
 
-        public ProfessionalsController(IProfessionalService professionalService)
+        public ProfessionalsController(IProfessionalService professionalService, ISessionService sessionService)
         {
             _professionalService = professionalService;
+            _sessionService = sessionService;
         }
 
         public async Task<IActionResult> Index(string? search, int page = 1, int pageSize = 10)
@@ -114,6 +116,8 @@ namespace KineGestion.Web.Controllers
             var professional = await _professionalService.GetByIdAsync(id);
             if (professional is null)
                 return NotFound();
+
+            ViewBag.SessionCount = await _sessionService.CountByProfessionalIdAsync(id);
 
             return View(ProfessionalViewModel.FromEntity(professional));
         }

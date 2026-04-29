@@ -22,6 +22,13 @@
             <p style="color:#dc2626">El profesional <strong>@Model.Apellido, @Model.Nombre</strong> quedará inactivo. Sus datos y historial se conservarán.</p>
         </div>
     </div>
+    @if ((int)ViewBag.SessionCount > 0)
+    {
+        <div class="alert alert-warning mx-4 mt-3" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            <strong>No se puede dar de baja a este profesional</strong> porque tiene <strong>@ViewBag.SessionCount sesión(es)</strong> asociada(s). Eliminá primero esas sesiones.
+        </div>
+    }
     <div class="kg-form-body">
         <div class="kg-detail-grid">
             <div class="kg-detail-item">
@@ -40,11 +47,14 @@
     </div>
     <div class="kg-form-footer">
         <a asp-action="Index" class="btn-kg-outline"><i class="bi bi-x-lg"></i> Cancelar</a>
-        <form asp-action="Delete" asp-route-id="@Model.Id" method="post" style="display:inline">
-            @Html.AntiForgeryToken()
-            <button type="submit" class="btn-kg-danger">
-                <i class="bi bi-trash-fill"></i> Confirmar Baja
-            </button>
-        </form>
+        @if ((int)ViewBag.SessionCount == 0)
+        {
+            <form asp-action="Delete" asp-route-id="@Model.Id" method="post" style="display:inline">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn-kg-danger">
+                    <i class="bi bi-trash-fill"></i> Confirmar Baja
+                </button>
+            </form>
+        }
     </div>
 </div>

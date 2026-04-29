@@ -19,9 +19,16 @@
         <div class="kg-form-header-icon" style="background:#fee2e2;color:#dc2626"><i class="bi bi-exclamation-triangle-fill"></i></div>
         <div>
             <h4>¿Eliminar "@Model.Name"?</h4>
-            <p>Esta acción no se puede deshacer. Las sesiones asignadas a este consultorio quedarán sin consultorio asignado.</p>
+            <p>Esta acción no se puede deshacer.</p>
         </div>
     </div>
+    @if ((int)ViewBag.SessionCount > 0)
+    {
+        <div class="alert alert-warning mx-4 mt-3" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            <strong>No se puede eliminar este consultorio</strong> porque tiene <strong>@ViewBag.SessionCount sesión(es)</strong> asignada(s). Eliminá primero esas sesiones.
+        </div>
+    }
     <div class="kg-form-body">
         <div class="kg-detail-grid">
             <div class="kg-detail-item">
@@ -36,10 +43,13 @@
     </div>
     <div class="kg-form-footer">
         <a asp-action="Index" class="btn-kg-outline"><i class="bi bi-x-lg"></i> Cancelar</a>
-        <form asp-action="Delete" method="post" style="display:inline">
-            @Html.AntiForgeryToken()
-            <input type="hidden" asp-for="Id" />
-            <button type="submit" class="btn btn-danger"><i class="bi bi-trash-fill"></i> Sí, eliminar</button>
-        </form>
+        @if ((int)ViewBag.SessionCount == 0)
+        {
+            <form asp-action="Delete" method="post" style="display:inline">
+                @Html.AntiForgeryToken()
+                <input type="hidden" asp-for="Id" />
+                <button type="submit" class="btn btn-danger"><i class="bi bi-trash-fill"></i> Sí, eliminar</button>
+            </form>
+        }
     </div>
 </div>

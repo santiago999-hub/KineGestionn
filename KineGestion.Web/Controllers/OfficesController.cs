@@ -11,10 +11,12 @@ namespace KineGestion.Web.Controllers
     public class OfficesController : Controller
     {
         private readonly IOfficeService _officeService;
+        private readonly ISessionService _sessionService;
 
-        public OfficesController(IOfficeService officeService)
+        public OfficesController(IOfficeService officeService, ISessionService sessionService)
         {
             _officeService = officeService;
+            _sessionService = sessionService;
         }
 
         // GET: /Offices
@@ -102,6 +104,8 @@ namespace KineGestion.Web.Controllers
             var office = await _officeService.GetByIdAsync(id);
             if (office is null)
                 return NotFound();
+
+            ViewBag.SessionCount = await _sessionService.CountByOfficeIdAsync(id);
 
             return View(OfficeViewModel.FromEntity(office));
         }
