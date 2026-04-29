@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using KineGestion.Core.Entities;
+using KineGestion.Core.Exceptions;
 using KineGestion.Core.Interfaces;
 
 namespace KineGestion.Core.Services
@@ -24,12 +25,27 @@ namespace KineGestion.Core.Services
             => await _repository.GetActiveAsync();
 
         public async Task<Office> CreateAsync(Office office)
-            => await _repository.AddAsync(office);
+        {
+            await ValidateNameUniquenessAsync(office.Name);
+            return await _repository.AddAsync(office);
+        }
 
         public async Task<Office> UpdateAsync(Office office)
-            => await _repository.UpdateAsync(office);
+        {
+            await ValidateNameUniquenessAsync(office.Name, excludeId: office.Id);
+            return await _repository.UpdateAsync(office);
+        }
 
         public async Task DeleteAsync(int id)
             => await _repository.DeleteAsync(id);
+
+        private async Task ValidateNameUniquenessAsync(string name, int? excludeId = null)
+        {
+            bool existe = await _repository.ExistsByNameAsync(name, excludeId);
+            if (existe)
+                throw new BusinessValidationException(
+                    $"Ya existe un consultorio con el nombre '{name}'.",
+                    nameof(Office.Name));
+        }
     }
 }

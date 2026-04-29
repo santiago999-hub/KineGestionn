@@ -5,6 +5,7 @@ using KineGestion.Core.Entities;
 using KineGestion.Core.Interfaces;
 using KineGestion.Data.Context;
 using Microsoft.EntityFrameworkCore;
+using System;
 
 namespace KineGestion.Data.Repositories
 {
@@ -33,6 +34,11 @@ namespace KineGestion.Data.Repositories
                 .Where(o => o.IsActive)
                 .OrderBy(o => o.Name)
                 .ToListAsync();
+
+        public async Task<bool> ExistsByNameAsync(string name, int? excludeId = null)
+            => await _context.Offices
+                .AnyAsync(o => o.Name.ToLower() == name.ToLower()
+                               && (excludeId == null || o.Id != excludeId));
 
         public async Task<Office> AddAsync(Office office)
         {

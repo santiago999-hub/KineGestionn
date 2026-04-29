@@ -1,0 +1,98 @@
+using System.Threading.Tasks;
+using KineGestion.Core.Entities;
+using KineGestion.Core.Exceptions;
+using KineGestion.Core.Interfaces;
+using KineGestion.Core.Services;
+using Moq;
+using Xunit;
+
+namespace KineGestion.Tests
+{
+    public class OfficeServiceTests
+    {
+        private readonly Mock<IOfficeRepository> _repositoryMock;
+        private readonly OfficeService _service;
+
+        public OfficeServiceTests()
+        {
+            _repositoryMock = new Mock<IOfficeRepository>();
+            _service = new OfficeService(_repositoryMock.Object);
+        }
+
+        [Fact]
+        public async Task CreateAsync_ShouldThrow_WhenNameAlreadyExists()
+        {
+            var office = BuildOffice();
+
+            _repositoryMock
+                .Setup(r => r.ExistsByNameAsync(office.Name, null))
+                .ReturnsAsync(true);
+
+            await Assert.ThrowsAsync<BusinessValidationException>(() => _service.CreateAsync(office));
+            _repositoryMock.Verify(r => r.AddAsync(It.IsAny<Office>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task CreateAsync_ShouldPersist_WhenNameIsUnique()
+        {
+            var office = BuildOffice();
+
+            _repositoryMock
+                .Setup(r => r.ExistsByNameAsync(office.Name, null))
+                .ReturnsAsync(false);
+
+            _repositoryMock
+                .Setup(r => r.AddAsync(office))
+                .ReturnsAsync(office);
+
+            var result = await _service.CreateAsync(office);
+
+            Assert.Equal(office.Name, result.Name);
+            _repositoryMock.Verify(r => r.AddAsync(office), Times.Once);
+        }
+
+        [Fact]
+        public async Task UpdateAsync_ShouldValidateUniquenessExcludingSelf()
+        {
+            var office = BuildOffice();
+            office.Id = 5;
+
+            _repositoryMock
+                .Setup(r => r.ExistsByNameAsync(office.Name, office.Id))
+                .ReturnsAsync(false);
+
+            _repositoryMock
+                .Setup(r => r.UpdateAsync(office))
+                .ReturnsAsync(office);
+
+            var result = await _service.UpdateAsync(office);
+
+            Assert.Equal(5, result.Id);
+            _repositoryMock.Verify(r => r.ExistsByNameAsync(office.Name, office.Id), Times.Once);
+        }
+
+        [Fact]
+        public async Task UpdateAsync_ShouldThrow_WhenAnotherOfficeHasSameName()
+        {
+            var office = BuildOffice();
+            office.Id = 5;
+
+            _repositoryMock
+                .Setup(r => r.ExistsByNameAsync(office.Name, office.Id))
+                .ReturnsAsync(true);
+
+            await Assert.ThrowsAsync<BusinessValidationException>(() => _service.UpdateAsync(office));
+            _repositoryMock.Verify(r => r.UpdateAsync(It.IsAny<Office>()), Times.Never);
+        }
+
+        private static Office BuildOffice()
+        {
+            return new Office
+            {
+                Id = 1,
+                Name = "Consultorio A",
+                IsActive = true
+            };
+        }
+    }
+}

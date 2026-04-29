@@ -1,6 +1,8 @@
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using KineGestion.Core.Entities;
+using KineGestion.Core.Exceptions;
 using KineGestion.Core.Interfaces;
 
 namespace KineGestion.Core.Services
@@ -24,12 +26,31 @@ namespace KineGestion.Core.Services
             => await _repository.GetByPatientIdAsync(patientId);
 
         public async Task<Treatment> CreateAsync(Treatment treatment)
-            => await _repository.AddAsync(treatment);
+        {
+            ValidateTreatment(treatment);
+            return await _repository.AddAsync(treatment);
+        }
 
         public async Task<Treatment> UpdateAsync(Treatment treatment)
-            => await _repository.UpdateAsync(treatment);
+        {
+            ValidateTreatment(treatment);
+            return await _repository.UpdateAsync(treatment);
+        }
 
         public async Task DeleteAsync(int id)
             => await _repository.DeleteAsync(id);
+
+        private static void ValidateTreatment(Treatment treatment)
+        {
+            if (treatment.CantidadSesionesTotales < 1)
+                throw new BusinessValidationException(
+                    "La cantidad de sesiones debe ser al menos 1.",
+                    nameof(Treatment.CantidadSesionesTotales));
+
+            if (treatment.FechaInicio == default)
+                throw new BusinessValidationException(
+                    "La fecha de inicio del tratamiento es obligatoria.",
+                    nameof(Treatment.FechaInicio));
+        }
     }
 }
