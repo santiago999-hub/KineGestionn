@@ -27,7 +27,7 @@ namespace KineGestion.Core.Services
             => await _repository.GetByIdAsync(id);
 
         public async Task<IEnumerable<Patient>> GetAllAsync()
-            => await _repository.GetActivosAsync();
+            => await _repository.GetAllAsync();
 
         /// <summary>
         /// LÓGICA DE NEGOCIO: filtra pacientes activos.
