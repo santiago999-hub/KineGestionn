@@ -2,9 +2,8 @@ using System;
 using System.Reflection;
 using KineGestion.Web.Controllers;
 using Microsoft.AspNetCore.Authorization;
-using Xunit;
 
-namespace KineGestion.Tests
+namespace KineGestion.Web.Tests
 {
     public class AuthorizationAttributesTests
     {
