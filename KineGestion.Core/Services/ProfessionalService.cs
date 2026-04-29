@@ -27,6 +27,9 @@ namespace KineGestion.Core.Services
         public async Task<IEnumerable<Professional>> GetActiveProfessionalsAsync()
             => await _repository.GetActivosAsync();
 
+        public async Task<(IEnumerable<Professional> Professionals, int TotalCount)> GetPagedAsync(int page, int pageSize, string? search)
+            => await _repository.GetPagedAsync(page, pageSize, search);
+
         public async Task ValidateMatriculaUniquenessAsync(string matricula, int? excludeId = null)
         {
             bool existe = await _repository.ExistsByMatriculaAsync(matricula, excludeId);

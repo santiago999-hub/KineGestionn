@@ -19,11 +19,24 @@ namespace KineGestion.Web.Controllers
             _professionalService = professionalService;
         }
 
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(string? search, int page = 1, int pageSize = 10)
         {
-            var professionals = await _professionalService.GetActiveProfessionalsAsync();
-            var viewModels = professionals.Select(ProfessionalViewModel.FromEntity);
-            return View(viewModels);
+            if (page < 1) page = 1;
+            if (pageSize is < 5 or > 50) pageSize = 10;
+
+            var (professionals, totalCount) = await _professionalService.GetPagedAsync(page, pageSize, search);
+            var viewModels = professionals.Select(ProfessionalViewModel.FromEntity).ToList();
+
+            var model = new ProfessionalIndexViewModel
+            {
+                Items = viewModels,
+                Search = search,
+                Page = page,
+                PageSize = pageSize,
+                TotalCount = totalCount
+            };
+
+            return View(model);
         }
 
         public IActionResult Create()

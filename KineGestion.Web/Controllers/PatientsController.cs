@@ -22,11 +22,24 @@ namespace KineGestion.Web.Controllers
         }
 
         // GET: /Patients
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(string? search, int page = 1, int pageSize = 10)
         {
-            var patients = await _patientService.GetActivePatientsAsync();
-            var viewModels = patients.Select(PatientViewModel.FromEntity);
-            return View(viewModels);
+            if (page < 1) page = 1;
+            if (pageSize is < 5 or > 50) pageSize = 10;
+
+            var (patients, totalCount) = await _patientService.GetPagedAsync(page, pageSize, search);
+            var viewModels = patients.Select(PatientViewModel.FromEntity).ToList();
+
+            var model = new PatientIndexViewModel
+            {
+                Items = viewModels,
+                Search = search,
+                Page = page,
+                PageSize = pageSize,
+                TotalCount = totalCount
+            };
+
+            return View(model);
         }
 
         // GET: /Patients/Create

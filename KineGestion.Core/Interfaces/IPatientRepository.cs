@@ -14,6 +14,7 @@ namespace KineGestion.Core.Interfaces
         Task<Patient?> GetByIdAsync(int id);
         Task<IEnumerable<Patient>> GetAllAsync();
         Task<IEnumerable<Patient>> GetActivosAsync();
+        Task<(IEnumerable<Patient> Patients, int TotalCount)> GetPagedAsync(int page, int pageSize, string? search);
         Task<bool> ExistsByDniAsync(string dni, int? excludeId = null);
         Task<Patient> AddAsync(Patient patient);
         Task<Patient> UpdateAsync(Patient patient);

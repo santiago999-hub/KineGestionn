@@ -47,6 +47,26 @@ namespace KineGestion.Data.Repositories
                              .AsNoTracking()
                              .AnyAsync(p => p.DNI == dni && p.Id != excludeId);
 
+        public async Task<(IEnumerable<Patient> Patients, int TotalCount)> GetPagedAsync(int page, int pageSize, string? search)
+        {
+            var query = _context.Patients.AsNoTracking().Where(p => p.IsActivo).AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var term = search.Trim();
+                query = query.Where(p =>
+                    (p.Nombre + " " + p.Apellido).Contains(term) ||
+                    p.DNI.Contains(term) ||
+                    p.ObraSocial.Contains(term));
+            }
+
+            query = query.OrderBy(p => p.Apellido).ThenBy(p => p.Nombre);
+
+            int totalCount = await query.CountAsync();
+            var patients = await query.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
+            return (patients, totalCount);
+        }
+
         public async Task<Patient> AddAsync(Patient patient)
         {
             _context.Patients.Add(patient);

@@ -40,6 +40,29 @@ namespace KineGestion.Data.Repositories
                              .AsNoTracking()
                              .CountAsync(t => t.PatientId == patientId);
 
+        public async Task<(IEnumerable<Treatment> Treatments, int TotalCount)> GetPagedAsync(int page, int pageSize, string? search)
+        {
+            var query = _context.Treatments
+                .AsNoTracking()
+                .Include(t => t.Patient)
+                .Include(t => t.Sesiones)
+                .AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var term = search.Trim();
+                query = query.Where(t =>
+                    t.Descripcion.Contains(term) ||
+                    (t.Patient != null && (t.Patient.Nombre + " " + t.Patient.Apellido).Contains(term)));
+            }
+
+            query = query.OrderBy(t => t.FechaInicio);
+
+            int totalCount = await query.CountAsync();
+            var treatments = await query.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
+            return (treatments, totalCount);
+        }
+
         public async Task<Treatment> AddAsync(Treatment treatment)
         {
             _context.Treatments.Add(treatment);

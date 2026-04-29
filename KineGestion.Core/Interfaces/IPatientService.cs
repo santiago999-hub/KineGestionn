@@ -20,6 +20,9 @@ namespace KineGestion.Core.Interfaces
         /// <summary>Retorna solo los pacientes con IsActivo = true.</summary>
         Task<IEnumerable<Patient>> GetActivePatientsAsync();
 
+        /// <summary>Retorna una página de pacientes activos con búsqueda opcional.</summary>
+        Task<(IEnumerable<Patient> Patients, int TotalCount)> GetPagedAsync(int page, int pageSize, string? search);
+
         /// <summary>
         /// Valida que el DNI no esté registrado por otro paciente.
         /// Acepta excludeId para el caso de edición (no comparar consigo mismo).

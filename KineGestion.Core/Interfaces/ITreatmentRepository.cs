@@ -9,6 +9,7 @@ namespace KineGestion.Core.Interfaces
         Task<Treatment?> GetByIdAsync(int id);
         Task<IEnumerable<Treatment>> GetAllAsync();
         Task<IEnumerable<Treatment>> GetByPatientIdAsync(int patientId);
+        Task<(IEnumerable<Treatment> Treatments, int TotalCount)> GetPagedAsync(int page, int pageSize, string? search);
         Task<int> CountByPatientIdAsync(int patientId);
         Task<Treatment> AddAsync(Treatment treatment);
         Task<Treatment> UpdateAsync(Treatment treatment);

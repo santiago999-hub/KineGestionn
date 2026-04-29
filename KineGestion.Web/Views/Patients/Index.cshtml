@@ -1,4 +1,4 @@
-@model IEnumerable<KineGestion.Web.Models.ViewModels.PatientViewModel>
+@model KineGestion.Web.Models.ViewModels.PatientIndexViewModel
 
 @{
     ViewData["Title"] = "Pacientes";
@@ -19,10 +19,23 @@
         <h5 class="kg-card-header-title">
             <i class="bi bi-people-fill"></i> Listado de Pacientes
         </h5>
-        <span class="kg-badge kg-badge-muted">@Model.Count() registros</span>
+        <span class="kg-badge kg-badge-muted">@Model.TotalCount registros</span>
     </div>
 
-    @if (!Model.Any())
+    <form method="get" class="px-3 pt-3 pb-1">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-6">
+                <label class="form-label small text-muted">Buscar</label>
+                <input name="search" value="@Model.Search" class="form-control" placeholder="Nombre, apellido, DNI u obra social" />
+            </div>
+            <div class="col-md-3 d-flex gap-2">
+                <button type="submit" class="btn-kg-primary w-100"><i class="bi bi-search"></i></button>
+                <a asp-action="Index" class="btn-kg-outline w-100"><i class="bi bi-x-lg"></i></a>
+            </div>
+        </div>
+    </form>
+
+    @if (!Model.Items.Any())
     {
         <div class="kg-empty">
             <div class="kg-empty-icon"><i class="bi bi-people"></i></div>
@@ -48,7 +61,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach (var p in Model)
+                    @foreach (var p in Model.Items)
                     {
                         <tr>
                             <td>
@@ -87,7 +100,18 @@
             </table>
         </div>
         <div style="padding:12px 18px;border-top:1px solid var(--kg-border);font-size:.76rem;color:var(--kg-text-muted)">
-            Mostrando @Model.Count() pacientes activos
+            Mostrando @Model.Items.Count() de @Model.TotalCount pacientes activos
         </div>
+
+        @if (Model.TotalPages > 1)
+        {
+            <div style="padding:12px 18px;border-top:1px solid var(--kg-border);display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+                <span style="font-size:.78rem;color:var(--kg-text-muted)">Página @Model.Page de @Model.TotalPages</span>
+                <div style="display:flex;gap:6px">
+                    <a asp-action="Index" asp-route-page="@(Model.Page - 1)" asp-route-pageSize="@Model.PageSize" asp-route-search="@Model.Search" class="btn-kg-outline @(Model.Page <= 1 ? "disabled" : "")">Anterior</a>
+                    <a asp-action="Index" asp-route-page="@(Model.Page + 1)" asp-route-pageSize="@Model.PageSize" asp-route-search="@Model.Search" class="btn-kg-outline @(Model.Page >= Model.TotalPages ? "disabled" : "")">Siguiente</a>
+                </div>
+            </div>
+        }
     }
 </div>

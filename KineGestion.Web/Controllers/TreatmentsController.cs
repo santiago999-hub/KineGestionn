@@ -23,11 +23,24 @@ namespace KineGestion.Web.Controllers
         }
 
         // GET: /Treatments
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(string? search, int page = 1, int pageSize = 10)
         {
-            var treatments = await _treatmentService.GetAllAsync();
-            var viewModels = treatments.Select(TreatmentViewModel.FromEntity);
-            return View(viewModels);
+            if (page < 1) page = 1;
+            if (pageSize is < 5 or > 50) pageSize = 10;
+
+            var (treatments, totalCount) = await _treatmentService.GetPagedAsync(page, pageSize, search);
+            var viewModels = treatments.Select(TreatmentViewModel.FromEntity).ToList();
+
+            var model = new TreatmentIndexViewModel
+            {
+                Items = viewModels,
+                Search = search,
+                Page = page,
+                PageSize = pageSize,
+                TotalCount = totalCount
+            };
+
+            return View(model);
         }
 
         // GET: /Treatments/Create

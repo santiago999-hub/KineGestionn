@@ -34,6 +34,26 @@ namespace KineGestion.Data.Repositories
                              .AsNoTracking()
                              .AnyAsync(p => p.Matricula == matricula && p.Id != excludeId);
 
+        public async Task<(IEnumerable<Professional> Professionals, int TotalCount)> GetPagedAsync(int page, int pageSize, string? search)
+        {
+            var query = _context.Professionals.AsNoTracking().Where(p => p.IsActivo).AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var term = search.Trim();
+                query = query.Where(p =>
+                    (p.Nombre + " " + p.Apellido).Contains(term) ||
+                    p.Matricula.Contains(term) ||
+                    p.Especialidad.Contains(term));
+            }
+
+            query = query.OrderBy(p => p.Apellido).ThenBy(p => p.Nombre);
+
+            int totalCount = await query.CountAsync();
+            var professionals = await query.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
+            return (professionals, totalCount);
+        }
+
         public async Task<Professional> AddAsync(Professional professional)
         {
             _context.Professionals.Add(professional);
