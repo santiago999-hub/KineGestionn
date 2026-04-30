@@ -1,0 +1,148 @@
+@model KineGestion.Web.Models.ViewModels.SessionIndexViewModel
+@using KineGestion.Core
+
+@{
+    ViewData["Title"] = "Mi Agenda";
+}
+
+<div class="kg-page-header">
+    <div>
+        <h2>Mi Agenda</h2>
+        <p class="text-muted mb-0">Tus sesiones clínicas — incluye evolución</p>
+    </div>
+</div>
+
+<div class="kg-card">
+    <div class="kg-card-header">
+        <h5 class="kg-card-header-title">
+            <i class="bi bi-calendar2-heart-fill"></i> Mis Sesiones
+        </h5>
+        <span class="kg-badge kg-badge-muted">@Model.TotalCount registros</span>
+    </div>
+
+    <form method="get" class="px-3 pt-3 pb-1">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label small text-muted">Buscar</label>
+                <input name="search" value="@Model.Search" class="form-control" placeholder="Paciente o tratamiento" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small text-muted">Estado</label>
+                <select name="status" class="form-select">
+                    <option value="">Todos</option>
+                    <option value="Pending" selected="@(Model.Status == SessionStatus.Pending)">Pendiente</option>
+                    <option value="Completed" selected="@(Model.Status == SessionStatus.Completed)">Completada</option>
+                    <option value="Canceled" selected="@(Model.Status == SessionStatus.Canceled)">Cancelada</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small text-muted">Pago</label>
+                <select name="paymentStatus" class="form-select">
+                    <option value="">Todos</option>
+                    <option value="Pending" selected="@(Model.PaymentStatus == PaymentStatus.Pending)">Pendiente</option>
+                    <option value="Paid" selected="@(Model.PaymentStatus == PaymentStatus.Paid)">Pagada</option>
+                </select>
+            </div>
+            <div class="col-md-2 d-flex gap-2">
+                <button type="submit" class="btn-kg-primary w-100"><i class="bi bi-search"></i></button>
+                <a asp-action="MyAgenda" class="btn-kg-outline w-100"><i class="bi bi-x-lg"></i></a>
+            </div>
+        </div>
+    </form>
+
+    @if (!Model.Items.Any())
+    {
+        <div class="kg-empty">
+            <div class="kg-empty-icon"><i class="bi bi-calendar2-x"></i></div>
+            <h5>Sin sesiones encontradas</h5>
+            <p>No hay sesiones registradas para los filtros seleccionados.</p>
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="kg-table">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Paciente</th>
+                        <th>Tratamiento</th>
+                        <th>Consultorio</th>
+                        <th>Nro</th>
+                        <th>Evolución</th>
+                        <th>Estado</th>
+                        <th style="text-align:right">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var s in Model.Items)
+                    {
+                        <tr>
+                            <td>
+                                <div style="font-weight:600">@s.FechaHora.ToString("dd/MM/yyyy")</div>
+                                <div style="font-size:.75rem;color:var(--kg-text-muted)">@s.FechaHora.ToString("HH:mm") hs</div>
+                            </td>
+                            <td>@s.PacienteNombre</td>
+                            <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="@s.TratamientoDescripcion">
+                                @s.TratamientoDescripcion
+                            </td>
+                            <td>@(string.IsNullOrWhiteSpace(s.OfficeNombre) ? "Sin asignar" : s.OfficeNombre)</td>
+                            <td><span class="kg-badge kg-badge-violet">N° @s.NroSesionEnTratamiento</span></td>
+                            <td>
+                                @if (s.EvolutionBloqueada)
+                                {
+                                    <span class="kg-badge kg-badge-danger" title="Evolución firmada"><i class="bi bi-lock-fill me-1"></i>Firmada</span>
+                                }
+                                else if (!string.IsNullOrWhiteSpace(s.Evolution))
+                                {
+                                    <span class="kg-badge kg-badge-info"><i class="bi bi-file-text me-1"></i>Con texto</span>
+                                }
+                                else
+                                {
+                                    <span class="kg-badge kg-badge-muted"><i class="bi bi-dash me-1"></i>Sin registrar</span>
+                                }
+                            </td>
+                            <td>
+                                @if (s.Status == SessionStatus.Completed)
+                                {
+                                    <span class="kg-badge kg-badge-success">Completada</span>
+                                }
+                                else if (s.Status == SessionStatus.Canceled)
+                                {
+                                    <span class="kg-badge kg-badge-danger">Cancelada</span>
+                                }
+                                else
+                                {
+                                    <span class="kg-badge kg-badge-warning">Pendiente</span>
+                                }
+                            </td>
+                            <td>
+                                <div class="kg-action-btns" style="justify-content:flex-end">
+                                    <a asp-action="Details" asp-route-id="@s.Id" class="kg-action-btn view" title="Ver detalle con evolución"><i class="bi bi-eye-fill"></i></a>
+                                    @if (!s.EvolutionBloqueada)
+                                    {
+                                        <a asp-action="Edit" asp-route-id="@s.Id" class="kg-action-btn edit" title="Editar / Cargar evolución"><i class="bi bi-pencil-fill"></i></a>
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        <div style="padding:12px 18px;border-top:1px solid var(--kg-border);font-size:.76rem;color:var(--kg-text-muted)">
+            Mostrando @Model.Items.Count() de @Model.TotalCount sesiones
+        </div>
+
+        @if (Model.TotalPages > 1)
+        {
+            <div style="padding:12px 18px;border-top:1px solid var(--kg-border);display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+                <span style="font-size:.78rem;color:var(--kg-text-muted)">Página @Model.Page de @Model.TotalPages</span>
+                <div style="display:flex;gap:6px">
+                    <a asp-action="MyAgenda" asp-route-page="@(Model.Page - 1)" asp-route-pageSize="@Model.PageSize" asp-route-search="@Model.Search" asp-route-status="@Model.Status" asp-route-paymentStatus="@Model.PaymentStatus" class="btn-kg-outline @(Model.Page <= 1 ? "disabled" : "")">Anterior</a>
+                    <a asp-action="MyAgenda" asp-route-page="@(Model.Page + 1)" asp-route-pageSize="@Model.PageSize" asp-route-search="@Model.Search" asp-route-status="@Model.Status" asp-route-paymentStatus="@Model.PaymentStatus" class="btn-kg-outline @(Model.Page >= Model.TotalPages ? "disabled" : "")">Siguiente</a>
+                </div>
+            </div>
+        }
+    }
+</div>

@@ -1,0 +1,64 @@
+@model KineGestion.Web.Models.ViewModels.UserListItemViewModel
+
+@{
+    ViewData["Title"] = "Eliminar Usuario";
+}
+
+<div class="kg-page-header">
+    <div>
+        <h2>Eliminar Usuario</h2>
+        <p class="text-muted mb-0">Esta acción no se puede deshacer</p>
+    </div>
+    <a asp-action="Index" class="btn-kg-outline">
+        <i class="bi bi-arrow-left"></i> Cancelar
+    </a>
+</div>
+
+<div class="kg-form-card" style="border-top: 3px solid var(--kg-danger)">
+    <div class="kg-form-header" style="background:#fff5f5">
+        <div class="kg-form-header-icon" style="background:#fee2e2;color:#dc2626">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+        </div>
+        <div>
+            <h4>¿Eliminar este usuario?</h4>
+            <p style="color:#dc2626">
+                El usuario <strong>@Model.Email</strong> será eliminado permanentemente del sistema.
+                Esta acción <strong>no se puede deshacer</strong>.
+            </p>
+        </div>
+    </div>
+    <div class="kg-form-body">
+        <div class="kg-detail-grid">
+            <div class="kg-detail-item">
+                <dt>Email</dt>
+                <dd>@Model.Email</dd>
+            </div>
+            <div class="kg-detail-item">
+                <dt>Rol</dt>
+                <dd>
+                    @if (Model.Rol == "Admin")
+                    {
+                        <span class="kg-badge kg-badge-violet"><i class="bi bi-shield-fill me-1"></i>Admin</span>
+                    }
+                    else if (Model.Rol == "Kinesiologo")
+                    {
+                        <span class="kg-badge kg-badge-info"><i class="bi bi-person-badge-fill me-1"></i>Kinesiólogo</span>
+                    }
+                    else
+                    {
+                        <span class="kg-badge kg-badge-muted">@Model.Rol</span>
+                    }
+                </dd>
+            </div>
+        </div>
+    </div>
+    <div class="kg-form-footer">
+        <a asp-action="Index" class="btn-kg-outline"><i class="bi bi-x-lg"></i> Cancelar</a>
+        <form asp-action="Delete" asp-route-id="@Model.Id" method="post" style="display:inline">
+            @Html.AntiForgeryToken()
+            <button type="submit" class="btn-kg-danger">
+                <i class="bi bi-trash-fill"></i> Eliminar Usuario
+            </button>
+        </form>
+    </div>
+</div>

@@ -90,6 +90,47 @@ namespace KineGestion.Data.Repositories
             return (sessions, totalCount);
         }
 
+        public async Task<(IEnumerable<Session> Sessions, int TotalCount)> GetPagedByProfessionalAsync(
+            int professionalId,
+            int page,
+            int pageSize,
+            string? search,
+            SessionStatus? status,
+            PaymentStatus? paymentStatus)
+        {
+            var query = _context.Sessions
+                .AsNoTracking()
+                .Include(s => s.Patient)
+                .Include(s => s.Treatment)
+                .Include(s => s.Office)
+                .Where(s => s.ProfessionalId == professionalId)
+                .AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var term = search.Trim();
+                query = query.Where(s =>
+                    (s.Patient != null && (s.Patient.Nombre + " " + s.Patient.Apellido).Contains(term)) ||
+                    (s.Treatment != null && s.Treatment.Descripcion.Contains(term)));
+            }
+
+            if (status.HasValue)
+                query = query.Where(s => s.Status == status.Value);
+
+            if (paymentStatus.HasValue)
+                query = query.Where(s => s.PaymentStatus == paymentStatus.Value);
+
+            int totalCount = await query.CountAsync();
+
+            var sessions = await query
+                .OrderByDescending(s => s.FechaHora)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return (sessions, totalCount);
+        }
+
         public async Task<IEnumerable<Session>> GetByPatientIdAsync(int patientId)
             => await _context.Sessions
                              .AsNoTracking()

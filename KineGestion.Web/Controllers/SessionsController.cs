@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
 using KineGestion.Core;
 using KineGestion.Core.Exceptions;
@@ -59,8 +60,47 @@ namespace KineGestion.Web.Controllers
             return View(model);
         }
 
-        public async Task<IActionResult> Create(int? patientId = null)
+        // GET: /Sessions/MyAgenda — Vista exclusiva del Kinesiologo autenticado
+        [Authorize(Roles = "Kinesiologo")]
+        public async Task<IActionResult> MyAgenda(
+            string? search,
+            SessionStatus? status,
+            PaymentStatus? paymentStatus,
+            int page = 1,
+            int pageSize = 10)
         {
+            var profIdClaim = User.FindFirstValue("ProfessionalId");
+            if (!int.TryParse(profIdClaim, out var professionalId))
+            {
+                TempData["Error"] = "Tu usuario no está vinculado a ningún profesional. Solicitá al administrador que lo configure.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            if (page < 1) page = 1;
+            if (pageSize is < 5 or > 50) pageSize = 10;
+
+            var (sessions, totalCount) = await _sessionService.GetPagedByProfessionalAsync(
+                professionalId, page, pageSize, search, status, paymentStatus);
+
+            var viewModels = sessions.Select(SessionViewModel.FromEntity).ToList();
+
+            var model = new SessionIndexViewModel
+            {
+                Items = viewModels,
+                Search = search,
+                Status = status,
+                PaymentStatus = paymentStatus,
+                SortBy = "fecha",
+                SortDir = "desc",
+                Page = page,
+                PageSize = pageSize,
+                TotalCount = totalCount
+            };
+
+            return View(model);
+        }
+
+        public async Task<IActionResult> Create(int? patientId = null)        {
             var viewModel = new SessionViewModel
             {
                 FechaHora = DateTime.Now,

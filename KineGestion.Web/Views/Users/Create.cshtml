@@ -1,0 +1,81 @@
+@model KineGestion.Web.Models.ViewModels.UserViewModel
+
+@{
+    ViewData["Title"] = "Nuevo Usuario";
+}
+
+<div class="kg-page-header">
+    <div>
+        <h2>Nuevo Usuario</h2>
+        <p class="text-muted mb-0">Creá una cuenta de acceso al sistema</p>
+    </div>
+    <a asp-action="Index" class="btn-kg-outline">
+        <i class="bi bi-arrow-left"></i> Volver al listado
+    </a>
+</div>
+
+<div class="kg-form-card">
+    <div class="kg-form-header">
+        <div class="kg-form-header-icon primary"><i class="bi bi-person-plus-fill"></i></div>
+        <div>
+            <h4>Datos del Usuario</h4>
+            <p>Los campos marcados son obligatorios</p>
+        </div>
+    </div>
+    <form asp-action="Create" method="post">
+        @Html.AntiForgeryToken()
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger mb-4" role="alert"></div>
+        <div class="kg-form-body">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label asp-for="Email" class="form-label"></label>
+                    <input asp-for="Email" class="form-control" placeholder="usuario@dominio.com" autocomplete="username" />
+                    <span asp-validation-for="Email" class="text-danger small"></span>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="Rol" class="form-label"></label>
+                    <select asp-for="Rol" asp-items="Model.Roles" class="form-select" id="rolSelect">
+                        <option value="">— Seleccionar rol —</option>
+                    </select>
+                    <span asp-validation-for="Rol" class="text-danger small"></span>
+                </div>
+                <div class="col-md-6" id="profesionalField" style="display:none">
+                    <label asp-for="ProfessionalId" class="form-label"></label>
+                    <select asp-for="ProfessionalId" asp-items="Model.Profesionales" class="form-select">
+                        <option value="">— Sin vincular —</option>
+                    </select>
+                    <div class="form-text">Vinculá este usuario al profesional correspondiente para que vea su propia agenda.</div>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="Password" class="form-label"></label>
+                    <input asp-for="Password" class="form-control" placeholder="Mínimo 8 caracteres" autocomplete="new-password" />
+                    <span asp-validation-for="Password" class="text-danger small"></span>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="ConfirmPassword" class="form-label"></label>
+                    <input asp-for="ConfirmPassword" class="form-control" placeholder="Repetí la contraseña" autocomplete="new-password" />
+                    <span asp-validation-for="ConfirmPassword" class="text-danger small"></span>
+                </div>
+            </div>
+        </div>
+        <div class="kg-form-footer">
+            <a asp-action="Index" class="btn-kg-outline"><i class="bi bi-x-lg"></i> Cancelar</a>
+            <button type="submit" class="btn-kg-primary"><i class="bi bi-check-lg"></i> Crear Usuario</button>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script>
+    (function () {
+        const rolSelect = document.getElementById('rolSelect');
+        const profField = document.getElementById('profesionalField');
+        function toggle() {
+            profField.style.display = rolSelect.value === 'Kinesiologo' ? '' : 'none';
+        }
+        rolSelect.addEventListener('change', toggle);
+        toggle();
+    })();
+    </script>
+}

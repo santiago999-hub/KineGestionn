@@ -33,11 +33,22 @@
             </a>
 
             <div class="kg-nav-section-label">Gestión</div>
-            <a class="kg-nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Patients" ? "active" : "")"
-               asp-controller="Patients" asp-action="Index">
-                <i class="bi bi-people-fill"></i>
-                <span>Pacientes</span>
-            </a>
+            @if (User.IsInRole("Admin"))
+            {
+                <a class="kg-nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Patients" ? "active" : "")"
+                   asp-controller="Patients" asp-action="Index">
+                    <i class="bi bi-people-fill"></i>
+                    <span>Pacientes</span>
+                </a>
+            }
+            @if (User.IsInRole("Kinesiologo"))
+            {
+                <a class="kg-nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Sessions" && ViewContext.RouteData.Values["action"]?.ToString() == "MyAgenda" ? "active" : "")"
+                   asp-controller="Sessions" asp-action="MyAgenda">
+                    <i class="bi bi-calendar2-heart-fill"></i>
+                    <span>Mi Agenda</span>
+                </a>
+            }
             <a class="kg-nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Professionals" ? "active" : "")"
                asp-controller="Professionals" asp-action="Index">
                 <i class="bi bi-person-badge-fill"></i>
@@ -58,6 +69,16 @@
                 <i class="bi bi-building"></i>
                 <span>Consultorios</span>
             </a>
+
+            @if (User.IsInRole("Admin"))
+            {
+                <div class="kg-nav-section-label">Administración</div>
+                <a class="kg-nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Users" ? "active" : "")"
+                   asp-controller="Users" asp-action="Index">
+                    <i class="bi bi-person-lock"></i>
+                    <span>Usuarios</span>
+                </a>
+            }
         </nav>
 
         <div class="kg-sidebar-footer">

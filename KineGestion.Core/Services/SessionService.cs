@@ -45,6 +45,18 @@ namespace KineGestion.Core.Services
             return (sessions, totalCount);
         }
 
+        public async Task<(IEnumerable<Session> Sessions, int TotalCount)> GetPagedByProfessionalAsync(
+            int professionalId,
+            int page,
+            int pageSize,
+            string? search,
+            SessionStatus? status,
+            PaymentStatus? paymentStatus)
+        {
+            // No se borra Evolution: el profesional ve sus propias evoluciones
+            return await _repository.GetPagedByProfessionalAsync(professionalId, page, pageSize, search, status, paymentStatus);
+        }
+
         public async Task<IEnumerable<Session>> GetAllAsync()
             => await _repository.GetAllAsync();
 

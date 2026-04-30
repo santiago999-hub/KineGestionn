@@ -10,6 +10,7 @@ namespace KineGestion.Core.Interfaces
         Task<Session?> GetByIdAsync(int id);
         Task<IEnumerable<Session>> GetAllForAdminAsync();
         Task<(IEnumerable<Session> Sessions, int TotalCount)> GetPagedForAdminAsync(int page, int pageSize, string? search, SessionStatus? status, PaymentStatus? paymentStatus, string? sortBy, string? sortDir);
+        Task<(IEnumerable<Session> Sessions, int TotalCount)> GetPagedByProfessionalAsync(int professionalId, int page, int pageSize, string? search, SessionStatus? status, PaymentStatus? paymentStatus);
         Task<IEnumerable<Session>> GetAllAsync();
         Task<IEnumerable<Session>> GetByPatientIdAsync(int patientId);
         Task<IEnumerable<Session>> GetByProfessionalIdAsync(int professionalId);
