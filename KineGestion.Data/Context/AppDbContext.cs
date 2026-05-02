@@ -75,6 +75,13 @@ namespace KineGestion.Data.Context
                 entity.Property(s => s.Status).IsRequired();
                 entity.Property(s => s.PaymentStatus).IsRequired();
 
+                // Índices para los patrones de consulta más frecuentes
+                entity.HasIndex(s => s.ProfessionalId);
+                entity.HasIndex(s => s.PatientId);
+                entity.HasIndex(s => s.TreatmentId);
+                entity.HasIndex(s => new { s.ProfessionalId, s.FechaHora });
+                entity.HasIndex(s => new { s.Status, s.FechaHora });
+
                 entity.HasOne(s => s.Patient)
                     .WithMany(p => p.Sesiones)
                     .HasForeignKey(s => s.PatientId)

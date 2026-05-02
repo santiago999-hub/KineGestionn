@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using KineGestion.Core;
+using KineGestion.Core.DTOs;
 using KineGestion.Core.Entities;
 using KineGestion.Web.Mapping;
 using Microsoft.AspNetCore.Mvc.Rendering;
@@ -77,6 +78,24 @@ namespace KineGestion.Web.Models.ViewModels
 
         public static SessionViewModel FromEntityForAdmin(Session session)
             => MappingHelper.ToSessionViewModel(session, includeEvolution: false);
+
+        /// <summary>
+        /// Mapeo desde el DTO optimizado del listado. No require nav properties cargadas.
+        /// Evolution siempre null (no se muestra en listas).
+        /// </summary>
+        public static SessionViewModel FromDto(SessionListDto dto) => new()
+        {
+            Id                     = dto.Id,
+            FechaHora              = dto.FechaHora,
+            Status                 = dto.Status,
+            PaymentStatus          = dto.PaymentStatus,
+            NroSesionEnTratamiento = dto.NroSesionEnTratamiento,
+            PacienteNombre         = dto.PacienteNombre,
+            ProfesionalNombre      = dto.ProfesionalNombre,
+            TratamientoDescripcion = dto.TratamientoDescripcion,
+            OfficeNombre           = dto.OfficeNombre,
+            EvolutionBloqueada     = dto.EvolutionBloqueada
+        };
 
         public Session ToEntity() => MappingHelper.ToSessionEntity(this);
     }

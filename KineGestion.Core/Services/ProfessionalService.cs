@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using KineGestion.Core.DTOs;
 using KineGestion.Core.Entities;
 using KineGestion.Core.Exceptions;
 using KineGestion.Core.Interfaces;
@@ -26,6 +27,9 @@ namespace KineGestion.Core.Services
 
         public async Task<IEnumerable<Professional>> GetActiveProfessionalsAsync()
             => await _repository.GetActivosAsync();
+
+        public async Task<IEnumerable<ProfessionalSelectDto>> GetForSelectAsync()
+            => await _repository.GetForSelectAsync();
 
         public async Task<(IEnumerable<Professional> Professionals, int TotalCount)> GetPagedAsync(int page, int pageSize, string? search)
             => await _repository.GetPagedAsync(page, pageSize, search);

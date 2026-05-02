@@ -3,11 +3,13 @@ using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using KineGestion.Core.Interfaces;
+using KineGestion.Data.Context;
 using KineGestion.Web.Models.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.EntityFrameworkCore;
 
 namespace KineGestion.Web.Controllers
 {
@@ -17,15 +19,18 @@ namespace KineGestion.Web.Controllers
         private readonly UserManager<IdentityUser> _userManager;
         private readonly RoleManager<IdentityRole> _roleManager;
         private readonly IProfessionalService _professionalService;
+        private readonly AppDbContext _db;
 
         public UsersController(
             UserManager<IdentityUser> userManager,
             RoleManager<IdentityRole> roleManager,
-            IProfessionalService professionalService)
+            IProfessionalService professionalService,
+            AppDbContext db)
         {
             _userManager = userManager;
             _roleManager = roleManager;
             _professionalService = professionalService;
+            _db = db;
         }
 
         // GET: /Users
@@ -34,27 +39,41 @@ namespace KineGestion.Web.Controllers
             if (page < 1) page = 1;
             if (pageSize is < 5 or > 50) pageSize = 10;
 
-            var allUsers = _userManager.Users.ToList();
+            var query = _userManager.Users.AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(search))
-                allUsers = allUsers.Where(u => u.Email != null &&
-                    u.Email.Contains(search, System.StringComparison.OrdinalIgnoreCase)).ToList();
-
-            var totalCount = allUsers.Count;
-            var paged = allUsers.Skip((page - 1) * pageSize).Take(pageSize).ToList();
-
-            var items = new List<UserListItemViewModel>();
-            foreach (var user in paged)
             {
-                var roles = await _userManager.GetRolesAsync(user);
-                items.Add(new UserListItemViewModel
-                {
-                    Id = user.Id,
-                    Email = user.Email ?? string.Empty,
-                    Rol = roles.FirstOrDefault() ?? "Sin rol",
-                    EmailConfirmed = user.EmailConfirmed
-                });
+                var term = search.Trim();
+                query = query.Where(u => u.Email != null && EF.Functions.Like(u.Email, $"%{term}%"));
             }
+
+            var totalCount = await query.CountAsync();
+            var paged = await query
+                .OrderBy(u => u.Email)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            // Obtener todos los roles de los usuarios paginados en una sola consulta (evita N+1)
+            var userIds = paged.Select(u => u.Id).ToList();
+            var userRoles = await (
+                from ur in _db.UserRoles
+                join r in _db.Roles on ur.RoleId equals r.Id
+                where userIds.Contains(ur.UserId)
+                select new { ur.UserId, RoleName = r.Name }
+            ).ToListAsync();
+
+            var rolesByUser = userRoles
+                .GroupBy(x => x.UserId)
+                .ToDictionary(g => g.Key, g => g.First().RoleName ?? "Sin rol");
+
+            var items = paged.Select(user => new UserListItemViewModel
+            {
+                Id = user.Id,
+                Email = user.Email ?? string.Empty,
+                Rol = rolesByUser.GetValueOrDefault(user.Id, "Sin rol"),
+                EmailConfirmed = user.EmailConfirmed
+            }).ToList();
 
             var model = new UserIndexViewModel
             {

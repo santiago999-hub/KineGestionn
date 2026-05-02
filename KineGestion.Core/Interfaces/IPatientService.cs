@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using KineGestion.Core.DTOs;
 using KineGestion.Core.Entities;
 
 namespace KineGestion.Core.Interfaces
@@ -19,6 +20,9 @@ namespace KineGestion.Core.Interfaces
 
         /// <summary>Retorna solo los pacientes con IsActivo = true.</summary>
         Task<IEnumerable<Patient>> GetActivePatientsAsync();
+
+        /// <summary>Proyección mínima (Id, Nombre, Apellido, DNI) para poblar dropdowns.</summary>
+        Task<IEnumerable<PatientSelectDto>> GetForSelectAsync();
 
         /// <summary>Retorna una página de pacientes activos con búsqueda opcional.</summary>
         Task<(IEnumerable<Patient> Patients, int TotalCount)> GetPagedAsync(int page, int pageSize, string? search);

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using KineGestion.Core.DTOs;
 using KineGestion.Core.Entities;
 using Microsoft.AspNetCore.Mvc.Rendering;
 
@@ -46,6 +47,21 @@ namespace KineGestion.Web.Models.ViewModels
                 ? string.Empty
                 : $"{treatment.Patient.Apellido}, {treatment.Patient.Nombre}",
             SesionesRealizadas = treatment.Sesiones?.Count ?? 0
+        };
+
+        /// <summary>
+        /// Mapea desde el DTO optimizado del listado paginado.
+        /// No requiere que el objeto Treatment tenga cargada la colección Sesiones.
+        /// </summary>
+        public static TreatmentViewModel FromDto(TreatmentListDto dto) => new()
+        {
+            Id = dto.Id,
+            Descripcion = dto.Descripcion,
+            CantidadSesionesTotales = dto.CantidadSesionesTotales,
+            FechaInicio = dto.FechaInicio,
+            PacienteId = dto.PatientId,
+            PacienteNombre = dto.PatientNombre,
+            SesionesRealizadas = dto.SesionesCount
         };
 
         public Treatment ToEntity() => new()

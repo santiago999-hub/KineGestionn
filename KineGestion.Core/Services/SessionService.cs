@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using KineGestion.Core;
+using KineGestion.Core.DTOs;
 using KineGestion.Core.Entities;
 using KineGestion.Core.Exceptions;
 using KineGestion.Core.Interfaces;
@@ -45,6 +46,12 @@ namespace KineGestion.Core.Services
             return (sessions, totalCount);
         }
 
+        public async Task<(IEnumerable<SessionListDto> Items, int TotalCount)> GetPagedListForAdminAsync(
+            int page, int pageSize, string? search,
+            SessionStatus? status, PaymentStatus? paymentStatus,
+            string? sortBy, string? sortDir)
+            => await _repository.GetPagedListForAdminAsync(page, pageSize, search, status, paymentStatus, sortBy, sortDir);
+
         public async Task<(IEnumerable<Session> Sessions, int TotalCount)> GetPagedByProfessionalAsync(
             int professionalId,
             int page,
@@ -56,6 +63,11 @@ namespace KineGestion.Core.Services
             // No se borra Evolution: el profesional ve sus propias evoluciones
             return await _repository.GetPagedByProfessionalAsync(professionalId, page, pageSize, search, status, paymentStatus);
         }
+
+        public async Task<(IEnumerable<SessionListDto> Items, int TotalCount)> GetPagedListByProfessionalAsync(
+            int professionalId, int page, int pageSize, string? search,
+            SessionStatus? status, PaymentStatus? paymentStatus)
+            => await _repository.GetPagedListByProfessionalAsync(professionalId, page, pageSize, search, status, paymentStatus);
 
         public async Task<IEnumerable<Session>> GetAllAsync()
             => await _repository.GetAllAsync();

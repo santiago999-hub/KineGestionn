@@ -1,12 +1,12 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using KineGestion.Core.DTOs;
 using KineGestion.Core.Entities;
 
 namespace KineGestion.Core.Interfaces
 {
     /// <summary>
     /// Contrato de repositorio para Patient.
-    /// KineGestion.Data implementará esta interfaz con EF Core.
     /// KineGestion.Core no conoce nada de la base de datos.
     /// </summary>
     public interface IPatientRepository
@@ -14,6 +14,7 @@ namespace KineGestion.Core.Interfaces
         Task<Patient?> GetByIdAsync(int id);
         Task<IEnumerable<Patient>> GetAllAsync();
         Task<IEnumerable<Patient>> GetActivosAsync();
+        Task<IEnumerable<PatientSelectDto>> GetForSelectAsync();
         Task<(IEnumerable<Patient> Patients, int TotalCount)> GetPagedAsync(int page, int pageSize, string? search);
         Task<int> CountActiveAsync();
         Task<bool> ExistsByDniAsync(string dni, int? excludeId = null);

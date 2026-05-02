@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using KineGestion.Core.DTOs;
 using KineGestion.Core.Entities;
 using KineGestion.Core.Interfaces;
 using KineGestion.Data.Context;
@@ -36,6 +37,18 @@ namespace KineGestion.Data.Repositories
             => await _context.Patients
                              .AsNoTracking()
                              .Where(p => p.IsActivo)
+                             .ToListAsync();
+
+        /// <summary>
+        /// Proyección mínima para dropdowns: trae solo Id, Nombre, Apellido y DNI.
+        /// Evita cargar ObraSocial, FechaNacimiento y demás campos innecesarios.
+        /// </summary>
+        public async Task<IEnumerable<PatientSelectDto>> GetForSelectAsync()
+            => await _context.Patients
+                             .AsNoTracking()
+                             .Where(p => p.IsActivo)
+                             .OrderBy(p => p.Apellido).ThenBy(p => p.Nombre)
+                             .Select(p => new PatientSelectDto(p.Id, p.Nombre, p.Apellido, p.DNI))
                              .ToListAsync();
 
         /// <summary>

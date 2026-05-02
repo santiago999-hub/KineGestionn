@@ -41,8 +41,8 @@ namespace KineGestion.Web.Controllers
             if (page < 1) page = 1;
             if (pageSize is < 5 or > 50) pageSize = 10;
 
-            var (sessions, totalCount) = await _sessionService.GetPagedForAdminAsync(page, pageSize, search, status, paymentStatus, sortBy, sortDir);
-            var viewModels = sessions.Select(SessionViewModel.FromEntityForAdmin).ToList();
+            var (items, totalCount) = await _sessionService.GetPagedListForAdminAsync(page, pageSize, search, status, paymentStatus, sortBy, sortDir);
+            var viewModels = items.Select(SessionViewModel.FromDto).ToList();
 
             var model = new SessionIndexViewModel
             {
@@ -79,10 +79,10 @@ namespace KineGestion.Web.Controllers
             if (page < 1) page = 1;
             if (pageSize is < 5 or > 50) pageSize = 10;
 
-            var (sessions, totalCount) = await _sessionService.GetPagedByProfessionalAsync(
+            var (items, totalCount) = await _sessionService.GetPagedListByProfessionalAsync(
                 professionalId, page, pageSize, search, status, paymentStatus);
 
-            var viewModels = sessions.Select(SessionViewModel.FromEntity).ToList();
+            var viewModels = items.Select(SessionViewModel.FromDto).ToList();
 
             var model = new SessionIndexViewModel
             {
@@ -117,7 +117,7 @@ namespace KineGestion.Web.Controllers
             if (patientId <= 0)
                 return Json(Array.Empty<object>());
 
-            var treatments = await _treatmentService.GetByPatientIdAsync(patientId);
+            var treatments = await _treatmentService.GetByPatientForSelectAsync(patientId);
             var result = treatments
                 .Select(t => new { id = t.Id, descripcion = t.Descripcion })
                 .ToList();
@@ -228,9 +228,10 @@ namespace KineGestion.Web.Controllers
 
         private async Task LoadSelectListsAsync(SessionViewModel viewModel)
         {
-            var patientsTask      = _patientService.GetAllAsync();
-            var professionalsTask = _professionalService.GetActiveProfessionalsAsync();
-            var treatmentsTask    = _treatmentService.GetAllAsync();
+            // Proyecciones mínimas: solo los campos que necesita cada dropdown
+            var patientsTask      = _patientService.GetForSelectAsync();
+            var professionalsTask = _professionalService.GetForSelectAsync();
+            var treatmentsTask    = _treatmentService.GetForSelectAsync();
             var officesTask       = _officeService.GetActiveAsync();
             await Task.WhenAll(patientsTask, professionalsTask, treatmentsTask, officesTask);
             var patients      = patientsTask.Result;
@@ -238,13 +239,13 @@ namespace KineGestion.Web.Controllers
             var treatments    = treatmentsTask.Result;
             var offices       = officesTask.Result;
 
+            // El repositorio ya ordena por Apellido — no se necesita OrderBy en memoria
             viewModel.Pacientes = patients
                 .Select(p => new SelectListItem
                 {
                     Value = p.Id.ToString(),
                     Text = $"{p.Apellido}, {p.Nombre} - DNI {p.DNI}"
                 })
-                .OrderBy(p => p.Text)
                 .ToList();
 
             viewModel.Profesionales = professionals
@@ -253,7 +254,6 @@ namespace KineGestion.Web.Controllers
                     Value = p.Id.ToString(),
                     Text = $"{p.Apellido}, {p.Nombre} - Matricula {p.Matricula}"
                 })
-                .OrderBy(p => p.Text)
                 .ToList();
 
             viewModel.Tratamientos = treatments
@@ -262,7 +262,6 @@ namespace KineGestion.Web.Controllers
                     Value = t.Id.ToString(),
                     Text = t.Descripcion
                 })
-                .OrderBy(t => t.Text)
                 .ToList();
 
             viewModel.Consultorios = offices

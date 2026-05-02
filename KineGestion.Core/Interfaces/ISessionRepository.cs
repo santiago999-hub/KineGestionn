@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using System;
 using KineGestion.Core;
+using KineGestion.Core.DTOs;
 using KineGestion.Core.Entities;
 
 namespace KineGestion.Core.Interfaces
@@ -11,7 +12,11 @@ namespace KineGestion.Core.Interfaces
         Task<Session?> GetByIdAsync(int id);
         Task<IEnumerable<Session>> GetAllAsync();
         Task<(IEnumerable<Session> Sessions, int TotalCount)> GetPagedForAdminAsync(int page, int pageSize, string? search, SessionStatus? status, PaymentStatus? paymentStatus, string? sortBy, string? sortDir);
+        /// <summary>Proyección optimizada para la tabla admin: sin cargar nav properties completas.</summary>
+        Task<(IEnumerable<SessionListDto> Items, int TotalCount)> GetPagedListForAdminAsync(int page, int pageSize, string? search, SessionStatus? status, PaymentStatus? paymentStatus, string? sortBy, string? sortDir);
         Task<(IEnumerable<Session> Sessions, int TotalCount)> GetPagedByProfessionalAsync(int professionalId, int page, int pageSize, string? search, SessionStatus? status, PaymentStatus? paymentStatus);
+        /// <summary>Proyección optimizada para la agenda del kinesiológo: sin nav properties.</summary>
+        Task<(IEnumerable<SessionListDto> Items, int TotalCount)> GetPagedListByProfessionalAsync(int professionalId, int page, int pageSize, string? search, SessionStatus? status, PaymentStatus? paymentStatus);
         Task<IEnumerable<Session>> GetByPatientIdAsync(int patientId);
         Task<IEnumerable<Session>> GetByProfessionalIdAsync(int professionalId);
         Task<IEnumerable<Session>> GetByTreatmentIdAsync(int treatmentId);

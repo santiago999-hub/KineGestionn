@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using KineGestion.Core.DTOs;
 using KineGestion.Core.Entities;
 using KineGestion.Core.Interfaces;
 using KineGestion.Data.Context;
@@ -27,6 +28,17 @@ namespace KineGestion.Data.Repositories
             => await _context.Professionals
                              .AsNoTracking()
                              .Where(p => p.IsActivo)
+                             .ToListAsync();
+
+        /// <summary>
+        /// Proyección mínima para dropdowns: trae solo Id, Nombre, Apellido y Matricula.
+        /// </summary>
+        public async Task<IEnumerable<ProfessionalSelectDto>> GetForSelectAsync()
+            => await _context.Professionals
+                             .AsNoTracking()
+                             .Where(p => p.IsActivo)
+                             .OrderBy(p => p.Apellido).ThenBy(p => p.Nombre)
+                             .Select(p => new ProfessionalSelectDto(p.Id, p.Nombre, p.Apellido, p.Matricula))
                              .ToListAsync();
 
         public async Task<bool> ExistsByMatriculaAsync(string matricula, int? excludeId = null)

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using KineGestion.Core.DTOs;
 using KineGestion.Core.Entities;
 using KineGestion.Core.Exceptions;
 using KineGestion.Core.Interfaces;
@@ -33,6 +34,9 @@ namespace KineGestion.Core.Services
 
         public async Task<IEnumerable<Patient>> GetAllAsync()
             => await _repository.GetAllAsync();
+
+        public async Task<IEnumerable<PatientSelectDto>> GetForSelectAsync()
+            => await _repository.GetForSelectAsync();
 
         /// <summary>
         /// LÓGICA DE NEGOCIO: filtra pacientes activos.

@@ -30,8 +30,10 @@ namespace KineGestion.Web.Controllers
             if (page < 1) page = 1;
             if (pageSize is < 5 or > 50) pageSize = 10;
 
-            var (treatments, totalCount) = await _treatmentService.GetPagedAsync(page, pageSize, search);
-            var viewModels = treatments.Select(TreatmentViewModel.FromEntity).ToList();
+            // GetPagedListAsync proyecta solo los campos necesarios en SQL,
+            // evitando cargar toda la colección Sesiones solo para contar.
+            var (items, totalCount) = await _treatmentService.GetPagedListAsync(page, pageSize, search);
+            var viewModels = items.Select(TreatmentViewModel.FromDto).ToList();
 
             var model = new TreatmentIndexViewModel
             {
