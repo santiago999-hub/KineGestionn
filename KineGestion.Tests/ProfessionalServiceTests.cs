@@ -94,6 +94,20 @@ namespace KineGestion.Tests
             _repositoryMock.Verify(r => r.UpdateAsync(professional), Times.Once);
         }
 
+        [Fact]
+        public async Task UpdateAsync_ShouldThrow_WhenMatriculaAlreadyUsedByOther()
+        {
+            var professional = BuildProfessional();
+            professional.Id = 7;
+
+            _repositoryMock
+                .Setup(r => r.ExistsByMatriculaAsync(professional.Matricula, professional.Id))
+                .ReturnsAsync(true); // otra matrícula registrada con el mismo número
+
+            await Assert.ThrowsAsync<BusinessValidationException>(() => _service.UpdateAsync(professional));
+            _repositoryMock.Verify(r => r.UpdateAsync(It.IsAny<Professional>()), Times.Never);
+        }
+
         private static Professional BuildProfessional()
         {
             return new Professional

@@ -114,6 +114,191 @@ namespace KineGestion.Tests
             await Assert.ThrowsAsync<BusinessValidationException>(() => _service.UpdateAsync(session));
         }
 
+        // ─── CreateAsync — happy paths ────────────────────────────────────────────
+
+        [Fact]
+        public async Task CreateAsync_ShouldAssignNroSesion_WhenDataIsValid()
+        {
+            var session = BuildSession();
+
+            _sessionRepositoryMock
+                .Setup(r => r.ExistsProfessionalConflictAsync(session.ProfessionalId, session.FechaHora, 45, null))
+                .ReturnsAsync(false);
+
+            _sessionRepositoryMock
+                .Setup(r => r.CountByTreatmentIdAsync(session.TreatmentId))
+                .ReturnsAsync(3); // hay 3 sesiones → la nueva será la 4ª
+
+            _treatmentRepositoryMock
+                .Setup(r => r.GetByIdAsync(session.TreatmentId))
+                .ReturnsAsync(new Treatment { Id = session.TreatmentId, CantidadSesionesTotales = 10, Descripcion = "Plan" });
+
+            _sessionRepositoryMock
+                .Setup(r => r.AddAsync(It.IsAny<Session>()))
+                .ReturnsAsync((Session s) => s);
+
+            var result = await _service.CreateAsync(session);
+
+            Assert.Equal(4, result.NroSesionEnTratamiento);
+            _sessionRepositoryMock.Verify(r => r.AddAsync(It.IsAny<Session>()), Times.Once);
+        }
+
+        [Fact]
+        public async Task CreateAsync_ShouldAssignNroSesionOne_WhenTreatmentHasNoSessions()
+        {
+            var session = BuildSession();
+
+            _sessionRepositoryMock
+                .Setup(r => r.ExistsProfessionalConflictAsync(session.ProfessionalId, session.FechaHora, 45, null))
+                .ReturnsAsync(false);
+
+            _sessionRepositoryMock
+                .Setup(r => r.CountByTreatmentIdAsync(session.TreatmentId))
+                .ReturnsAsync(0); // primera sesión del tratamiento
+
+            _treatmentRepositoryMock
+                .Setup(r => r.GetByIdAsync(session.TreatmentId))
+                .ReturnsAsync(new Treatment { Id = session.TreatmentId, CantidadSesionesTotales = 5, Descripcion = "Inicio" });
+
+            _sessionRepositoryMock
+                .Setup(r => r.AddAsync(It.IsAny<Session>()))
+                .ReturnsAsync((Session s) => s);
+
+            var result = await _service.CreateAsync(session);
+
+            Assert.Equal(1, result.NroSesionEnTratamiento);
+        }
+
+        [Fact]
+        public async Task CreateAsync_ShouldThrow_WhenPatientExceedsSessionLimit()
+        {
+            // Esta validación no está en SessionService actualmente, pero si se agrega
+            // en el futuro, este test documenta el comportamiento esperado.
+            // Por ahora verifica que el límite del TRATAMIENTO es el punto de control.
+            var session = BuildSession();
+
+            _sessionRepositoryMock
+                .Setup(r => r.ExistsProfessionalConflictAsync(session.ProfessionalId, session.FechaHora, 45, null))
+                .ReturnsAsync(false);
+
+            _sessionRepositoryMock
+                .Setup(r => r.CountByTreatmentIdAsync(session.TreatmentId))
+                .ReturnsAsync(5);
+
+            _treatmentRepositoryMock
+                .Setup(r => r.GetByIdAsync(session.TreatmentId))
+                .ReturnsAsync(new Treatment { Id = session.TreatmentId, CantidadSesionesTotales = 5, Descripcion = "Completado" });
+
+            await Assert.ThrowsAsync<BusinessValidationException>(() => _service.CreateAsync(session));
+        }
+
+        // ─── UpdateAsync — happy paths ────────────────────────────────────────────
+
+        [Fact]
+        public async Task UpdateAsync_ShouldLockEvolution_WhenSetForFirstTime()
+        {
+            var session = BuildSession();
+            session.Id = 20;
+            session.Evolution = "Primera evolución del paciente.";
+
+            var original = BuildSession();
+            original.Id = 20;
+            original.Evolution = null;
+            original.EvolutionLockedAt = null; // no estaba bloqueada
+
+            _sessionRepositoryMock
+                .Setup(r => r.ExistsProfessionalConflictAsync(session.ProfessionalId, session.FechaHora, 45, session.Id))
+                .ReturnsAsync(false);
+
+            _sessionRepositoryMock
+                .Setup(r => r.GetByIdAsync(session.Id))
+                .ReturnsAsync(original);
+
+            _sessionRepositoryMock
+                .Setup(r => r.UpdateAsync(It.IsAny<Session>()))
+                .ReturnsAsync((Session s) => s);
+
+            var result = await _service.UpdateAsync(session);
+
+            // Al escribir la evolución por primera vez, se debe bloquear automáticamente
+            Assert.NotNull(result.EvolutionLockedAt);
+        }
+
+        [Fact]
+        public async Task UpdateAsync_ShouldPreserveEvolutionLock_WhenEvolutionIsUnchanged()
+        {
+            var lockedAt = DateTime.UtcNow.AddDays(-2);
+            var session = BuildSession();
+            session.Id = 21;
+            session.Evolution = "Evolución firmada.";
+
+            var original = BuildSession();
+            original.Id = 21;
+            original.Evolution = "Evolución firmada."; // mismo texto → no cambia
+            original.EvolutionLockedAt = lockedAt;
+
+            _sessionRepositoryMock
+                .Setup(r => r.ExistsProfessionalConflictAsync(session.ProfessionalId, session.FechaHora, 45, session.Id))
+                .ReturnsAsync(false);
+
+            _sessionRepositoryMock
+                .Setup(r => r.GetByIdAsync(session.Id))
+                .ReturnsAsync(original);
+
+            _sessionRepositoryMock
+                .Setup(r => r.UpdateAsync(It.IsAny<Session>()))
+                .ReturnsAsync((Session s) => s);
+
+            var result = await _service.UpdateAsync(session);
+
+            // La fecha de bloqueo original debe preservarse sin cambios
+            Assert.Equal(lockedAt, result.EvolutionLockedAt);
+        }
+
+        [Fact]
+        public async Task UpdateAsync_ShouldThrow_WhenNewTreatmentIsAlsoFull()
+        {
+            var session = BuildSession();
+            session.Id = 22;
+            session.TreatmentId = 99; // cambia a tratamiento diferente
+
+            var original = BuildSession();
+            original.Id = 22;
+            original.TreatmentId = 1; // tratamiento original
+
+            _sessionRepositoryMock
+                .Setup(r => r.ExistsProfessionalConflictAsync(session.ProfessionalId, session.FechaHora, 45, session.Id))
+                .ReturnsAsync(false);
+
+            _sessionRepositoryMock
+                .Setup(r => r.GetByIdAsync(session.Id))
+                .ReturnsAsync(original);
+
+            _sessionRepositoryMock
+                .Setup(r => r.CountByTreatmentIdAsync(99))
+                .ReturnsAsync(8);
+
+            _treatmentRepositoryMock
+                .Setup(r => r.GetByIdAsync(99))
+                .ReturnsAsync(new Treatment { Id = 99, CantidadSesionesTotales = 8, Descripcion = "Lleno" });
+
+            await Assert.ThrowsAsync<BusinessValidationException>(() => _service.UpdateAsync(session));
+        }
+
+        // ─── DeleteAsync ──────────────────────────────────────────────────────────
+
+        [Fact]
+        public async Task DeleteAsync_ShouldCallRepositoryDelete()
+        {
+            _sessionRepositoryMock
+                .Setup(r => r.DeleteAsync(5))
+                .Returns(Task.CompletedTask);
+
+            await _service.DeleteAsync(5);
+
+            _sessionRepositoryMock.Verify(r => r.DeleteAsync(5), Times.Once);
+        }
+
         private static Session BuildSession()
         {
             return new Session

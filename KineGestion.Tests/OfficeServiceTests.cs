@@ -87,6 +87,26 @@ namespace KineGestion.Tests
             _repositoryMock.Verify(r => r.UpdateAsync(It.IsAny<Office>()), Times.Never);
         }
 
+        [Fact]
+        public async Task UpdateAsync_ShouldPersist_WhenNameIsUnique()
+        {
+            var office = BuildOffice();
+            office.Id = 5;
+
+            _repositoryMock
+                .Setup(r => r.ExistsByNameAsync(office.Name, office.Id))
+                .ReturnsAsync(false);
+
+            _repositoryMock
+                .Setup(r => r.UpdateAsync(office))
+                .ReturnsAsync(office);
+
+            var result = await _service.UpdateAsync(office);
+
+            Assert.Equal(office.Name, result.Name);
+            _repositoryMock.Verify(r => r.UpdateAsync(office), Times.Once);
+        }
+
         private static Office BuildOffice()
         {
             return new Office

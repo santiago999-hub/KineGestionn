@@ -15,7 +15,8 @@ namespace KineGestion.Core.Interfaces
         /// <summary>Obtiene un paciente por su identificador único.</summary>
         Task<Patient?> GetByIdAsync(int id);
 
-        /// <summary>Retorna la lista completa de pacientes registrados.</summary>
+        /// <summary>OBSOLETO: carga toda la tabla en memoria. Usar GetPagedAsync para listados o GetForSelectAsync para dropdowns.</summary>
+        [Obsolete("Carga toda la tabla en memoria. Usar GetPagedAsync (listados) o GetForSelectAsync (dropdowns).")]
         Task<IEnumerable<Patient>> GetAllAsync();
 
         /// <summary>Retorna solo los pacientes con IsActivo = true.</summary>

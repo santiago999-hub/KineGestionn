@@ -32,6 +32,7 @@ namespace KineGestion.Core.Services
         public async Task<Patient?> GetByIdAsync(int id)
             => await _repository.GetByIdAsync(id);
 
+        [Obsolete("Carga toda la tabla en memoria. Usar GetPagedAsync (listados) o GetForSelectAsync (dropdowns).")]
         public async Task<IEnumerable<Patient>> GetAllAsync()
             => await _repository.GetAllAsync();
 

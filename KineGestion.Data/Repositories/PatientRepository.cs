@@ -23,9 +23,18 @@ namespace KineGestion.Data.Repositories
             _context = context;
         }
 
+        /// <summary>
+        /// AsNoTracking: las vistas de detalle y edición solo leen el registro.
+        /// UpdateAsync llama explícitamente a _context.Update(), por lo que el tracking no es necesario aquí.
+        /// Reduce el overhead del ChangeTracker bajo carga concurrente.
+        /// </summary>
         public async Task<Patient?> GetByIdAsync(int id)
-            => await _context.Patients.FindAsync(id);
+            => await _context.Patients
+                             .AsNoTracking()
+                             .FirstOrDefaultAsync(p => p.Id == id);
 
+        /// <summary>OBSOLETO: carga la tabla completa en memoria. Usar GetPagedAsync o GetForSelectAsync.</summary>
+        [Obsolete("Carga toda la tabla en memoria. Usar GetPagedAsync o GetForSelectAsync.")]
         public async Task<IEnumerable<Patient>> GetAllAsync()
             => await _context.Patients
                              .AsNoTracking()
@@ -70,7 +79,7 @@ namespace KineGestion.Data.Repositories
                 query = query.Where(p =>
                     (p.Nombre + " " + p.Apellido).Contains(term) ||
                     p.DNI.Contains(term) ||
-                    p.ObraSocial.Contains(term));
+                    (p.ObraSocial != null && p.ObraSocial.Contains(term)));
             }
 
             query = query.OrderBy(p => p.Apellido).ThenBy(p => p.Nombre);

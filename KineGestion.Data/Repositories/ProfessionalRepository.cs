@@ -18,9 +18,17 @@ namespace KineGestion.Data.Repositories
             _context = context;
         }
 
+        /// <summary>
+        /// AsNoTracking: vistas de detalle y edición solo necesitan leer el registro.
+        /// UpdateAsync llama explícitamente a _context.Update(), por lo que el tracking no es necesario aquí.
+        /// </summary>
         public async Task<Professional?> GetByIdAsync(int id)
-            => await _context.Professionals.FindAsync(id);
+            => await _context.Professionals
+                             .AsNoTracking()
+                             .FirstOrDefaultAsync(p => p.Id == id);
 
+        /// <summary>OBSOLETO: carga la tabla completa en memoria. Usar GetPagedAsync o GetForSelectAsync.</summary>
+        [Obsolete("Carga toda la tabla en memoria. Usar GetPagedAsync o GetForSelectAsync.")]
         public async Task<IEnumerable<Professional>> GetAllAsync()
             => await _context.Professionals.AsNoTracking().ToListAsync();
 

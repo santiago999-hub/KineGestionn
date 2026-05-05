@@ -23,6 +23,8 @@ namespace KineGestion.Core.Services
         public async Task<Session?> GetByIdAsync(int id)
             => await _repository.GetByIdAsync(id);
 
+        /// <summary>OBSOLETO: borra Evolution pero sigue cargando todas las sesiones en memoria. Ver interfaz.</summary>
+        [Obsolete("Peligro de Memory Bomb. Usar GetPagedListForAdminAsync.")]
         public async Task<IEnumerable<Session>> GetAllForAdminAsync()
         {
             var sessions = await _repository.GetAllAsync();
@@ -31,6 +33,8 @@ namespace KineGestion.Core.Services
             return sessions;
         }
 
+        /// <summary>OBSOLETO: delega al método obsoleto del repo. Usar GetPagedListForAdminAsync.</summary>
+        [Obsolete("Carga entidades completas con 4 JOINs. Usar GetPagedListForAdminAsync.")]
         public async Task<(IEnumerable<Session> Sessions, int TotalCount)> GetPagedForAdminAsync(
             int page,
             int pageSize,
@@ -52,6 +56,7 @@ namespace KineGestion.Core.Services
             string? sortBy, string? sortDir)
             => await _repository.GetPagedListForAdminAsync(page, pageSize, search, status, paymentStatus, sortBy, sortDir);
 
+        [Obsolete("Carga entidades completas con 3 JOINs. Usar GetPagedListByProfessionalAsync.")]
         public async Task<(IEnumerable<Session> Sessions, int TotalCount)> GetPagedByProfessionalAsync(
             int professionalId,
             int page,
@@ -61,7 +66,9 @@ namespace KineGestion.Core.Services
             PaymentStatus? paymentStatus)
         {
             // No se borra Evolution: el profesional ve sus propias evoluciones
+#pragma warning disable CS0618
             return await _repository.GetPagedByProfessionalAsync(professionalId, page, pageSize, search, status, paymentStatus);
+#pragma warning restore CS0618
         }
 
         public async Task<(IEnumerable<SessionListDto> Items, int TotalCount)> GetPagedListByProfessionalAsync(
@@ -69,6 +76,8 @@ namespace KineGestion.Core.Services
             SessionStatus? status, PaymentStatus? paymentStatus)
             => await _repository.GetPagedListByProfessionalAsync(professionalId, page, pageSize, search, status, paymentStatus);
 
+        /// <summary>OBSOLETO: carga todas las sesiones sin filtro. Ver interfaz para detalles.</summary>
+        [Obsolete("Peligro de Memory Bomb. Usar GetPagedListForAdminAsync o GetPagedListByProfessionalAsync.")]
         public async Task<IEnumerable<Session>> GetAllAsync()
             => await _repository.GetAllAsync();
 

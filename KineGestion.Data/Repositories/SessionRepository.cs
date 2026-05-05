@@ -1,10 +1,12 @@
 using System.Collections.Generic;
+using System.Data;
 using System.Threading.Tasks;
 using System;
 using Microsoft.EntityFrameworkCore;
 using KineGestion.Core;
 using KineGestion.Core.DTOs;
 using KineGestion.Core.Entities;
+using KineGestion.Core.Exceptions;
 using KineGestion.Core.Interfaces;
 using KineGestion.Data.Context;
 using System.Linq;
@@ -20,14 +22,22 @@ namespace KineGestion.Data.Repositories
             _context = context;
         }
 
+        /// <summary>
+        /// Carga la sesión con sus relaciones para visualización o edición.
+        /// AsNoTracking: no registra la entidad en el ChangeTracker, reduciendo overhead de memoria.
+        /// El UpdateAsync adjunta el objeto modificado explícitamente, por lo que no se necesita tracking aquí.
+        /// </summary>
         public async Task<Session?> GetByIdAsync(int id)
             => await _context.Sessions
+                             .AsNoTracking()
                              .Include(s => s.Patient)
                              .Include(s => s.Professional)
                              .Include(s => s.Treatment)
                              .Include(s => s.Office)
                              .FirstOrDefaultAsync(s => s.Id == id);
 
+        /// <summary>OBSOLETO: carga la tabla completa en memoria. Ver interfaz para detalles del riesgo.</summary>
+        [Obsolete("Peligro de Memory Bomb. Usar GetPagedListForAdminAsync.")]
         public async Task<IEnumerable<Session>> GetAllAsync()
             => await _context.Sessions
                              .AsNoTracking()
@@ -38,6 +48,8 @@ namespace KineGestion.Data.Repositories
                              .OrderByDescending(s => s.FechaHora)
                              .ToListAsync();
 
+        /// <summary>OBSOLETO: usa 4 Includes completos. Ver interfaz. Usar GetPagedListForAdminAsync.</summary>
+        [Obsolete("Carga entidades completas con 4 JOINs. Usar GetPagedListForAdminAsync.")]
         public async Task<(IEnumerable<Session> Sessions, int TotalCount)> GetPagedForAdminAsync(
             int page,
             int pageSize,
@@ -151,6 +163,7 @@ namespace KineGestion.Data.Repositories
             return (items, totalCount);
         }
 
+        [Obsolete("Carga entidades completas con 3 JOINs. Usar GetPagedListByProfessionalAsync.")]
         public async Task<(IEnumerable<Session> Sessions, int TotalCount)> GetPagedByProfessionalAsync(
             int professionalId,
             int page,
@@ -253,6 +266,14 @@ namespace KineGestion.Data.Repositories
                              .OrderBy(s => s.NroSesionEnTratamiento)
                              .ToListAsync();
 
+        /// <summary>
+        /// Retorna las últimas sesiones de un profesional para la vista de detalle.
+        /// El límite <see cref="MaxRecentSessionsInDetail"/> evita cargar historial ilimitado
+        /// en un contexto donde solo se muestran sesiones recientes como resumen.
+        /// Para listados completos con paginación, usar GetPagedListByProfessionalAsync.
+        /// </summary>
+        private const int MaxRecentSessionsInDetail = 20;
+
         public async Task<IEnumerable<Session>> GetByProfessionalIdAsync(int professionalId)
             => await _context.Sessions
                              .AsNoTracking()
@@ -261,7 +282,7 @@ namespace KineGestion.Data.Repositories
                              .Include(s => s.Treatment)
                              .Include(s => s.Office)
                              .OrderByDescending(s => s.FechaHora)
-                             .Take(20)
+                             .Take(MaxRecentSessionsInDetail)
                              .ToListAsync();
 
         public async Task<IEnumerable<Session>> GetByTreatmentIdAsync(int treatmentId)
@@ -307,10 +328,40 @@ namespace KineGestion.Data.Repositories
         public async Task<int> CountAsync()
             => await _context.Sessions.AsNoTracking().CountAsync();
 
+        /// <summary>
+        /// Inserta una sesión de forma atómica bajo una transacción RepeatableRead.
+        /// Dentro de la transacción se recuenta las sesiones del tratamiento y se re-valida el límite,
+        /// eliminando la condición de carrera (TOCTOU) que existía cuando el conteo y el INSERT
+        /// ocurrían en operaciones de base de datos separadas.
+        /// </summary>
         public async Task<Session> AddAsync(Session session)
         {
+            // RepeatableRead: garantiza que ninguna otra transacción pueda insertar filas para
+            // el mismo TreatmentId entre el COUNT y el INSERT de esta transacción.
+            await using var tx = await _context.Database
+                .BeginTransactionAsync(IsolationLevel.RepeatableRead);
+
+            // Conteo atómico: este valor es la fuente de verdad bajo concurrencia.
+            int sesionesActuales = await _context.Sessions
+                .CountAsync(s => s.TreatmentId == session.TreatmentId);
+
+            // Re-validación del límite del tratamiento dentro de la transacción.
+            var treatment = await _context.Treatments
+                .AsNoTracking()
+                .FirstOrDefaultAsync(t => t.Id == session.TreatmentId);
+
+            if (treatment is not null && sesionesActuales >= treatment.CantidadSesionesTotales)
+                throw new BusinessValidationException(
+                    $"El tratamiento ya alcanzó el límite de {treatment.CantidadSesionesTotales} sesiones.",
+                    nameof(Session.TreatmentId));
+
+            // El número de sesión se calcula de forma atómica: es el valor correcto incluso bajo concurrencia.
+            session.NroSesionEnTratamiento = sesionesActuales + 1;
+
             _context.Sessions.Add(session);
             await _context.SaveChangesAsync();
+            await tx.CommitAsync();
+
             return session;
         }
 

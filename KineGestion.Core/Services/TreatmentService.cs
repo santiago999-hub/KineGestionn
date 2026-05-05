@@ -22,14 +22,18 @@ namespace KineGestion.Core.Services
         public async Task<Treatment?> GetByIdAsync(int id)
             => await _repository.GetByIdAsync(id);
 
+        [Obsolete("Carga toda la tabla con nav properties en memoria. Usar GetPagedListAsync.")]
         public async Task<IEnumerable<Treatment>> GetAllAsync()
             => await _repository.GetAllAsync();
 
         public async Task<IEnumerable<Treatment>> GetByPatientIdAsync(int patientId)
             => await _repository.GetByPatientIdAsync(patientId);
 
+        [Obsolete("Carga entidades con Patient + Sesiones en memoria. Usar GetPagedListAsync.")]
         public async Task<(IEnumerable<Treatment> Treatments, int TotalCount)> GetPagedAsync(int page, int pageSize, string? search)
+#pragma warning disable CS0618
             => await _repository.GetPagedAsync(page, pageSize, search);
+#pragma warning restore CS0618
 
         public async Task<(IEnumerable<TreatmentListDto> Items, int TotalCount)> GetPagedListAsync(int page, int pageSize, string? search)
             => await _repository.GetPagedListAsync(page, pageSize, search);

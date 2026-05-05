@@ -20,9 +20,12 @@ namespace KineGestion.Data.Repositories
 
         public async Task<Office?> GetByIdAsync(int id)
             => await _context.Offices
+                .AsNoTracking()
                 .Include(o => o.Equipments)
                 .FirstOrDefaultAsync(o => o.Id == id);
 
+        /// <summary>OBSOLETO: carga todos los consultorios con Equipments. Usar GetPagedAsync o GetActiveAsync.</summary>
+        [Obsolete("Carga toda la tabla con nav properties en memoria. Usar GetPagedAsync o GetActiveAsync.")]
         public async Task<IEnumerable<Office>> GetAllAsync()
             => await _context.Offices
                 .Include(o => o.Equipments)
@@ -37,7 +40,8 @@ namespace KineGestion.Data.Repositories
 
         public async Task<(IEnumerable<Office> Offices, int TotalCount)> GetPagedAsync(int page, int pageSize, string? search)
         {
-            var query = _context.Offices.AsQueryable();
+            // AsNoTracking: el listado es solo lectura; los Equipments no se muestran en la tabla.
+            var query = _context.Offices.AsNoTracking().AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(search))
                 query = query.Where(o => o.Name.Contains(search));
@@ -48,8 +52,7 @@ namespace KineGestion.Data.Repositories
                 .OrderBy(o => o.Name)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
-                .Include(o => o.Equipments)
-                .ToListAsync();
+                .ToListAsync(); // sin Include: la vista Index solo usa Name e IsActive
 
             return (offices, totalCount);
         }

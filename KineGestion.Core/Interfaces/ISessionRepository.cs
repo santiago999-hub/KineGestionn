@@ -10,10 +10,22 @@ namespace KineGestion.Core.Interfaces
     public interface ISessionRepository
     {
         Task<Session?> GetByIdAsync(int id);
+        /// <summary>
+        /// OBSOLETO: Carga TODAS las sesiones en memoria sin paginado. Usar GetPagedListForAdminAsync.
+        /// Riesgo de OOM (Out Of Memory) en producción con volumen real de datos.
+        /// </summary>
+        [Obsolete("Peligro de Memory Bomb en producción. Usar GetPagedListForAdminAsync con pageSize paramétrico.")]
         Task<IEnumerable<Session>> GetAllAsync();
+        /// <summary>
+        /// OBSOLETO: Carga nav properties completas (Patient, Professional, Treatment, Office) en memoria.
+        /// Usar GetPagedListForAdminAsync: proyección SQL que trae solo los campos necesarios para la tabla.
+        /// </summary>
+        [Obsolete("Carga entidades completas con 4 JOINs. Usar GetPagedListForAdminAsync.")]
         Task<(IEnumerable<Session> Sessions, int TotalCount)> GetPagedForAdminAsync(int page, int pageSize, string? search, SessionStatus? status, PaymentStatus? paymentStatus, string? sortBy, string? sortDir);
         /// <summary>Proyección optimizada para la tabla admin: sin cargar nav properties completas.</summary>
         Task<(IEnumerable<SessionListDto> Items, int TotalCount)> GetPagedListForAdminAsync(int page, int pageSize, string? search, SessionStatus? status, PaymentStatus? paymentStatus, string? sortBy, string? sortDir);
+        /// <summary>Carga entidades completas con 3 JOINs. Usar <see cref="GetPagedListByProfessionalAsync"/>.</summary>
+        [Obsolete("Carga entidades completas con 3 JOINs. Usar GetPagedListByProfessionalAsync.")]
         Task<(IEnumerable<Session> Sessions, int TotalCount)> GetPagedByProfessionalAsync(int professionalId, int page, int pageSize, string? search, SessionStatus? status, PaymentStatus? paymentStatus);
         /// <summary>Proyección optimizada para la agenda del kinesiológo: sin nav properties.</summary>
         Task<(IEnumerable<SessionListDto> Items, int TotalCount)> GetPagedListByProfessionalAsync(int professionalId, int page, int pageSize, string? search, SessionStatus? status, PaymentStatus? paymentStatus);

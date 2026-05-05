@@ -29,6 +29,7 @@ namespace KineGestion.Tests
         }
 
         [Fact]
+#pragma warning disable CS0618 // Test intencional: verifica que el método obsoleto delega al repositorio correctamente.
         public async Task GetAllAsync_ShouldCallRepositoryGetAllAsync()
         {
             var expected = new List<Patient>
@@ -47,6 +48,7 @@ namespace KineGestion.Tests
             _repositoryMock.Verify(r => r.GetAllAsync(), Times.Once);
             _repositoryMock.Verify(r => r.GetActivosAsync(), Times.Never);
         }
+#pragma warning restore CS0618
 
         [Fact]
         public async Task CreateAsync_ShouldThrow_WhenBirthDateIsToday()
@@ -87,6 +89,50 @@ namespace KineGestion.Tests
 
             Assert.Equal(patient.DNI, result.DNI);
             _repositoryMock.Verify(r => r.AddAsync(patient), Times.Once);
+        }
+
+        // ─── UpdateAsync ──────────────────────────────────────────────────────────
+
+        [Fact]
+        public async Task UpdateAsync_ShouldPersist_WhenValid()
+        {
+            var patient = BuildPatient();
+
+            _repositoryMock
+                .Setup(r => r.ExistsByDniAsync(patient.DNI, patient.Id))
+                .ReturnsAsync(false);
+
+            _repositoryMock
+                .Setup(r => r.UpdateAsync(patient))
+                .ReturnsAsync(patient);
+
+            var result = await _service.UpdateAsync(patient);
+
+            Assert.Equal(patient.DNI, result.DNI);
+            _repositoryMock.Verify(r => r.UpdateAsync(patient), Times.Once);
+        }
+
+        [Fact]
+        public async Task UpdateAsync_ShouldThrow_WhenDniAlreadyUsedByOther()
+        {
+            var patient = BuildPatient();
+
+            _repositoryMock
+                .Setup(r => r.ExistsByDniAsync(patient.DNI, patient.Id))
+                .ReturnsAsync(true); // otro paciente ya tiene ese DNI
+
+            await Assert.ThrowsAsync<BusinessValidationException>(() => _service.UpdateAsync(patient));
+            _repositoryMock.Verify(r => r.UpdateAsync(It.IsAny<Patient>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task UpdateAsync_ShouldThrow_WhenBirthDateIsToday()
+        {
+            var patient = BuildPatient();
+            patient.FechaNacimiento = DateTime.Today; // fecha inválida en edición también
+
+            await Assert.ThrowsAsync<BusinessValidationException>(() => _service.UpdateAsync(patient));
+            _repositoryMock.Verify(r => r.UpdateAsync(It.IsAny<Patient>()), Times.Never);
         }
 
         private static Patient BuildPatient()

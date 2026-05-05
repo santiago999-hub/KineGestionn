@@ -109,6 +109,33 @@ namespace KineGestion.Tests
             _repositoryMock.Verify(r => r.DeleteAsync(9), Times.Once);
         }
 
+        // ─── UpdateAsync ──────────────────────────────────────────────────────────
+
+        [Fact]
+        public async Task UpdateAsync_ShouldPersist_WhenValid()
+        {
+            var treatment = BuildTreatment();
+
+            _repositoryMock
+                .Setup(r => r.UpdateAsync(treatment))
+                .ReturnsAsync(treatment);
+
+            var result = await _service.UpdateAsync(treatment);
+
+            Assert.Equal(treatment.Descripcion, result.Descripcion);
+            _repositoryMock.Verify(r => r.UpdateAsync(treatment), Times.Once);
+        }
+
+        [Fact]
+        public async Task UpdateAsync_ShouldThrow_WhenFechaInicioIsDefault()
+        {
+            var treatment = BuildTreatment();
+            treatment.FechaInicio = default; // misma validación que en Create
+
+            await Assert.ThrowsAsync<BusinessValidationException>(() => _service.UpdateAsync(treatment));
+            _repositoryMock.Verify(r => r.UpdateAsync(It.IsAny<Treatment>()), Times.Never);
+        }
+
         private static Treatment BuildTreatment()
         {
             return new Treatment

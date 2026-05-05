@@ -18,11 +18,18 @@ namespace KineGestion.Data.Repositories
             _context = context;
         }
 
+        /// <summary>
+        /// AsNoTracking + Include Patient para vistas de detalle/edición.
+        /// UpdateAsync llama explícitamente a _context.Update(), tracking innecesario.
+        /// </summary>
         public async Task<Treatment?> GetByIdAsync(int id)
             => await _context.Treatments
+                             .AsNoTracking()
                              .Include(t => t.Patient)
                              .FirstOrDefaultAsync(t => t.Id == id);
 
+        /// <summary>OBSOLETO: carga tratamientos con Include de Patient y Sesiones. Usar GetPagedListAsync.</summary>
+        [Obsolete("Carga toda la tabla con nav properties en memoria. Usar GetPagedListAsync.")]
         public async Task<IEnumerable<Treatment>> GetAllAsync()
             => await _context.Treatments
                              .AsNoTracking()
@@ -61,6 +68,7 @@ namespace KineGestion.Data.Repositories
                              .AsNoTracking()
                              .CountAsync(t => t.PatientId == patientId);
 
+        [Obsolete("Carga entidades con Patient + Sesiones en memoria. Usar GetPagedListAsync.")]
         public async Task<(IEnumerable<Treatment> Treatments, int TotalCount)> GetPagedAsync(int page, int pageSize, string? search)
         {
             var query = _context.Treatments

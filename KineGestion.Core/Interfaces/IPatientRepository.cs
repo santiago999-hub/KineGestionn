@@ -12,6 +12,8 @@ namespace KineGestion.Core.Interfaces
     public interface IPatientRepository
     {
         Task<Patient?> GetByIdAsync(int id);
+        /// <summary>OBSOLETO: carga todos los pacientes en memoria. Usar GetPagedAsync o GetForSelectAsync.</summary>
+        [Obsolete("Carga toda la tabla en memoria. Usar GetPagedAsync o GetForSelectAsync para dropdowns.")]
         Task<IEnumerable<Patient>> GetAllAsync();
         Task<IEnumerable<Patient>> GetActivosAsync();
         Task<IEnumerable<PatientSelectDto>> GetForSelectAsync();

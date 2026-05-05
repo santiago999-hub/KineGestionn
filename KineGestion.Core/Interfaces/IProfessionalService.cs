@@ -8,6 +8,8 @@ namespace KineGestion.Core.Interfaces
     public interface IProfessionalService
     {
         Task<Professional?> GetByIdAsync(int id);
+        /// <summary>OBSOLETO: carga toda la tabla en memoria. Usar GetPagedAsync para listados o GetForSelectAsync para dropdowns.</summary>
+        [Obsolete("Carga toda la tabla en memoria. Usar GetPagedAsync (listados) o GetForSelectAsync (dropdowns).")]
         Task<IEnumerable<Professional>> GetAllAsync();
         Task<IEnumerable<Professional>> GetActiveProfessionalsAsync();
         /// <summary>Proyección mínima (Id, Nombre, Apellido, Matricula) para dropdowns.</summary>

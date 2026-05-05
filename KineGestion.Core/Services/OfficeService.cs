@@ -20,6 +20,7 @@ namespace KineGestion.Core.Services
         public async Task<Office?> GetByIdAsync(int id)
             => await _repository.GetByIdAsync(id);
 
+        [Obsolete("Carga toda la tabla en memoria. Usar GetPagedAsync o GetActiveAsync.")]
         public async Task<IEnumerable<Office>> GetAllAsync()
             => await _repository.GetAllAsync();
 
