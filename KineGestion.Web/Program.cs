@@ -112,12 +112,28 @@ using (var scope = app.Services.CreateScope())
     var config = scope.ServiceProvider.GetRequiredService<IConfiguration>();
     var adminEmail = config["Seed:AdminEmail"] ?? "admin@kinegestion.com";
     var adminPassword = config["Seed:AdminPassword"] ?? "Admin1234";
-    if (await userManager.FindByEmailAsync(adminEmail) is null)
+    var existingAdmin = await userManager.FindByEmailAsync(adminEmail);
+    if (existingAdmin is null)
     {
         var admin = new IdentityUser { UserName = adminEmail, Email = adminEmail, EmailConfirmed = true };
         var result = await userManager.CreateAsync(admin, adminPassword);
         if (result.Succeeded)
             await userManager.AddToRoleAsync(admin, "Admin");
+    }
+    else
+    {
+        // Resetear contraseña y lockout por si cambió o está bloqueada
+        var token = await userManager.GeneratePasswordResetTokenAsync(existingAdmin);
+        var resetResult = await userManager.ResetPasswordAsync(existingAdmin, token, adminPassword);
+        var seedLogger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+        if (!resetResult.Succeeded)
+            seedLogger.LogError("SEED: fallo reset contraseña admin: {Errors}", string.Join(", ", resetResult.Errors.Select(e => e.Description)));
+        else
+            seedLogger.LogInformation("SEED: contraseña admin reseteada correctamente para {Email}", adminEmail);
+        await userManager.SetLockoutEndDateAsync(existingAdmin, null);
+        await userManager.ResetAccessFailedCountAsync(existingAdmin);
+        if (!await userManager.IsInRoleAsync(existingAdmin, "Admin"))
+            await userManager.AddToRoleAsync(existingAdmin, "Admin");
     }
 }
 

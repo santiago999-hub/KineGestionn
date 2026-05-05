@@ -33,12 +33,12 @@ public class HomeController : Controller
 
     public async Task<IActionResult> Index()
     {
-        var countPatients = _patientService.CountActiveAsync();
-        var countProfessionals = _professionalService.CountActiveAsync();
-        var countTreatments = _treatmentService.CountAsync();
-        var countSessions = _sessionService.CountAsync();
+        var countPatients = SafeCountAsync(() => _patientService.CountActiveAsync(), nameof(_patientService.CountActiveAsync));
+        var countProfessionals = SafeCountAsync(() => _professionalService.CountActiveAsync(), nameof(_professionalService.CountActiveAsync));
+        var countTreatments = SafeCountAsync(() => _treatmentService.CountAsync(), nameof(_treatmentService.CountAsync));
+        var countSessions = SafeCountAsync(() => _sessionService.CountAsync(), nameof(_sessionService.CountAsync));
 
-        await System.Threading.Tasks.Task.WhenAll(countPatients, countProfessionals, countTreatments, countSessions);
+        await Task.WhenAll(countPatients, countProfessionals, countTreatments, countSessions);
 
         var model = new HomeDashboardViewModel
         {
@@ -49,6 +49,19 @@ public class HomeController : Controller
         };
 
         return View(model);
+
+        async Task<int> SafeCountAsync(Func<Task<int>> action, string source)
+        {
+            try
+            {
+                return await action();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error cargando métrica del dashboard desde {Source}", source);
+                return 0;
+            }
+        }
     }
 
     public IActionResult Privacy()
