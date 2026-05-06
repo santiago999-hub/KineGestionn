@@ -35,6 +35,27 @@ namespace KineGestion.Tests
         }
 
         [Fact]
+        public async Task CreateAsync_ShouldUseConfiguredConflictWindow()
+        {
+            var session = BuildSession();
+            var customWindow = 30;
+            var serviceWithCustomWindow = new SessionService(
+                _sessionRepositoryMock.Object,
+                _treatmentRepositoryMock.Object,
+                customWindow);
+
+            _sessionRepositoryMock
+                .Setup(r => r.ExistsProfessionalConflictAsync(session.ProfessionalId, session.FechaHora, customWindow, null))
+                .ReturnsAsync(true);
+
+            await Assert.ThrowsAsync<BusinessValidationException>(() => serviceWithCustomWindow.CreateAsync(session));
+
+            _sessionRepositoryMock.Verify(
+                r => r.ExistsProfessionalConflictAsync(session.ProfessionalId, session.FechaHora, customWindow, null),
+                Times.Once);
+        }
+
+        [Fact]
         public async Task CreateAsync_ShouldThrow_WhenTreatmentSessionLimitReached()
         {
             var session = BuildSession();

@@ -29,7 +29,17 @@ namespace KineGestion.Web.Services
         public async Task<(IReadOnlyList<UserListItemViewModel> Items, int TotalCount)> GetPagedUsersAsync(
             string? search, int page, int pageSize)
         {
-            var query = _userManager.Users.AsQueryable();
+            var safePage = page < 1 ? 1 : page;
+            var safePageSize = pageSize switch
+            {
+                < 5 => 10,
+                > 100 => 100,
+                _ => pageSize
+            };
+
+            var query = _userManager.Users
+                .AsNoTracking()
+                .AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(search))
             {
@@ -41,9 +51,19 @@ namespace KineGestion.Web.Services
 
             var paged = await query
                 .OrderBy(u => u.Email)
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
+                .ThenBy(u => u.Id)
+                .Skip((safePage - 1) * safePageSize)
+                .Take(safePageSize)
+                .Select(u => new
+                {
+                    u.Id,
+                    u.Email,
+                    u.EmailConfirmed
+                })
                 .ToListAsync();
+
+            if (paged.Count == 0)
+                return (new List<UserListItemViewModel>(), totalCount);
 
             // Carga todos los roles de la página en una única consulta SQL: patrón anti N+1.
             // Sin este JOIN, cada usuario requeriría un roundtrip separado a AspNetUserRoles.
@@ -53,11 +73,17 @@ namespace KineGestion.Web.Services
                 join r in _db.Roles on ur.RoleId equals r.Id
                 where userIds.Contains(ur.UserId)
                 select new { ur.UserId, RoleName = r.Name }
-            ).ToListAsync();
+            )
+            .AsNoTracking()
+            .ToListAsync();
 
             var rolesByUser = userRolesList
                 .GroupBy(x => x.UserId)
-                .ToDictionary(g => g.Key, g => g.First().RoleName ?? "Sin rol");
+                .ToDictionary(
+                    g => g.Key,
+                    g => g
+                        .Select(x => x.RoleName)
+                        .FirstOrDefault(name => !string.IsNullOrWhiteSpace(name)) ?? "Sin rol");
 
             IReadOnlyList<UserListItemViewModel> items = paged.Select(user => new UserListItemViewModel
             {
@@ -126,12 +152,26 @@ namespace KineGestion.Web.Services
             if (!result.Succeeded)
                 return IdentityOperationResult.FromIdentityErrors(result.Errors);
 
-            await _userManager.AddToRoleAsync(user, viewModel.Rol);
+            var roleResult = await _userManager.AddToRoleAsync(user, viewModel.Rol);
+            if (!roleResult.Succeeded)
+            {
+                await _userManager.DeleteAsync(user);
+                return IdentityOperationResult.FromIdentityErrors(roleResult.Errors);
+            }
 
             if (viewModel.Rol == "Kinesiologo" && viewModel.ProfessionalId.HasValue)
-                await _userManager.AddClaimAsync(
+            {
+                var claimResult = await _userManager.AddClaimAsync(
                     user,
                     new Claim("ProfessionalId", viewModel.ProfessionalId.Value.ToString()));
+
+                if (!claimResult.Succeeded)
+                {
+                    await _userManager.RemoveFromRoleAsync(user, viewModel.Rol);
+                    await _userManager.DeleteAsync(user);
+                    return IdentityOperationResult.FromIdentityErrors(claimResult.Errors);
+                }
+            }
 
             return IdentityOperationResult.Ok();
         }
@@ -154,7 +194,9 @@ namespace KineGestion.Web.Services
 
                 user.UserName = viewModel.Email;
                 user.Email    = viewModel.Email;
-                await _userManager.UpdateAsync(user);
+                var updateResult = await _userManager.UpdateAsync(user);
+                if (!updateResult.Succeeded)
+                    return IdentityOperationResult.FromIdentityErrors(updateResult.Errors, nameof(UserViewModel.Email));
             }
 
             // Actualizar contraseña si el admin proporcionó una nueva
@@ -168,19 +210,33 @@ namespace KineGestion.Web.Services
 
             // Reemplazar roles: remover todos y asignar el seleccionado
             var currentRoles = await _userManager.GetRolesAsync(user);
-            await _userManager.RemoveFromRolesAsync(user, currentRoles);
-            await _userManager.AddToRoleAsync(user, viewModel.Rol);
+            var removeRolesResult = await _userManager.RemoveFromRolesAsync(user, currentRoles);
+            if (!removeRolesResult.Succeeded)
+                return IdentityOperationResult.FromIdentityErrors(removeRolesResult.Errors);
+
+            var addRoleResult = await _userManager.AddToRoleAsync(user, viewModel.Rol);
+            if (!addRoleResult.Succeeded)
+                return IdentityOperationResult.FromIdentityErrors(addRoleResult.Errors);
 
             // Reemplazar claim ProfessionalId (si existe, remover y re-agregar)
             var existingClaims   = await _userManager.GetClaimsAsync(user);
             var existingProfClaim = existingClaims.FirstOrDefault(c => c.Type == "ProfessionalId");
             if (existingProfClaim is not null)
-                await _userManager.RemoveClaimAsync(user, existingProfClaim);
+            {
+                var removeClaimResult = await _userManager.RemoveClaimAsync(user, existingProfClaim);
+                if (!removeClaimResult.Succeeded)
+                    return IdentityOperationResult.FromIdentityErrors(removeClaimResult.Errors);
+            }
 
             if (viewModel.Rol == "Kinesiologo" && viewModel.ProfessionalId.HasValue)
-                await _userManager.AddClaimAsync(
+            {
+                var addClaimResult = await _userManager.AddClaimAsync(
                     user,
                     new Claim("ProfessionalId", viewModel.ProfessionalId.Value.ToString()));
+
+                if (!addClaimResult.Succeeded)
+                    return IdentityOperationResult.FromIdentityErrors(addClaimResult.Errors);
+            }
 
             return IdentityOperationResult.Ok();
         }
@@ -196,7 +252,10 @@ namespace KineGestion.Web.Services
             if (user is null)
                 return IdentityOperationResult.Fail("Usuario no encontrado.");
 
-            await _userManager.DeleteAsync(user);
+            var deleteResult = await _userManager.DeleteAsync(user);
+            if (!deleteResult.Succeeded)
+                return IdentityOperationResult.FromIdentityErrors(deleteResult.Errors);
+
             return IdentityOperationResult.Ok();
         }
     }

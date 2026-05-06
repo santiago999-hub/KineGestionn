@@ -13,11 +13,18 @@ namespace KineGestion.Core.Services
     {
         private readonly ISessionRepository _repository;
         private readonly ITreatmentRepository _treatmentRepository;
+        private readonly int _professionalConflictWindowMinutes;
 
-        public SessionService(ISessionRepository repository, ITreatmentRepository treatmentRepository)
+        public SessionService(
+            ISessionRepository repository,
+            ITreatmentRepository treatmentRepository,
+            int professionalConflictWindowMinutes = 45)
         {
             _repository = repository;
             _treatmentRepository = treatmentRepository;
+            _professionalConflictWindowMinutes = professionalConflictWindowMinutes > 0
+                ? professionalConflictWindowMinutes
+                : 45;
         }
 
         public async Task<Session?> GetByIdAsync(int id)
@@ -172,13 +179,13 @@ namespace KineGestion.Core.Services
             bool hasConflict = await _repository.ExistsProfessionalConflictAsync(
                 professionalId,
                 fechaHora,
-                windowInMinutes: 45,
+                windowInMinutes: _professionalConflictWindowMinutes,
                 excludeSessionId: excludeSessionId);
 
             if (hasConflict)
             {
                 throw new BusinessValidationException(
-                    "El profesional ya tiene una sesion asignada en un rango de +/- 45 minutos para el horario seleccionado.",
+                    $"El profesional ya tiene una sesion asignada en un rango de +/- {_professionalConflictWindowMinutes} minutos para el horario seleccionado.",
                     nameof(Session.FechaHora));
             }
         }

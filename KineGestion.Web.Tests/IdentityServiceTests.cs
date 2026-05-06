@@ -83,6 +83,36 @@ namespace KineGestion.Web.Tests
             Assert.Empty(result.Errors);
         }
 
+        [Fact]
+        public async Task CreateUserAsync_ShouldReturnFail_WhenRoleAssignmentFails()
+        {
+            var vm = new UserViewModel { Email = "fallo-rol@test.com", Password = "Pass1234!", Rol = "Admin" };
+            var createdUser = new IdentityUser { Id = "u-create", Email = vm.Email, UserName = vm.Email };
+
+            _userManagerMock
+                .Setup(m => m.FindByEmailAsync(vm.Email))
+                .ReturnsAsync((IdentityUser?)null);
+            _userManagerMock
+                .Setup(m => m.CreateAsync(It.IsAny<IdentityUser>(), vm.Password))
+                .ReturnsAsync(IdentityResult.Success)
+                .Callback<IdentityUser, string>((u, _) =>
+                {
+                    createdUser = u;
+                });
+            _userManagerMock
+                .Setup(m => m.AddToRoleAsync(It.IsAny<IdentityUser>(), vm.Rol))
+                .ReturnsAsync(IdentityResult.Failed(new IdentityError { Description = "Rol inválido." }));
+            _userManagerMock
+                .Setup(m => m.DeleteAsync(It.IsAny<IdentityUser>()))
+                .ReturnsAsync(IdentityResult.Success);
+
+            var result = await _service.CreateUserAsync(vm);
+
+            Assert.False(result.Succeeded);
+            Assert.Contains("Rol inválido.", result.Errors);
+            _userManagerMock.Verify(m => m.DeleteAsync(createdUser), Times.Once);
+        }
+
         // ─── DeleteUserAsync ───────────────────────────────────────────────────────
 
         [Fact]
@@ -120,6 +150,20 @@ namespace KineGestion.Web.Tests
 
             Assert.True(result.Succeeded);
             _userManagerMock.Verify(m => m.DeleteAsync(user), Times.Once);
+        }
+
+        [Fact]
+        public async Task DeleteUserAsync_ShouldReturnFail_WhenDeleteFails()
+        {
+            var user = new IdentityUser { Id = "user-88", Email = "nodelete@test.com" };
+            _userManagerMock.Setup(m => m.FindByIdAsync("user-88")).ReturnsAsync(user);
+            _userManagerMock.Setup(m => m.DeleteAsync(user))
+                .ReturnsAsync(IdentityResult.Failed(new IdentityError { Description = "Error al borrar." }));
+
+            var result = await _service.DeleteUserAsync("user-88", "admin-1");
+
+            Assert.False(result.Succeeded);
+            Assert.Contains("Error al borrar.", result.Errors);
         }
 
         // ─── UpdateUserAsync ───────────────────────────────────────────────────────

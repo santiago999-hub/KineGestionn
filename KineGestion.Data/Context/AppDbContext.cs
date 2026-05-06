@@ -42,6 +42,7 @@ namespace KineGestion.Data.Context
                 entity.HasKey(p => p.Id);
                 entity.Property(p => p.DNI).IsRequired().HasMaxLength(8);
                 entity.HasIndex(p => p.DNI).IsUnique();
+                entity.HasIndex(p => new { p.IsActivo, p.Apellido, p.Nombre });
                 entity.Property(p => p.Nombre).IsRequired().HasMaxLength(100);
                 entity.Property(p => p.Apellido).IsRequired().HasMaxLength(100);
             });
@@ -54,12 +55,14 @@ namespace KineGestion.Data.Context
                 entity.Property(p => p.Matricula).IsRequired().HasMaxLength(20);
                 entity.Property(p => p.IsActivo).IsRequired();
                 entity.HasIndex(p => p.Matricula).IsUnique();
+                entity.HasIndex(p => new { p.IsActivo, p.Apellido, p.Nombre });
             });
 
             modelBuilder.Entity<Treatment>(entity =>
             {
                 entity.HasKey(t => t.Id);
                 entity.Property(t => t.Descripcion).IsRequired().HasMaxLength(200);
+                entity.HasIndex(t => new { t.PatientId, t.FechaInicio });
 
                 entity.HasOne(t => t.Patient)
                     .WithMany(p => p.Tratamientos)
@@ -81,6 +84,7 @@ namespace KineGestion.Data.Context
                 entity.HasIndex(s => s.TreatmentId);
                 entity.HasIndex(s => new { s.ProfessionalId, s.FechaHora });
                 entity.HasIndex(s => new { s.Status, s.FechaHora });
+                entity.HasIndex(s => new { s.PaymentStatus, s.FechaHora });
 
                 entity.HasOne(s => s.Patient)
                     .WithMany(p => p.Sesiones)
@@ -118,6 +122,11 @@ namespace KineGestion.Data.Context
                     .WithMany(o => o.Equipments)
                     .HasForeignKey(e => e.OfficeId)
                     .OnDelete(DeleteBehavior.SetNull);
+            });
+
+            modelBuilder.Entity<IdentityUser>(entity =>
+            {
+                entity.HasIndex(u => u.Email);
             });
         }
 
