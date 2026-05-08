@@ -277,6 +277,9 @@ html, body {
 .kg-stat-icon.green  { background: #dcfce7; color: #16a34a; }
 .kg-stat-icon.violet { background: #ede9fe; color: #7c3aed; }
 .kg-stat-icon.amber  { background: #fef3c7; color: #d97706; }
+.kg-stat-icon.orange { background: #ffedd5; color: #ea580c; }
+.kg-stat-icon.red    { background: #fee2e2; color: #dc2626; }
+.kg-stat-icon.yellow { background: #fef9c3; color: #ca8a04; }
 
 .kg-stat-label {
     font-size: .78rem;

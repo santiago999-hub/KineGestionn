@@ -48,10 +48,12 @@ namespace KineGestion.Core.Services
             string? search,
             SessionStatus? status,
             PaymentStatus? paymentStatus,
+            DateTime? dateFrom,
+            DateTime? dateTo,
             string? sortBy,
             string? sortDir)
         {
-            var (sessions, totalCount) = await _repository.GetPagedForAdminAsync(page, pageSize, search, status, paymentStatus, sortBy, sortDir);
+            var (sessions, totalCount) = await _repository.GetPagedForAdminAsync(page, pageSize, search, status, paymentStatus, dateFrom, dateTo, sortBy, sortDir);
             foreach (var s in sessions)
                 s.Evolution = null;
             return (sessions, totalCount);
@@ -60,8 +62,9 @@ namespace KineGestion.Core.Services
         public async Task<(IEnumerable<SessionListDto> Items, int TotalCount)> GetPagedListForAdminAsync(
             int page, int pageSize, string? search,
             SessionStatus? status, PaymentStatus? paymentStatus,
+            DateTime? dateFrom, DateTime? dateTo,
             string? sortBy, string? sortDir)
-            => await _repository.GetPagedListForAdminAsync(page, pageSize, search, status, paymentStatus, sortBy, sortDir);
+            => await _repository.GetPagedListForAdminAsync(page, pageSize, search, status, paymentStatus, dateFrom, dateTo, sortBy, sortDir);
 
         [Obsolete("Carga entidades completas con 3 JOINs. Usar GetPagedListByProfessionalAsync.")]
         public async Task<(IEnumerable<Session> Sessions, int TotalCount)> GetPagedByProfessionalAsync(
@@ -80,8 +83,8 @@ namespace KineGestion.Core.Services
 
         public async Task<(IEnumerable<SessionListDto> Items, int TotalCount)> GetPagedListByProfessionalAsync(
             int professionalId, int page, int pageSize, string? search,
-            SessionStatus? status, PaymentStatus? paymentStatus)
-            => await _repository.GetPagedListByProfessionalAsync(professionalId, page, pageSize, search, status, paymentStatus);
+            SessionStatus? status, PaymentStatus? paymentStatus, DateTime? dateFrom, DateTime? dateTo)
+            => await _repository.GetPagedListByProfessionalAsync(professionalId, page, pageSize, search, status, paymentStatus, dateFrom, dateTo);
 
         /// <summary>OBSOLETO: carga todas las sesiones sin filtro. Ver interfaz para detalles.</summary>
         [Obsolete("Peligro de Memory Bomb. Usar GetPagedListForAdminAsync o GetPagedListByProfessionalAsync.")]
@@ -108,6 +111,18 @@ namespace KineGestion.Core.Services
 
         public async Task<int> CountByOfficeIdAsync(int officeId)
             => await _repository.CountByOfficeIdAsync(officeId);
+
+            public async Task<int> CountTodayAsync(DateTime utcToday)
+                => await _repository.CountTodayAsync(utcToday);
+
+            public async Task<int> CountByPaymentStatusAsync(PaymentStatus paymentStatus)
+                => await _repository.CountByPaymentStatusAsync(paymentStatus);
+
+            public async Task<int> CountByStatusAsync(SessionStatus status)
+                => await _repository.CountByStatusAsync(status);
+
+            public async Task<int> CountByStatusOnDateAsync(SessionStatus status, DateTime utcDay)
+                => await _repository.CountByStatusOnDateAsync(status, utcDay);
 
         public async Task<Session> CreateAsync(Session session)
         {

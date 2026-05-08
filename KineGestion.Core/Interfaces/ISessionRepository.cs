@@ -21,14 +21,14 @@ namespace KineGestion.Core.Interfaces
         /// Usar GetPagedListForAdminAsync: proyección SQL que trae solo los campos necesarios para la tabla.
         /// </summary>
         [Obsolete("Carga entidades completas con 4 JOINs. Usar GetPagedListForAdminAsync.")]
-        Task<(IEnumerable<Session> Sessions, int TotalCount)> GetPagedForAdminAsync(int page, int pageSize, string? search, SessionStatus? status, PaymentStatus? paymentStatus, string? sortBy, string? sortDir);
+        Task<(IEnumerable<Session> Sessions, int TotalCount)> GetPagedForAdminAsync(int page, int pageSize, string? search, SessionStatus? status, PaymentStatus? paymentStatus, DateTime? dateFrom, DateTime? dateTo, string? sortBy, string? sortDir);
         /// <summary>Proyección optimizada para la tabla admin: sin cargar nav properties completas.</summary>
-        Task<(IEnumerable<SessionListDto> Items, int TotalCount)> GetPagedListForAdminAsync(int page, int pageSize, string? search, SessionStatus? status, PaymentStatus? paymentStatus, string? sortBy, string? sortDir);
+        Task<(IEnumerable<SessionListDto> Items, int TotalCount)> GetPagedListForAdminAsync(int page, int pageSize, string? search, SessionStatus? status, PaymentStatus? paymentStatus, DateTime? dateFrom, DateTime? dateTo, string? sortBy, string? sortDir);
         /// <summary>Carga entidades completas con 3 JOINs. Usar <see cref="GetPagedListByProfessionalAsync"/>.</summary>
         [Obsolete("Carga entidades completas con 3 JOINs. Usar GetPagedListByProfessionalAsync.")]
         Task<(IEnumerable<Session> Sessions, int TotalCount)> GetPagedByProfessionalAsync(int professionalId, int page, int pageSize, string? search, SessionStatus? status, PaymentStatus? paymentStatus);
         /// <summary>Proyección optimizada para la agenda del kinesiológo: sin nav properties.</summary>
-        Task<(IEnumerable<SessionListDto> Items, int TotalCount)> GetPagedListByProfessionalAsync(int professionalId, int page, int pageSize, string? search, SessionStatus? status, PaymentStatus? paymentStatus);
+        Task<(IEnumerable<SessionListDto> Items, int TotalCount)> GetPagedListByProfessionalAsync(int professionalId, int page, int pageSize, string? search, SessionStatus? status, PaymentStatus? paymentStatus, DateTime? dateFrom, DateTime? dateTo);
         Task<IEnumerable<Session>> GetByPatientIdAsync(int patientId);
         Task<IEnumerable<Session>> GetByProfessionalIdAsync(int professionalId);
         Task<IEnumerable<Session>> GetByTreatmentIdAsync(int treatmentId);
@@ -38,6 +38,10 @@ namespace KineGestion.Core.Interfaces
         Task<int> CountByProfessionalIdAsync(int professionalId);
         Task<int> CountByOfficeIdAsync(int officeId);
         Task<int> CountAsync();
+        Task<int> CountTodayAsync(DateTime utcToday);
+        Task<int> CountByPaymentStatusAsync(PaymentStatus paymentStatus);
+        Task<int> CountByStatusAsync(SessionStatus status);
+        Task<int> CountByStatusOnDateAsync(SessionStatus status, DateTime utcDay);
         Task<Session> AddAsync(Session session);
         Task<Session> UpdateAsync(Session session);
         Task DeleteAsync(int id);

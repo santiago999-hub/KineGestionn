@@ -135,6 +135,10 @@ namespace KineGestion.Web.Services
         /// <inheritdoc/>
         public async Task<IdentityOperationResult> CreateUserAsync(UserViewModel viewModel)
         {
+            var roleValidation = ValidateRoleProfessionalLink(viewModel);
+            if (roleValidation is not null)
+                return roleValidation;
+
             var existing = await _userManager.FindByEmailAsync(viewModel.Email);
             if (existing is not null)
                 return IdentityOperationResult.Fail(
@@ -159,11 +163,11 @@ namespace KineGestion.Web.Services
                 return IdentityOperationResult.FromIdentityErrors(roleResult.Errors);
             }
 
-            if (viewModel.Rol == "Kinesiologo" && viewModel.ProfessionalId.HasValue)
+            if (viewModel.Rol == "Kinesiologo")
             {
                 var claimResult = await _userManager.AddClaimAsync(
                     user,
-                    new Claim("ProfessionalId", viewModel.ProfessionalId.Value.ToString()));
+                    new Claim("ProfessionalId", viewModel.ProfessionalId!.Value.ToString()));
 
                 if (!claimResult.Succeeded)
                 {
@@ -179,6 +183,10 @@ namespace KineGestion.Web.Services
         /// <inheritdoc/>
         public async Task<IdentityOperationResult> UpdateUserAsync(string id, UserViewModel viewModel)
         {
+            var roleValidation = ValidateRoleProfessionalLink(viewModel);
+            if (roleValidation is not null)
+                return roleValidation;
+
             var user = await _userManager.FindByIdAsync(id);
             if (user is null)
                 return IdentityOperationResult.Fail("Usuario no encontrado.");
@@ -228,17 +236,29 @@ namespace KineGestion.Web.Services
                     return IdentityOperationResult.FromIdentityErrors(removeClaimResult.Errors);
             }
 
-            if (viewModel.Rol == "Kinesiologo" && viewModel.ProfessionalId.HasValue)
+            if (viewModel.Rol == "Kinesiologo")
             {
                 var addClaimResult = await _userManager.AddClaimAsync(
                     user,
-                    new Claim("ProfessionalId", viewModel.ProfessionalId.Value.ToString()));
+                    new Claim("ProfessionalId", viewModel.ProfessionalId!.Value.ToString()));
 
                 if (!addClaimResult.Succeeded)
                     return IdentityOperationResult.FromIdentityErrors(addClaimResult.Errors);
             }
 
             return IdentityOperationResult.Ok();
+        }
+
+        private static IdentityOperationResult? ValidateRoleProfessionalLink(UserViewModel viewModel)
+        {
+            if (viewModel.Rol == "Kinesiologo" && !viewModel.ProfessionalId.HasValue)
+            {
+                return IdentityOperationResult.Fail(
+                    "Debe seleccionar un profesional asociado para el rol Kinesiólogo.",
+                    nameof(UserViewModel.ProfessionalId));
+            }
+
+            return null;
         }
 
         /// <inheritdoc/>

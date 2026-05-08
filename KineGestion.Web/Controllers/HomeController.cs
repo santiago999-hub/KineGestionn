@@ -5,6 +5,8 @@ using KineGestion.Core.Interfaces;
 using KineGestion.Web.Models;
 using KineGestion.Web.Models.ViewModels;
 using System.Linq;
+using KineGestion.Core;
+using System;
 
 namespace KineGestion.Web.Controllers;
 
@@ -38,14 +40,24 @@ public class HomeController : Controller
         var countTreatments = SafeCountAsync(() => _treatmentService.CountAsync(), nameof(_treatmentService.CountAsync));
         var countSessions = SafeCountAsync(() => _sessionService.CountAsync(), nameof(_sessionService.CountAsync));
 
-        await Task.WhenAll(countPatients, countProfessionals, countTreatments, countSessions);
+        var today = DateTime.UtcNow;
+        var countToday = SafeCountAsync(() => _sessionService.CountTodayAsync(today), nameof(_sessionService.CountTodayAsync));
+        var countCompletedToday = SafeCountAsync(() => _sessionService.CountByStatusOnDateAsync(SessionStatus.Completed, today), nameof(_sessionService.CountByStatusOnDateAsync));
+        var countPendingPago = SafeCountAsync(() => _sessionService.CountByPaymentStatusAsync(PaymentStatus.Pending), nameof(_sessionService.CountByPaymentStatusAsync));
+        var countPendingStatus = SafeCountAsync(() => _sessionService.CountByStatusAsync(SessionStatus.Pending), nameof(_sessionService.CountByStatusAsync));
+
+        await Task.WhenAll(countPatients, countProfessionals, countTreatments, countSessions, countToday, countCompletedToday, countPendingPago, countPendingStatus);
 
         var model = new HomeDashboardViewModel
         {
             PacientesActivosCount = countPatients.Result,
             ProfesionalesActivosCount = countProfessionals.Result,
             TratamientosCount = countTreatments.Result,
-            SesionesCount = countSessions.Result
+            SesionesCount = countSessions.Result,
+            SesionesHoyCount = countToday.Result,
+            SesionesCompletadasHoyCount = countCompletedToday.Result,
+            SesionesPendientesPagoCount = countPendingPago.Result,
+            SesionesPendientesConfirmacionCount = countPendingStatus.Result
         };
 
         return View(model);

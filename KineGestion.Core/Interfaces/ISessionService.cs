@@ -20,12 +20,12 @@ namespace KineGestion.Core.Interfaces
         /// Usar GetPagedListForAdminAsync: proyección SQL con solo los campos necesarios para la tabla.
         /// </summary>
         [Obsolete("Carga entidades completas con 4 JOINs. Usar GetPagedListForAdminAsync.")]
-        Task<(IEnumerable<Session> Sessions, int TotalCount)> GetPagedForAdminAsync(int page, int pageSize, string? search, SessionStatus? status, PaymentStatus? paymentStatus, string? sortBy, string? sortDir);
-        Task<(IEnumerable<SessionListDto> Items, int TotalCount)> GetPagedListForAdminAsync(int page, int pageSize, string? search, SessionStatus? status, PaymentStatus? paymentStatus, string? sortBy, string? sortDir);
+        Task<(IEnumerable<Session> Sessions, int TotalCount)> GetPagedForAdminAsync(int page, int pageSize, string? search, SessionStatus? status, PaymentStatus? paymentStatus, DateTime? dateFrom, DateTime? dateTo, string? sortBy, string? sortDir);
+        Task<(IEnumerable<SessionListDto> Items, int TotalCount)> GetPagedListForAdminAsync(int page, int pageSize, string? search, SessionStatus? status, PaymentStatus? paymentStatus, DateTime? dateFrom, DateTime? dateTo, string? sortBy, string? sortDir);
         /// <summary>Carga entidades completas con 3 JOINs. Usar <see cref="GetPagedListByProfessionalAsync"/>.</summary>
         [Obsolete("Carga entidades completas con 3 JOINs. Usar GetPagedListByProfessionalAsync.")]
         Task<(IEnumerable<Session> Sessions, int TotalCount)> GetPagedByProfessionalAsync(int professionalId, int page, int pageSize, string? search, SessionStatus? status, PaymentStatus? paymentStatus);
-        Task<(IEnumerable<SessionListDto> Items, int TotalCount)> GetPagedListByProfessionalAsync(int professionalId, int page, int pageSize, string? search, SessionStatus? status, PaymentStatus? paymentStatus);
+        Task<(IEnumerable<SessionListDto> Items, int TotalCount)> GetPagedListByProfessionalAsync(int professionalId, int page, int pageSize, string? search, SessionStatus? status, PaymentStatus? paymentStatus, DateTime? dateFrom, DateTime? dateTo);
         /// <summary>OBSOLETO: Igual que GetAllForAdminAsync. Riesgo de OOM. Usar métodos paginados.</summary>
         [Obsolete("Peligro de Memory Bomb. Usar GetPagedListForAdminAsync o GetPagedListByProfessionalAsync.")]
         Task<IEnumerable<Session>> GetAllAsync();
@@ -36,6 +36,10 @@ namespace KineGestion.Core.Interfaces
         Task<int> CountByPatientIdAsync(int patientId);
         Task<int> CountByProfessionalIdAsync(int professionalId);
         Task<int> CountByOfficeIdAsync(int officeId);
+        Task<int> CountTodayAsync(DateTime utcToday);
+        Task<int> CountByPaymentStatusAsync(PaymentStatus paymentStatus);
+        Task<int> CountByStatusAsync(SessionStatus status);
+        Task<int> CountByStatusOnDateAsync(SessionStatus status, DateTime utcDay);
         Task<Session> CreateAsync(Session session);
         Task<Session> UpdateAsync(Session session);
         Task DeleteAsync(int id);

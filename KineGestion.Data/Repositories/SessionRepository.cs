@@ -57,6 +57,8 @@ namespace KineGestion.Data.Repositories
             string? search,
             SessionStatus? status,
             PaymentStatus? paymentStatus,
+            DateTime? dateFrom,
+            DateTime? dateTo,
             string? sortBy,
             string? sortDir)
         {
@@ -82,6 +84,12 @@ namespace KineGestion.Data.Repositories
 
             if (paymentStatus.HasValue)
                 query = query.Where(s => s.PaymentStatus == paymentStatus.Value);
+
+            if (dateFrom.HasValue)
+                query = query.Where(s => s.FechaHora >= dateFrom.Value.Date);
+
+            if (dateTo.HasValue)
+                query = query.Where(s => s.FechaHora < dateTo.Value.Date.AddDays(1));
 
             var sortField = string.IsNullOrWhiteSpace(sortBy) ? "fecha" : sortBy.Trim().ToLowerInvariant();
             var descending = !string.Equals(sortDir, "asc", StringComparison.OrdinalIgnoreCase);
@@ -114,6 +122,8 @@ namespace KineGestion.Data.Repositories
             string? search,
             SessionStatus? status,
             PaymentStatus? paymentStatus,
+            DateTime? dateFrom,
+            DateTime? dateTo,
             string? sortBy,
             string? sortDir)
         {
@@ -130,6 +140,8 @@ namespace KineGestion.Data.Repositories
 
             if (status.HasValue)       query = query.Where(s => s.Status == status.Value);
             if (paymentStatus.HasValue) query = query.Where(s => s.PaymentStatus == paymentStatus.Value);
+            if (dateFrom.HasValue) query = query.Where(s => s.FechaHora >= dateFrom.Value.Date);
+            if (dateTo.HasValue) query = query.Where(s => s.FechaHora < dateTo.Value.Date.AddDays(1));
 
             var sortField = string.IsNullOrWhiteSpace(sortBy) ? "fecha" : sortBy.Trim().ToLowerInvariant();
             var descending = !string.Equals(sortDir, "asc", StringComparison.OrdinalIgnoreCase);
@@ -216,7 +228,9 @@ namespace KineGestion.Data.Repositories
             int pageSize,
             string? search,
             SessionStatus? status,
-            PaymentStatus? paymentStatus)
+            PaymentStatus? paymentStatus,
+            DateTime? dateFrom,
+            DateTime? dateTo)
         {
             var query = _context.Sessions
                 .AsNoTracking()
@@ -233,6 +247,8 @@ namespace KineGestion.Data.Repositories
 
             if (status.HasValue)       query = query.Where(s => s.Status == status.Value);
             if (paymentStatus.HasValue) query = query.Where(s => s.PaymentStatus == paymentStatus.Value);
+            if (dateFrom.HasValue) query = query.Where(s => s.FechaHora >= dateFrom.Value.Date);
+            if (dateTo.HasValue) query = query.Where(s => s.FechaHora < dateTo.Value.Date.AddDays(1));
 
             int totalCount = await query.CountAsync();
 
@@ -328,6 +344,32 @@ namespace KineGestion.Data.Repositories
 
         public async Task<int> CountAsync()
             => await _context.Sessions.AsNoTracking().CountAsync();
+
+        public async Task<int> CountTodayAsync(DateTime utcToday)
+        {
+            var tomorrow = utcToday.Date.AddDays(1);
+            return await _context.Sessions
+                .AsNoTracking()
+                .CountAsync(s => s.FechaHora >= utcToday.Date && s.FechaHora < tomorrow);
+        }
+
+        public async Task<int> CountByPaymentStatusAsync(PaymentStatus paymentStatus)
+            => await _context.Sessions
+                .AsNoTracking()
+                .CountAsync(s => s.PaymentStatus == paymentStatus);
+
+        public async Task<int> CountByStatusAsync(SessionStatus status)
+            => await _context.Sessions
+                .AsNoTracking()
+                .CountAsync(s => s.Status == status);
+
+        public async Task<int> CountByStatusOnDateAsync(SessionStatus status, DateTime utcDay)
+        {
+            var tomorrow = utcDay.Date.AddDays(1);
+            return await _context.Sessions
+                .AsNoTracking()
+                .CountAsync(s => s.Status == status && s.FechaHora >= utcDay.Date && s.FechaHora < tomorrow);
+        }
 
         /// <summary>
         /// Inserta una sesión de forma atómica bajo una transacción Serializable.

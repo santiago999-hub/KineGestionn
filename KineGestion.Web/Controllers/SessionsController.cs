@@ -36,12 +36,12 @@ namespace KineGestion.Web.Controllers
         }
 
         // Listado administrativo: no incluye Evolution
-        public async Task<IActionResult> Index(string? search, SessionStatus? status, PaymentStatus? paymentStatus, string? sortBy = "fecha", string? sortDir = "desc", int page = 1, int pageSize = 10)
+        public async Task<IActionResult> Index(string? search, SessionStatus? status, PaymentStatus? paymentStatus, DateTime? dateFrom, DateTime? dateTo, string? sortBy = "fecha", string? sortDir = "desc", int page = 1, int pageSize = 10)
         {
             if (page < 1) page = 1;
             if (pageSize is < 5 or > 50) pageSize = 10;
 
-            var (items, totalCount) = await _sessionService.GetPagedListForAdminAsync(page, pageSize, search, status, paymentStatus, sortBy, sortDir);
+            var (items, totalCount) = await _sessionService.GetPagedListForAdminAsync(page, pageSize, search, status, paymentStatus, dateFrom, dateTo, sortBy, sortDir);
             var viewModels = items.Select(SessionViewModel.FromDto).ToList();
 
             var model = new SessionIndexViewModel
@@ -50,6 +50,8 @@ namespace KineGestion.Web.Controllers
                 Search = search,
                 Status = status,
                 PaymentStatus = paymentStatus,
+                DateFrom = dateFrom,
+                DateTo = dateTo,
                 SortBy = string.IsNullOrWhiteSpace(sortBy) ? "fecha" : sortBy,
                 SortDir = string.IsNullOrWhiteSpace(sortDir) ? "desc" : sortDir,
                 Page = page,
@@ -66,6 +68,8 @@ namespace KineGestion.Web.Controllers
             string? search,
             SessionStatus? status,
             PaymentStatus? paymentStatus,
+            DateTime? dateFrom,
+            DateTime? dateTo,
             int page = 1,
             int pageSize = 10)
         {
@@ -80,7 +84,7 @@ namespace KineGestion.Web.Controllers
             if (pageSize is < 5 or > 50) pageSize = 10;
 
             var (items, totalCount) = await _sessionService.GetPagedListByProfessionalAsync(
-                professionalId, page, pageSize, search, status, paymentStatus);
+                professionalId, page, pageSize, search, status, paymentStatus, dateFrom, dateTo);
 
             var viewModels = items.Select(SessionViewModel.FromDto).ToList();
 
@@ -90,6 +94,8 @@ namespace KineGestion.Web.Controllers
                 Search = search,
                 Status = status,
                 PaymentStatus = paymentStatus,
+                DateFrom = dateFrom,
+                DateTo = dateTo,
                 SortBy = "fecha",
                 SortDir = "desc",
                 Page = page,

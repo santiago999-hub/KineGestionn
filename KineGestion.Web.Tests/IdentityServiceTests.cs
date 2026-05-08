@@ -84,6 +84,19 @@ namespace KineGestion.Web.Tests
         }
 
         [Fact]
+        public async Task CreateUserAsync_ShouldReturnFail_WhenKinesiologoHasNoProfessionalId()
+        {
+            var vm = new UserViewModel { Email = "kine-sin-prof@test.com", Password = "Pass1234!", Rol = "Kinesiologo", ProfessionalId = null };
+
+            var result = await _service.CreateUserAsync(vm);
+
+            Assert.False(result.Succeeded);
+            Assert.Equal(nameof(UserViewModel.ProfessionalId), result.ConflictingField);
+            Assert.Contains(result.Errors, error => error.Contains("Debe seleccionar un profesional asociado"));
+            _userManagerMock.Verify(m => m.FindByEmailAsync(It.IsAny<string>()), Times.Never);
+        }
+
+        [Fact]
         public async Task CreateUserAsync_ShouldReturnFail_WhenRoleAssignmentFails()
         {
             var vm = new UserViewModel { Email = "fallo-rol@test.com", Password = "Pass1234!", Rol = "Admin" };
@@ -195,6 +208,19 @@ namespace KineGestion.Web.Tests
 
             Assert.False(result.Succeeded);
             Assert.Equal(nameof(UserViewModel.Email), result.ConflictingField);
+        }
+
+        [Fact]
+        public async Task UpdateUserAsync_ShouldReturnFail_WhenKinesiologoHasNoProfessionalId()
+        {
+            var vm = new UserViewModel { Email = "kine-edit@test.com", Rol = "Kinesiologo", ProfessionalId = null };
+
+            var result = await _service.UpdateUserAsync("u1", vm);
+
+            Assert.False(result.Succeeded);
+            Assert.Equal(nameof(UserViewModel.ProfessionalId), result.ConflictingField);
+            Assert.Contains(result.Errors, error => error.Contains("Debe seleccionar un profesional asociado"));
+            _userManagerMock.Verify(m => m.FindByIdAsync(It.IsAny<string>()), Times.Never);
         }
 
         // ─── GetUserForDeleteAsync ─────────────────────────────────────────────────

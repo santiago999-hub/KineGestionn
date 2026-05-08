@@ -12,6 +12,117 @@ namespace KineGestion.Tests
     public class SessionRepositoryIntegrationTests
     {
         [Fact]
+        public async Task CountByStatusOnDateAsync_ShouldCountOnlyMatchingStatusAndDay()
+        {
+            var databaseName = $"KineGestion_Integration_{Guid.NewGuid():N}";
+            var connectionString = $"Server=localhost\\SQLEXPRESS;Database={databaseName};Trusted_Connection=True;TrustServerCertificate=True";
+            var options = new DbContextOptionsBuilder<AppDbContext>()
+                .UseSqlServer(connectionString)
+                .Options;
+
+            var targetDay = new DateTime(2026, 5, 8);
+
+            await using (var setupContext = new AppDbContext(options))
+            {
+                await setupContext.Database.EnsureDeletedAsync();
+                await setupContext.Database.EnsureCreatedAsync();
+
+                var patient = new Patient
+                {
+                    Nombre = "Maria",
+                    Apellido = "Lopez",
+                    DNI = "87654321",
+                    FechaNacimiento = new DateTime(1989, 4, 10)
+                };
+
+                var professional = new Professional
+                {
+                    Nombre = "Jose",
+                    Apellido = "Diaz",
+                    Matricula = "MAT-200",
+                    Especialidad = "Kinesiologia"
+                };
+
+                setupContext.Patients.Add(patient);
+                setupContext.Professionals.Add(professional);
+                await setupContext.SaveChangesAsync();
+
+                var treatment = new Treatment
+                {
+                    PatientId = patient.Id,
+                    Descripcion = "Postoperatorio",
+                    CantidadSesionesTotales = 12,
+                    FechaInicio = targetDay
+                };
+
+                setupContext.Treatments.Add(treatment);
+                await setupContext.SaveChangesAsync();
+
+                setupContext.Sessions.Add(new Session
+                {
+                    FechaHora = targetDay.AddHours(9),
+                    PatientId = patient.Id,
+                    ProfessionalId = professional.Id,
+                    TreatmentId = treatment.Id,
+                    NroSesionEnTratamiento = 1,
+                    Status = SessionStatus.Completed,
+                    PaymentStatus = PaymentStatus.Paid
+                });
+
+                setupContext.Sessions.Add(new Session
+                {
+                    FechaHora = targetDay.AddHours(11),
+                    PatientId = patient.Id,
+                    ProfessionalId = professional.Id,
+                    TreatmentId = treatment.Id,
+                    NroSesionEnTratamiento = 2,
+                    Status = SessionStatus.Completed,
+                    PaymentStatus = PaymentStatus.Paid
+                });
+
+                setupContext.Sessions.Add(new Session
+                {
+                    FechaHora = targetDay.AddHours(15),
+                    PatientId = patient.Id,
+                    ProfessionalId = professional.Id,
+                    TreatmentId = treatment.Id,
+                    NroSesionEnTratamiento = 3,
+                    Status = SessionStatus.Pending,
+                    PaymentStatus = PaymentStatus.Pending
+                });
+
+                setupContext.Sessions.Add(new Session
+                {
+                    FechaHora = targetDay.AddDays(1).AddHours(10),
+                    PatientId = patient.Id,
+                    ProfessionalId = professional.Id,
+                    TreatmentId = treatment.Id,
+                    NroSesionEnTratamiento = 4,
+                    Status = SessionStatus.Completed,
+                    PaymentStatus = PaymentStatus.Paid
+                });
+
+                await setupContext.SaveChangesAsync();
+            }
+
+            await using (var testContext = new AppDbContext(options))
+            {
+                var repository = new SessionRepository(testContext);
+
+                var completedCount = await repository.CountByStatusOnDateAsync(SessionStatus.Completed, targetDay);
+                var pendingCount = await repository.CountByStatusOnDateAsync(SessionStatus.Pending, targetDay);
+
+                Assert.Equal(2, completedCount);
+                Assert.Equal(1, pendingCount);
+            }
+
+            await using (var cleanupContext = new AppDbContext(options))
+            {
+                await cleanupContext.Database.EnsureDeletedAsync();
+            }
+        }
+
+        [Fact]
         public async Task AddAsync_ShouldThrowBusinessValidationException_WhenUniqueIndexConflictsWithCountBasedNumbering()
         {
             var databaseName = $"KineGestion_Integration_{Guid.NewGuid():N}";

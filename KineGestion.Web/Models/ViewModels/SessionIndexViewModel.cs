@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System;
 using KineGestion.Core;
 
 namespace KineGestion.Web.Models.ViewModels
@@ -10,6 +11,8 @@ namespace KineGestion.Web.Models.ViewModels
         public string? Search { get; set; }
         public SessionStatus? Status { get; set; }
         public PaymentStatus? PaymentStatus { get; set; }
+        public DateTime? DateFrom { get; set; }
+        public DateTime? DateTo { get; set; }
         public string SortBy { get; set; } = "fecha";
         public string SortDir { get; set; } = "desc";
 

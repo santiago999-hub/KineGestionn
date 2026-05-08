@@ -26,7 +26,15 @@
                 <label class="form-label small text-muted">Buscar</label>
                 <input name="search" value="@Model.Search" class="form-control" placeholder="Paciente o tratamiento" />
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
+                <label class="form-label small text-muted">Desde</label>
+                <input name="dateFrom" type="date" value="@Model.DateFrom?.ToString("yyyy-MM-dd")" class="form-control" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small text-muted">Hasta</label>
+                <input name="dateTo" type="date" value="@Model.DateTo?.ToString("yyyy-MM-dd")" class="form-control" />
+            </div>
+            <div class="col-md-2">
                 <label class="form-label small text-muted">Estado</label>
                 <select name="status" class="form-select">
                     <option value="">Todos</option>
@@ -35,7 +43,7 @@
                     <option value="Canceled" selected="@(Model.Status == SessionStatus.Canceled)">Cancelada</option>
                 </select>
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <label class="form-label small text-muted">Pago</label>
                 <select name="paymentStatus" class="form-select">
                     <option value="">Todos</option>
@@ -139,8 +147,8 @@
             <div style="padding:12px 18px;border-top:1px solid var(--kg-border);display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
                 <span style="font-size:.78rem;color:var(--kg-text-muted)">Página @Model.Page de @Model.TotalPages</span>
                 <div style="display:flex;gap:6px">
-                    <a asp-action="MyAgenda" asp-route-page="@(Model.Page - 1)" asp-route-pageSize="@Model.PageSize" asp-route-search="@Model.Search" asp-route-status="@Model.Status" asp-route-paymentStatus="@Model.PaymentStatus" class="btn-kg-outline @(Model.Page <= 1 ? "disabled" : "")">Anterior</a>
-                    <a asp-action="MyAgenda" asp-route-page="@(Model.Page + 1)" asp-route-pageSize="@Model.PageSize" asp-route-search="@Model.Search" asp-route-status="@Model.Status" asp-route-paymentStatus="@Model.PaymentStatus" class="btn-kg-outline @(Model.Page >= Model.TotalPages ? "disabled" : "")">Siguiente</a>
+                    <a asp-action="MyAgenda" asp-route-page="@(Model.Page - 1)" asp-route-pageSize="@Model.PageSize" asp-route-search="@Model.Search" asp-route-status="@Model.Status" asp-route-paymentStatus="@Model.PaymentStatus" asp-route-dateFrom="@Model.DateFrom?.ToString("yyyy-MM-dd")" asp-route-dateTo="@Model.DateTo?.ToString("yyyy-MM-dd")" class="btn-kg-outline @(Model.Page <= 1 ? "disabled" : "")">Anterior</a>
+                    <a asp-action="MyAgenda" asp-route-page="@(Model.Page + 1)" asp-route-pageSize="@Model.PageSize" asp-route-search="@Model.Search" asp-route-status="@Model.Status" asp-route-paymentStatus="@Model.PaymentStatus" asp-route-dateFrom="@Model.DateFrom?.ToString("yyyy-MM-dd")" asp-route-dateTo="@Model.DateTo?.ToString("yyyy-MM-dd")" class="btn-kg-outline @(Model.Page >= Model.TotalPages ? "disabled" : "")">Siguiente</a>
                 </div>
             </div>
         }

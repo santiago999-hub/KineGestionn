@@ -55,6 +55,46 @@
     </div>
 </div>
 
+<!-- Operational Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-3">
+        <a asp-controller="Sessions" asp-action="Index" asp-route-dateFrom="@DateTime.Today.ToString("yyyy-MM-dd")" asp-route-dateTo="@DateTime.Today.ToString("yyyy-MM-dd")" class="kg-stat-card" style="text-decoration:none;color:inherit">
+            <div class="kg-stat-icon orange"><i class="bi bi-calendar2-day-fill"></i></div>
+            <div>
+                <div class="kg-stat-label">Sesiones hoy</div>
+                <div class="kg-stat-value">@Model.SesionesHoyCount</div>
+            </div>
+        </a>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <a asp-controller="Sessions" asp-action="Index" asp-route-status="Completed" asp-route-dateFrom="@DateTime.Today.ToString("yyyy-MM-dd")" asp-route-dateTo="@DateTime.Today.ToString("yyyy-MM-dd")" class="kg-stat-card" style="text-decoration:none;color:inherit">
+            <div class="kg-stat-icon green"><i class="bi bi-check2-circle"></i></div>
+            <div>
+                <div class="kg-stat-label">Completadas hoy</div>
+                <div class="kg-stat-value">@Model.SesionesCompletadasHoyCount</div>
+            </div>
+        </a>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <a asp-controller="Sessions" asp-action="Index" asp-route-paymentStatus="Pending" class="kg-stat-card" style="text-decoration:none;color:inherit">
+            <div class="kg-stat-icon red"><i class="bi bi-credit-card-fill"></i></div>
+            <div>
+                <div class="kg-stat-label">Pago pendiente</div>
+                <div class="kg-stat-value">@Model.SesionesPendientesPagoCount</div>
+            </div>
+        </a>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <a asp-controller="Sessions" asp-action="Index" asp-route-status="Pending" class="kg-stat-card" style="text-decoration:none;color:inherit">
+            <div class="kg-stat-icon yellow"><i class="bi bi-hourglass-split"></i></div>
+            <div>
+                <div class="kg-stat-label">Sin confirmar</div>
+                <div class="kg-stat-value">@Model.SesionesPendientesConfirmacionCount</div>
+            </div>
+        </a>
+    </div>
+</div>
+
 <!-- Quick Actions + Info -->
 <div class="row g-3">
     <div class="col-lg-7">
@@ -66,42 +106,84 @@
             </div>
             <div class="kg-card-body">
                 <div class="row g-3">
-                    <div class="col-sm-6">
-                        <a asp-controller="Patients" asp-action="Create" class="kg-quick-action">
-                            <i class="bi bi-person-plus-fill"></i>
-                            <div>
-                                <div>Nuevo Paciente</div>
-                                <div style="font-size:.72rem;font-weight:400;color:var(--kg-text-muted)">Registrar en el sistema</div>
-                            </div>
-                        </a>
-                    </div>
-                    <div class="col-sm-6">
-                        <a asp-controller="Professionals" asp-action="Create" class="kg-quick-action">
-                            <i class="bi bi-person-badge-fill"></i>
-                            <div>
-                                <div>Nuevo Profesional</div>
-                                <div style="font-size:.72rem;font-weight:400;color:var(--kg-text-muted)">Dar de alta kinesiólogo</div>
-                            </div>
-                        </a>
-                    </div>
-                    <div class="col-sm-6">
-                        <a asp-controller="Treatments" asp-action="Create" class="kg-quick-action">
-                            <i class="bi bi-journal-plus"></i>
-                            <div>
-                                <div>Nuevo Tratamiento</div>
-                                <div style="font-size:.72rem;font-weight:400;color:var(--kg-text-muted)">Asignar a un paciente</div>
-                            </div>
-                        </a>
-                    </div>
-                    <div class="col-sm-6">
-                        <a asp-controller="Sessions" asp-action="Create" class="kg-quick-action">
-                            <i class="bi bi-calendar2-plus-fill"></i>
-                            <div>
-                                <div>Nueva Sesión</div>
-                                <div style="font-size:.72rem;font-weight:400;color:var(--kg-text-muted)">Registrar sesión clínica</div>
-                            </div>
-                        </a>
-                    </div>
+                    @if (User.IsInRole("Admin"))
+                    {
+                        <div class="col-sm-6">
+                            <a asp-controller="Sessions" asp-action="Index" asp-route-paymentStatus="Pending" asp-route-dateFrom="@DateTime.Today.ToString("yyyy-MM-dd")" asp-route-dateTo="@DateTime.Today.ToString("yyyy-MM-dd")" class="kg-quick-action">
+                                <i class="bi bi-cash-stack"></i>
+                                <div>
+                                    <div>Pagos Pendientes de Hoy</div>
+                                    <div style="font-size:.72rem;font-weight:400;color:var(--kg-text-muted)">Filtrar cobros pendientes del día</div>
+                                </div>
+                            </a>
+                        </div>
+                        <div class="col-sm-6">
+                            <a asp-controller="Sessions" asp-action="Index" asp-route-status="Pending" asp-route-dateFrom="@DateTime.Today.ToString("yyyy-MM-dd")" asp-route-dateTo="@DateTime.Today.ToString("yyyy-MM-dd")" class="kg-quick-action">
+                                <i class="bi bi-hourglass-split"></i>
+                                <div>
+                                    <div>Sin Confirmar de Hoy</div>
+                                    <div style="font-size:.72rem;font-weight:400;color:var(--kg-text-muted)">Revisar sesiones pendientes del día</div>
+                                </div>
+                            </a>
+                        </div>
+                        <div class="col-sm-6">
+                            <a asp-controller="Sessions" asp-action="Create" class="kg-quick-action">
+                                <i class="bi bi-calendar2-plus-fill"></i>
+                                <div>
+                                    <div>Nueva Sesión</div>
+                                    <div style="font-size:.72rem;font-weight:400;color:var(--kg-text-muted)">Registrar sesión clínica</div>
+                                </div>
+                            </a>
+                        </div>
+                        <div class="col-sm-6">
+                            <a asp-controller="Patients" asp-action="Create" class="kg-quick-action">
+                                <i class="bi bi-person-plus-fill"></i>
+                                <div>
+                                    <div>Nuevo Paciente</div>
+                                    <div style="font-size:.72rem;font-weight:400;color:var(--kg-text-muted)">Registrar en el sistema</div>
+                                </div>
+                            </a>
+                        </div>
+                        <div class="col-sm-6">
+                            <a asp-controller="Treatments" asp-action="Create" class="kg-quick-action">
+                                <i class="bi bi-journal-plus"></i>
+                                <div>
+                                    <div>Nuevo Tratamiento</div>
+                                    <div style="font-size:.72rem;font-weight:400;color:var(--kg-text-muted)">Asignar a un paciente</div>
+                                </div>
+                            </a>
+                        </div>
+                        <div class="col-sm-6">
+                            <a asp-controller="Professionals" asp-action="Create" class="kg-quick-action">
+                                <i class="bi bi-person-badge-fill"></i>
+                                <div>
+                                    <div>Nuevo Profesional</div>
+                                    <div style="font-size:.72rem;font-weight:400;color:var(--kg-text-muted)">Dar de alta kinesiólogo</div>
+                                </div>
+                            </a>
+                        </div>
+                    }
+                    else if (User.IsInRole("Kinesiologo"))
+                    {
+                        <div class="col-sm-6">
+                            <a asp-controller="Sessions" asp-action="MyAgenda" asp-route-dateFrom="@DateTime.Today.ToString("yyyy-MM-dd")" asp-route-dateTo="@DateTime.Today.ToString("yyyy-MM-dd")" class="kg-quick-action">
+                                <i class="bi bi-calendar2-week-fill"></i>
+                                <div>
+                                    <div>Mi Agenda de Hoy</div>
+                                    <div style="font-size:.72rem;font-weight:400;color:var(--kg-text-muted)">Ver solo tus turnos de hoy</div>
+                                </div>
+                            </a>
+                        </div>
+                        <div class="col-sm-6">
+                            <a asp-controller="Sessions" asp-action="Create" class="kg-quick-action">
+                                <i class="bi bi-calendar2-plus-fill"></i>
+                                <div>
+                                    <div>Nueva Sesión</div>
+                                    <div style="font-size:.72rem;font-weight:400;color:var(--kg-text-muted)">Registrar sesión clínica</div>
+                                </div>
+                            </a>
+                        </div>
+                    }
                 </div>
             </div>
         </div>
