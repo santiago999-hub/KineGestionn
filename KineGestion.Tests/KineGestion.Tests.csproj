@@ -21,6 +21,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\KineGestion.Core\KineGestion.Core.csproj" />
+    <ProjectReference Include="..\KineGestion.Data\KineGestion.Data.csproj" />
   </ItemGroup>
 
 </Project>
