@@ -35,6 +35,19 @@ namespace KineGestion.Tests
         }
 
         [Fact]
+        public async Task CreateAsync_ShouldThrow_WhenNameIsBlank()
+        {
+            var office = BuildOffice();
+            office.Name = "   ";
+
+            var ex = await Assert.ThrowsAsync<BusinessValidationException>(() => _service.CreateAsync(office));
+
+            Assert.Equal(nameof(Office.Name), ex.PropertyName);
+            _repositoryMock.Verify(r => r.ExistsByNameAsync(It.IsAny<string>(), It.IsAny<int?>()), Times.Never);
+            _repositoryMock.Verify(r => r.AddAsync(It.IsAny<Office>()), Times.Never);
+        }
+
+        [Fact]
         public async Task CreateAsync_ShouldPersist_WhenNameIsUnique()
         {
             var office = BuildOffice();

@@ -1,5 +1,7 @@
 ﻿<!DOCTYPE html>
 <html lang="es">
+@using System.Globalization
+@using KineGestion.Web.Localization
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -11,6 +13,10 @@
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 </head>
 <body>
+    @{
+        var currentCulture = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
+        var returnUrl = (Context?.Request?.Path.Value ?? "/") + (Context?.Request?.QueryString.Value ?? string.Empty);
+    }
 
     <!-- SIDEBAR -->
     <aside class="kg-sidebar" id="sidebar">
@@ -20,25 +26,25 @@
             </div>
             <div>
                 <span class="kg-sidebar-title">KineGestión</span>
-                <span class="kg-sidebar-subtitle">Centro de Kinesiología</span>
+                <span class="kg-sidebar-subtitle">@LayoutText.Get("Brand.Center", "Centro de Kinesiología")</span>
             </div>
         </div>
 
         <nav class="kg-sidebar-nav">
-            <div class="kg-nav-section-label">Principal</div>
+            <div class="kg-nav-section-label">@LayoutText.Get("Nav.Main", "Principal")</div>
             <a class="kg-nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Home" ? "active" : "")"
                asp-controller="Home" asp-action="Index">
                 <i class="bi bi-grid-1x2-fill"></i>
-                <span>Dashboard</span>
+                <span>@LayoutText.Get("Nav.Dashboard", "Dashboard")</span>
             </a>
 
-            <div class="kg-nav-section-label">Gestión</div>
+            <div class="kg-nav-section-label">@LayoutText.Get("Nav.Management", "Gestión")</div>
             @if (User.IsInRole("Admin"))
             {
                 <a class="kg-nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Patients" ? "active" : "")"
                    asp-controller="Patients" asp-action="Index">
                     <i class="bi bi-people-fill"></i>
-                    <span>Pacientes</span>
+                    <span>@LayoutText.Get("Nav.Patients", "Pacientes")</span>
                 </a>
             }
             @if (User.IsInRole("Kinesiologo"))
@@ -46,49 +52,49 @@
                 <a class="kg-nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Sessions" && ViewContext.RouteData.Values["action"]?.ToString() == "MyAgenda" ? "active" : "")"
                    asp-controller="Sessions" asp-action="MyAgenda">
                     <i class="bi bi-calendar2-heart-fill"></i>
-                    <span>Mi Agenda</span>
+                    <span>@LayoutText.Get("Nav.MyAgenda", "Mi Agenda")</span>
                 </a>
             }
             <a class="kg-nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Professionals" ? "active" : "")"
                asp-controller="Professionals" asp-action="Index">
                 <i class="bi bi-person-badge-fill"></i>
-                <span>Profesionales</span>
+                <span>@LayoutText.Get("Nav.Professionals", "Profesionales")</span>
             </a>
             <a class="kg-nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Treatments" ? "active" : "")"
                asp-controller="Treatments" asp-action="Index">
                 <i class="bi bi-journal-medical"></i>
-                <span>Tratamientos</span>
+                <span>@LayoutText.Get("Nav.Treatments", "Tratamientos")</span>
             </a>
             <a class="kg-nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Sessions" ? "active" : "")"
                asp-controller="Sessions" asp-action="Index">
                 <i class="bi bi-calendar2-check-fill"></i>
-                <span>Sesiones</span>
+                <span>@LayoutText.Get("Nav.Sessions", "Sesiones")</span>
             </a>
             <a class="kg-nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Offices" ? "active" : "")"
                asp-controller="Offices" asp-action="Index">
                 <i class="bi bi-building"></i>
-                <span>Consultorios</span>
+                <span>@LayoutText.Get("Nav.Offices", "Consultorios")</span>
             </a>
 
             @if (User.IsInRole("Admin"))
             {
-                <div class="kg-nav-section-label">Administración</div>
+                <div class="kg-nav-section-label">@LayoutText.Get("Nav.Admin", "Administración")</div>
                 <a class="kg-nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Users" ? "active" : "")"
                    asp-controller="Users" asp-action="Index">
                     <i class="bi bi-person-lock"></i>
-                    <span>Usuarios</span>
+                    <span>@LayoutText.Get("Nav.Users", "Usuarios")</span>
                 </a>
                 <a class="kg-nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Audit" ? "active" : "")"
                    asp-controller="Audit" asp-action="Index">
                     <i class="bi bi-clock-history"></i>
-                    <span>Auditoría</span>
+                    <span>@LayoutText.Get("Nav.Audit", "Auditoría")</span>
                 </a>
             }
         </nav>
 
         <div class="kg-sidebar-footer">
             <i class="bi bi-circle-fill text-success me-1" style="font-size:.55rem"></i>
-            Sistema Operativo
+            @LayoutText.Get("Status.Operating", "Sistema Operativo")
         </div>
     </aside>
 
@@ -104,6 +110,14 @@
                 <h6 class="mb-0 fw-semibold">@(ViewData["Title"] ?? "Dashboard")</h6>
             </div>
             <div class="kg-topbar-right">
+                <form asp-controller="Localization" asp-action="SetLanguage" method="post" class="d-inline me-2">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="returnUrl" value="@returnUrl" />
+                    <select name="culture" class="form-select form-select-sm" style="width:auto;min-width:72px" onchange="this.form.submit()" aria-label="Idioma">
+                        <option value="es" selected="@(currentCulture == "es")">ES</option>
+                        <option value="en" selected="@(currentCulture == "en")">EN</option>
+                    </select>
+                </form>
                 <span class="kg-topbar-badge">
                     <i class="bi bi-bell"></i>
                 </span>
@@ -115,7 +129,7 @@
                 </div>
                 <form asp-controller="Account" asp-action="Logout" method="post" class="d-inline ms-2">
                     @Html.AntiForgeryToken()
-                    <button type="submit" class="btn btn-link p-0" style="color:var(--kg-text-muted);font-size:.85rem" title="Cerrar sesión">
+                    <button type="submit" class="btn btn-link p-0" style="color:var(--kg-text-muted);font-size:.85rem" title="@LayoutText.Get("Action.Logout", "Cerrar sesión")">
                         <i class="bi bi-box-arrow-right"></i>
                     </button>
                 </form>
@@ -142,7 +156,7 @@
         </main>
 
         <footer class="kg-footer">
-            &copy; 2026 KineGestión &mdash; Sistema de Gestión Clínica &mdash; Todos los derechos reservados.
+            &copy; 2026 KineGestión &mdash; @LayoutText.Get("Footer.Text", "Sistema de Gestión Clínica - Todos los derechos reservados.")
         </footer>
     </div>
 

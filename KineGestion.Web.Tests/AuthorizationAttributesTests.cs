@@ -12,6 +12,7 @@ namespace KineGestion.Web.Tests
         [InlineData(typeof(ProfessionalsController), "Admin")]
         [InlineData(typeof(TreatmentsController), "Admin")]
         [InlineData(typeof(OfficesController), "Admin")]
+        [InlineData(typeof(AuditController), "Admin")]
         [InlineData(typeof(HomeController), "Admin,Kinesiologo")]
         [InlineData(typeof(SessionsController), "Admin,Kinesiologo")]
         public void Controller_ShouldHaveExpectedRoles(Type controllerType, string expectedRoles)

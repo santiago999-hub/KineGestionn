@@ -23,7 +23,22 @@
         <div class="row g-2 align-items-end">
             <div class="col-md-3">
                 <label class="form-label small text-muted">Entidad</label>
-                <input name="entityName" value="@Model.EntityName" class="form-control" placeholder="Patient, Session..." />
+                <select name="entityName" class="form-select">
+                    <option value="">Todas</option>
+                    @foreach (var entity in Model.EntityOptions)
+                    {
+                        var entityValue = entity.ToString();
+                        var entityLabel = KineGestion.Web.Models.ViewModels.AuditIndexViewModel.GetEntityLabel(entity);
+                        if (Model.EntityName == entityValue)
+                        {
+                            <option value="@entityValue" selected>@entityLabel</option>
+                        }
+                        else
+                        {
+                            <option value="@entityValue">@entityLabel</option>
+                        }
+                    }
+                </select>
             </div>
             <div class="col-md-2">
                 <label class="form-label small text-muted">Id registro</label>
@@ -33,8 +48,38 @@
                 <label class="form-label small text-muted">Usuario</label>
                 <input name="changedBy" value="@Model.ChangedBy" class="form-control" placeholder="admin@kinegestion.com" />
             </div>
+            <div class="col-md-2">
+                <label class="form-label small text-muted">Acción</label>
+                <select name="action" class="form-select">
+                    <option value="">Todas</option>
+                    @foreach (var action in Model.ActionOptions)
+                    {
+                        var actionValue = action.ToString();
+                        var label = KineGestion.Web.Models.ViewModels.AuditIndexViewModel.GetActionLabel(action);
+
+                        if (Model.Action == actionValue)
+                        {
+                            <option value="@actionValue" selected>@label</option>
+                        }
+                        else
+                        {
+                            <option value="@actionValue">@label</option>
+                        }
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small text-muted">Desde</label>
+                <input type="date" name="dateFrom" value="@(Model.DateFrom?.ToString("yyyy-MM-dd"))" class="form-control" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small text-muted">Hasta</label>
+                <input type="date" name="dateTo" value="@(Model.DateTo?.ToString("yyyy-MM-dd"))" class="form-control" />
+            </div>
             <div class="col-md-3 d-flex gap-2">
                 <button type="submit" class="btn-kg-primary w-100"><i class="bi bi-search"></i></button>
+                <button type="submit" formaction="@Url.Action("Export", "Audit")" formmethod="get" class="btn-kg-outline w-100"><i class="bi bi-download"></i></button>
+                <button type="submit" formaction="@Url.Action("ExportExcel", "Audit")" formmethod="get" class="btn-kg-outline w-100"><i class="bi bi-file-earmark-excel"></i></button>
                 <a asp-action="Index" class="btn-kg-outline w-100"><i class="bi bi-x-lg"></i></a>
             </div>
         </div>
@@ -117,8 +162,8 @@
             <div style="padding:12px 18px;border-top:1px solid var(--kg-border);display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
                 <span style="font-size:.78rem;color:var(--kg-text-muted)">Página @Model.Page de @Model.TotalPages</span>
                 <div style="display:flex;gap:6px">
-                    <a asp-action="Index" asp-route-page="@(Model.Page - 1)" asp-route-pageSize="@Model.PageSize" asp-route-entityName="@Model.EntityName" asp-route-entityId="@Model.EntityId" asp-route-changedBy="@Model.ChangedBy" class="btn-kg-outline @(Model.Page <= 1 ? "disabled" : "")">Anterior</a>
-                    <a asp-action="Index" asp-route-page="@(Model.Page + 1)" asp-route-pageSize="@Model.PageSize" asp-route-entityName="@Model.EntityName" asp-route-entityId="@Model.EntityId" asp-route-changedBy="@Model.ChangedBy" class="btn-kg-outline @(Model.Page >= Model.TotalPages ? "disabled" : "")">Siguiente</a>
+                    <a asp-action="Index" asp-route-page="@(Model.Page - 1)" asp-route-pageSize="@Model.PageSize" asp-route-entityName="@Model.EntityName" asp-route-entityId="@Model.EntityId" asp-route-changedBy="@Model.ChangedBy" asp-route-action="@Model.Action" asp-route-dateFrom="@(Model.DateFrom?.ToString("yyyy-MM-dd"))" asp-route-dateTo="@(Model.DateTo?.ToString("yyyy-MM-dd"))" class="btn-kg-outline @(Model.Page <= 1 ? "disabled" : "")">Anterior</a>
+                    <a asp-action="Index" asp-route-page="@(Model.Page + 1)" asp-route-pageSize="@Model.PageSize" asp-route-entityName="@Model.EntityName" asp-route-entityId="@Model.EntityId" asp-route-changedBy="@Model.ChangedBy" asp-route-action="@Model.Action" asp-route-dateFrom="@(Model.DateFrom?.ToString("yyyy-MM-dd"))" asp-route-dateTo="@(Model.DateTo?.ToString("yyyy-MM-dd"))" class="btn-kg-outline @(Model.Page >= Model.TotalPages ? "disabled" : "")">Siguiente</a>
                 </div>
             </div>
         }

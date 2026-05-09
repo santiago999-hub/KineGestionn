@@ -49,6 +49,7 @@ namespace KineGestion.Core.Services
 
         public async Task<Professional> CreateAsync(Professional professional)
         {
+            professional.Matricula = NormalizeAndValidateRequired(professional.Matricula, nameof(Professional.Matricula), "La matrícula es obligatoria.");
             await ValidateMatriculaUniquenessAsync(professional.Matricula);
             professional.IsActivo = true;
             return await _repository.AddAsync(professional);
@@ -56,6 +57,7 @@ namespace KineGestion.Core.Services
 
         public async Task<Professional> UpdateAsync(Professional professional)
         {
+            professional.Matricula = NormalizeAndValidateRequired(professional.Matricula, nameof(Professional.Matricula), "La matrícula es obligatoria.");
             await ValidateMatriculaUniquenessAsync(professional.Matricula, excludeId: professional.Id);
             return await _repository.UpdateAsync(professional);
         }
@@ -69,6 +71,15 @@ namespace KineGestion.Core.Services
                     string.Empty);
 
             await _repository.DeleteAsync(id);
+        }
+
+        private static string NormalizeAndValidateRequired(string? value, string propertyName, string errorMessage)
+        {
+            var normalized = value?.Trim();
+            if (string.IsNullOrWhiteSpace(normalized))
+                throw new BusinessValidationException(errorMessage, propertyName);
+
+            return normalized;
         }
     }
 }

@@ -69,6 +69,7 @@ namespace KineGestion.Core.Services
         public async Task<Patient> CreateAsync(Patient patient)
         {
                 ValidateFechaNacimiento(patient.FechaNacimiento);
+                patient.DNI = NormalizeAndValidateRequired(patient.DNI, nameof(Patient.DNI), "El DNI es obligatorio.");
                 await ValidateDniUniquenessAsync(patient.DNI);
             return await _repository.AddAsync(patient);
         }
@@ -77,6 +78,7 @@ namespace KineGestion.Core.Services
         public async Task<Patient> UpdateAsync(Patient patient)
         {
                 ValidateFechaNacimiento(patient.FechaNacimiento);
+                patient.DNI = NormalizeAndValidateRequired(patient.DNI, nameof(Patient.DNI), "El DNI es obligatorio.");
                 await ValidateDniUniquenessAsync(patient.DNI, excludeId: patient.Id);
             return await _repository.UpdateAsync(patient);
         }
@@ -108,6 +110,15 @@ namespace KineGestion.Core.Services
                     throw new BusinessValidationException(
                         "La fecha de nacimiento no puede ser igual o posterior a la fecha actual.",
                         nameof(Patient.FechaNacimiento));
+            }
+
+            private static string NormalizeAndValidateRequired(string? value, string propertyName, string errorMessage)
+            {
+                var normalized = value?.Trim();
+                if (string.IsNullOrWhiteSpace(normalized))
+                    throw new BusinessValidationException(errorMessage, propertyName);
+
+                return normalized;
             }
     }
 }

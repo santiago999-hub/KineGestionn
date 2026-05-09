@@ -54,6 +54,19 @@ namespace KineGestion.Tests
         }
 
         [Fact]
+        public async Task CreateAsync_ShouldThrow_WhenMatriculaIsBlank()
+        {
+            var professional = BuildProfessional();
+            professional.Matricula = "   ";
+
+            var ex = await Assert.ThrowsAsync<BusinessValidationException>(() => _service.CreateAsync(professional));
+
+            Assert.Equal(nameof(Professional.Matricula), ex.PropertyName);
+            _repositoryMock.Verify(r => r.ExistsByMatriculaAsync(It.IsAny<string>(), It.IsAny<int?>()), Times.Never);
+            _repositoryMock.Verify(r => r.AddAsync(It.IsAny<Professional>()), Times.Never);
+        }
+
+        [Fact]
         public async Task CreateAsync_ShouldForceIsActivoTrue_AndPersist()
         {
             var professional = BuildProfessional();

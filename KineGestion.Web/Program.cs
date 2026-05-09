@@ -6,6 +6,7 @@ using KineGestion.Web.Middleware;
 using KineGestion.Web.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using System.Globalization;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -71,6 +72,7 @@ builder.Services.AddScoped<IAuditLogService, AuditLogService>();
 builder.Services.AddScoped<IIdentityService, IdentityService>();
 
 // ─── MVC ──────────────────────────────────────────────────────────────────────
+builder.Services.AddLocalization(options => options.ResourcesPath = "Resources");
 builder.Services.AddControllersWithViews();
 
 // ─── IDENTITY (AuthN / AuthZ) ─────────────────────────────────────────────────
@@ -96,6 +98,17 @@ builder.Services.ConfigureApplicationCookie(options =>
 
 var app = builder.Build();
 
+var defaultCultureCode = builder.Configuration["Localization:DefaultCulture"] ?? "es";
+var supportedCultureCodes = new[] { "es", "en" };
+var supportedCultures = supportedCultureCodes.Select(c => new CultureInfo(c)).ToList();
+
+var requestLocalizationOptions = new RequestLocalizationOptions
+{
+    DefaultRequestCulture = new Microsoft.AspNetCore.Localization.RequestCulture(defaultCultureCode),
+    SupportedCultures = supportedCultures,
+    SupportedUICultures = supportedCultures
+};
+
 // ─── PIPELINE HTTP ────────────────────────────────────────────────────────────
 if (!app.Environment.IsDevelopment())
 {
@@ -109,6 +122,7 @@ if (!app.Environment.IsDevelopment())
 {
     app.UseHttpsRedirection();
 }
+app.UseRequestLocalization(requestLocalizationOptions);
 app.UseStaticFiles();
 app.UseRouting();
 app.UseAuthentication();

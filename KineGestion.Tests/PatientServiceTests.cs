@@ -73,6 +73,19 @@ namespace KineGestion.Tests
         }
 
         [Fact]
+        public async Task CreateAsync_ShouldThrow_WhenDniIsBlank()
+        {
+            var patient = BuildPatient();
+            patient.DNI = "   ";
+
+            var ex = await Assert.ThrowsAsync<BusinessValidationException>(() => _service.CreateAsync(patient));
+
+            Assert.Equal(nameof(Patient.DNI), ex.PropertyName);
+            _repositoryMock.Verify(r => r.ExistsByDniAsync(It.IsAny<string>(), It.IsAny<int?>()), Times.Never);
+            _repositoryMock.Verify(r => r.AddAsync(It.IsAny<Patient>()), Times.Never);
+        }
+
+        [Fact]
         public async Task CreateAsync_ShouldPersist_WhenValid()
         {
             var patient = BuildPatient();

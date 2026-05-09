@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Brand.Center" xml:space="preserve">
+    <value>Centro de Kinesiología</value>
+  </data>
+  <data name="Nav.Main" xml:space="preserve">
+    <value>Principal</value>
+  </data>
+  <data name="Nav.Management" xml:space="preserve">
+    <value>Gestión</value>
+  </data>
+  <data name="Nav.Admin" xml:space="preserve">
+    <value>Administración</value>
+  </data>
+  <data name="Nav.Dashboard" xml:space="preserve">
+    <value>Dashboard</value>
+  </data>
+  <data name="Nav.Patients" xml:space="preserve">
+    <value>Pacientes</value>
+  </data>
+  <data name="Nav.MyAgenda" xml:space="preserve">
+    <value>Mi Agenda</value>
+  </data>
+  <data name="Nav.Professionals" xml:space="preserve">
+    <value>Profesionales</value>
+  </data>
+  <data name="Nav.Treatments" xml:space="preserve">
+    <value>Tratamientos</value>
+  </data>
+  <data name="Nav.Sessions" xml:space="preserve">
+    <value>Sesiones</value>
+  </data>
+  <data name="Nav.Offices" xml:space="preserve">
+    <value>Consultorios</value>
+  </data>
+  <data name="Nav.Users" xml:space="preserve">
+    <value>Usuarios</value>
+  </data>
+  <data name="Nav.Audit" xml:space="preserve">
+    <value>Auditoría</value>
+  </data>
+  <data name="Status.Operating" xml:space="preserve">
+    <value>Sistema Operativo</value>
+  </data>
+  <data name="Action.Logout" xml:space="preserve">
+    <value>Cerrar sesión</value>
+  </data>
+  <data name="Footer.Text" xml:space="preserve">
+    <value>Sistema de Gestión Clínica - Todos los derechos reservados.</value>
+  </data>
+</root>

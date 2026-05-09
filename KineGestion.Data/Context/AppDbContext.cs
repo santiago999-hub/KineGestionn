@@ -184,8 +184,10 @@ namespace KineGestion.Data.Context
 
         public override int SaveChanges(bool acceptAllChangesOnSuccess)
         {
-            PrepareAuditEntries();
-            return base.SaveChanges(acceptAllChangesOnSuccess);
+            var pendingEntityIds = PrepareAuditEntries();
+            var result = base.SaveChanges(acceptAllChangesOnSuccess);
+            PersistPendingAuditEntityIds(pendingEntityIds, acceptAllChangesOnSuccess);
+            return result;
         }
 
         public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
@@ -195,14 +197,21 @@ namespace KineGestion.Data.Context
 
         public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
         {
-            PrepareAuditEntries();
-            return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+            return SaveChangesWithAuditAsync(acceptAllChangesOnSuccess, cancellationToken);
         }
 
-        private void PrepareAuditEntries()
+        private async Task<int> SaveChangesWithAuditAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken)
+        {
+            var pendingEntityIds = PrepareAuditEntries();
+            var result = await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+            await PersistPendingAuditEntityIdsAsync(pendingEntityIds, acceptAllChangesOnSuccess, cancellationToken);
+            return result;
+        }
+
+        private List<(AuditLog AuditLog, EntityEntry Entry)> PrepareAuditEntries()
         {
             ApplyAuditInfo();
-            AddAuditLogs();
+            return AddAuditLogs();
         }
 
         private static void ConfigureAuditableEntity<TEntity>(ModelBuilder modelBuilder)
@@ -241,21 +250,33 @@ namespace KineGestion.Data.Context
             }
         }
 
-        private void AddAuditLogs()
+        private List<(AuditLog AuditLog, EntityEntry Entry)> AddAuditLogs()
         {
             var actor = _currentUserProvider.GetAuditIdentifier();
             var now = DateTime.UtcNow;
+            var pendingEntityIds = new List<(AuditLog AuditLog, EntityEntry Entry)>();
 
-            var auditEntries = ChangeTracker
+            var trackedEntries = ChangeTracker
                 .Entries()
                 .Where(e => e.Entity is not AuditLog
                             && e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted
                             && !(e.Entity is IdentityUser)
                             && !e.Metadata.IsOwned())
-                .Select(CreateAuditLog)
-                .Where(a => a is not null)
-                .Select(a => a!)
                 .ToList();
+
+            var auditEntries = new List<AuditLog>();
+
+            foreach (var trackedEntry in trackedEntries)
+            {
+                var auditEntry = CreateAuditLog(trackedEntry);
+                if (auditEntry is null)
+                    continue;
+
+                auditEntries.Add(auditEntry);
+
+                if (trackedEntry.State == EntityState.Added && HasTemporaryPrimaryKey(trackedEntry))
+                    pendingEntityIds.Add((auditEntry, trackedEntry));
+            }
 
             foreach (var auditEntry in auditEntries)
             {
@@ -265,6 +286,52 @@ namespace KineGestion.Data.Context
 
             if (auditEntries.Count > 0)
                 AuditLogs.AddRange(auditEntries);
+
+            return pendingEntityIds;
+        }
+
+        private void PersistPendingAuditEntityIds(List<(AuditLog AuditLog, EntityEntry Entry)> pendingEntityIds, bool acceptAllChangesOnSuccess)
+        {
+            if (pendingEntityIds.Count == 0)
+                return;
+
+            if (!TrySetPendingEntityIds(pendingEntityIds))
+                return;
+
+            base.SaveChanges(acceptAllChangesOnSuccess);
+        }
+
+        private async Task PersistPendingAuditEntityIdsAsync(List<(AuditLog AuditLog, EntityEntry Entry)> pendingEntityIds, bool acceptAllChangesOnSuccess, CancellationToken cancellationToken)
+        {
+            if (pendingEntityIds.Count == 0)
+                return;
+
+            if (!TrySetPendingEntityIds(pendingEntityIds))
+                return;
+
+            await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+        }
+
+        private static bool TrySetPendingEntityIds(List<(AuditLog AuditLog, EntityEntry Entry)> pendingEntityIds)
+        {
+            var updatedAny = false;
+
+            foreach (var pending in pendingEntityIds)
+            {
+                var resolvedEntityId = GetPrimaryKeyValue(pending.Entry);
+                if (string.IsNullOrWhiteSpace(resolvedEntityId) || resolvedEntityId == pending.AuditLog.EntityId)
+                    continue;
+
+                pending.AuditLog.EntityId = resolvedEntityId;
+                updatedAny = true;
+            }
+
+            return updatedAny;
+        }
+
+        private static bool HasTemporaryPrimaryKey(EntityEntry entry)
+        {
+            return entry.Properties.Any(p => p.Metadata.IsPrimaryKey() && p.IsTemporary);
         }
 
         private static AuditLog? CreateAuditLog(EntityEntry entry)
@@ -289,10 +356,7 @@ namespace KineGestion.Data.Context
             }
             else
             {
-                var isSoftDelete = entry.Properties.Any(p => p.Metadata.Name == nameof(Patient.IsActivo)
-                                                             && p.IsModified
-                                                             && Equals(p.OriginalValue, true)
-                                                             && Equals(p.CurrentValue, false));
+                var isSoftDelete = IsSoftDeleteTransition(entry);
                 action = isSoftDelete ? "Delete" : "Update";
 
                 foreach (var property in entry.Properties.Where(ShouldAuditProperty).Where(p => p.IsModified))
@@ -313,6 +377,16 @@ namespace KineGestion.Data.Context
                 OldValuesJson = oldValues.Count == 0 ? null : JsonSerializer.Serialize(oldValues),
                 NewValuesJson = newValues.Count == 0 ? null : JsonSerializer.Serialize(newValues)
             };
+        }
+
+        private static bool IsSoftDeleteTransition(EntityEntry entry)
+        {
+            return entry.Properties.Any(p =>
+                (p.Metadata.Name == nameof(Patient.IsActivo) || p.Metadata.Name == nameof(Office.IsActive))
+                && p.Metadata.ClrType == typeof(bool)
+                && p.IsModified
+                && Equals(p.OriginalValue, true)
+                && Equals(p.CurrentValue, false));
         }
 
         private static string GetPrimaryKeyValue(EntityEntry entry)

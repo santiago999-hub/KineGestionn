@@ -1,5 +1,22 @@
 namespace KineGestion.Core
 {
+    public enum AuditEntityType
+    {
+        Patient = 0,
+        Professional = 1,
+        Treatment = 2,
+        Session = 3,
+        Office = 4,
+        Equipment = 5
+    }
+
+    public enum AuditActionType
+    {
+        Create = 0,
+        Update = 1,
+        Delete = 2
+    }
+
     public enum SessionStatus
     {
         Pending = 0,

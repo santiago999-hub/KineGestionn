@@ -32,12 +32,14 @@ namespace KineGestion.Core.Services
 
         public async Task<Office> CreateAsync(Office office)
         {
+            office.Name = NormalizeAndValidateRequired(office.Name, nameof(Office.Name), "El nombre del consultorio es obligatorio.");
             await ValidateNameUniquenessAsync(office.Name);
             return await _repository.AddAsync(office);
         }
 
         public async Task<Office> UpdateAsync(Office office)
         {
+            office.Name = NormalizeAndValidateRequired(office.Name, nameof(Office.Name), "El nombre del consultorio es obligatorio.");
             await ValidateNameUniquenessAsync(office.Name, excludeId: office.Id);
             return await _repository.UpdateAsync(office);
         }
@@ -60,6 +62,15 @@ namespace KineGestion.Core.Services
                 throw new BusinessValidationException(
                     $"Ya existe un consultorio con el nombre '{name}'.",
                     nameof(Office.Name));
+        }
+
+        private static string NormalizeAndValidateRequired(string? value, string propertyName, string errorMessage)
+        {
+            var normalized = value?.Trim();
+            if (string.IsNullOrWhiteSpace(normalized))
+                throw new BusinessValidationException(errorMessage, propertyName);
+
+            return normalized;
         }
     }
 }
