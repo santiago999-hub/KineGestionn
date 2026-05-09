@@ -48,7 +48,7 @@
             </div>
             <div class="kg-detail-item">
                 <dt>Fecha de nacimiento</dt>
-                <dd>@p.FechaNacimiento.ToString("dd/MM/yyyy")</dd>
+                <dd>@(p.FechaNacimiento?.ToString("dd/MM/yyyy") ?? "—")</dd>
             </div>
             <div class="kg-detail-item">
                 <dt>Obra social</dt>
@@ -61,6 +61,30 @@
             <div class="kg-detail-item">
                 <dt>Email</dt>
                 <dd>@(p.Email ?? "—")</dd>
+            </div>
+        </div>
+
+        <div class="mt-4" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:1rem 1.25rem">
+            <p style="margin:0 0 .75rem;font-weight:700;font-size:.82rem;color:#475569;text-transform:uppercase;letter-spacing:.05em">
+                <i class="bi bi-clock-history me-1"></i>Trazabilidad
+            </p>
+            <div class="kg-detail-grid">
+                <div class="kg-detail-item">
+                    <dt>Creado por</dt>
+                    <dd>@p.CreatedBy</dd>
+                </div>
+                <div class="kg-detail-item">
+                    <dt>Creado el</dt>
+                    <dd>@p.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</dd>
+                </div>
+                <div class="kg-detail-item">
+                    <dt>Última modificación por</dt>
+                    <dd>@p.UpdatedBy</dd>
+                </div>
+                <div class="kg-detail-item">
+                    <dt>Última modificación</dt>
+                    <dd>@p.UpdatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</dd>
+                </div>
             </div>
         </div>
     </div>

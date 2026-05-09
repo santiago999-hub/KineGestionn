@@ -119,15 +119,14 @@ namespace KineGestion.Web.Controllers
             if (patient is null)
                 return NotFound();
 
-            var treatmentsTask = _treatmentService.GetByPatientIdAsync(id);
-            var sessionsTask = _sessionService.GetByPatientIdAsync(id);
-            await System.Threading.Tasks.Task.WhenAll(treatmentsTask, sessionsTask);
+            var treatments = await _treatmentService.GetByPatientIdAsync(id);
+            var sessions = await _sessionService.GetByPatientIdAsync(id);
 
             var model = new PatientDetailsViewModel
             {
                 Patient = PatientViewModel.FromEntity(patient),
-                Treatments = treatmentsTask.Result.Select(TreatmentViewModel.FromEntity).ToList(),
-                Sessions = sessionsTask.Result
+                Treatments = treatments.Select(TreatmentViewModel.FromEntity).ToList(),
+                Sessions = sessions
                     .OrderByDescending(s => s.FechaHora)
                     .Select(s => SessionViewModel.FromEntityForAdmin(s))
                     .ToList()

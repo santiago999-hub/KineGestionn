@@ -141,6 +141,30 @@
                 </div>
             </div>
         }
+
+        <div class="mt-4" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:1rem 1.25rem">
+            <p style="margin:0 0 .75rem;font-weight:700;font-size:.82rem;color:#475569;text-transform:uppercase;letter-spacing:.05em">
+                <i class="bi bi-clock-history me-1"></i>Trazabilidad
+            </p>
+            <div class="kg-detail-grid">
+                <div class="kg-detail-item">
+                    <dt>Creada por</dt>
+                    <dd>@Model.CreatedBy</dd>
+                </div>
+                <div class="kg-detail-item">
+                    <dt>Creada el</dt>
+                    <dd>@Model.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</dd>
+                </div>
+                <div class="kg-detail-item">
+                    <dt>Última modificación por</dt>
+                    <dd>@Model.UpdatedBy</dd>
+                </div>
+                <div class="kg-detail-item">
+                    <dt>Última modificación</dt>
+                    <dd>@Model.UpdatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</dd>
+                </div>
+            </div>
+        </div>
     </div>
     <div class="kg-form-footer">
         <a asp-action="Index" class="btn-kg-outline"><i class="bi bi-arrow-left"></i> Volver</a>

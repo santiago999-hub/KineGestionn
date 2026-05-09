@@ -35,6 +35,9 @@ builder.Services.AddDbContextPool<AppDbContext>(options =>
             maxRetryDelay: TimeSpan.FromSeconds(sqlMaxRetryDelaySeconds),
             errorNumbersToAdd: null)));
 
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddSingleton<ICurrentUserProvider, HttpContextCurrentUserProvider>();
+
 // ─── DEPENDENCY INJECTION (Clean Architecture) ────────────────────────────────
 // Orden de registro: Repositorios primero, luego Servicios.
 // "Scoped" = una instancia por request HTTP (correcto para operaciones de BD).
@@ -58,6 +61,9 @@ builder.Services.AddScoped<ITreatmentService, TreatmentService>();
 
 builder.Services.AddScoped<IOfficeRepository, OfficeRepository>();
 builder.Services.AddScoped<IOfficeService, OfficeService>();
+
+builder.Services.AddScoped<IAuditLogRepository, AuditLogRepository>();
+builder.Services.AddScoped<IAuditLogService, AuditLogService>();
 
 // ─── IDENTITY SERVICE (R5: desacoplamiento de UsersController) ────────────────
 // IIdentityService abstrae la lógica de UserManager/RoleManager del controlador.

@@ -234,16 +234,12 @@ namespace KineGestion.Web.Controllers
 
         private async Task LoadSelectListsAsync(SessionViewModel viewModel)
         {
-            // Proyecciones mínimas: solo los campos que necesita cada dropdown
-            var patientsTask      = _patientService.GetForSelectAsync();
-            var professionalsTask = _professionalService.GetForSelectAsync();
-            var treatmentsTask    = _treatmentService.GetForSelectAsync();
-            var officesTask       = _officeService.GetActiveAsync();
-            await Task.WhenAll(patientsTask, professionalsTask, treatmentsTask, officesTask);
-            var patients      = patientsTask.Result;
-            var professionals = professionalsTask.Result;
-            var treatments    = treatmentsTask.Result;
-            var offices       = officesTask.Result;
+            // Se ejecuta de forma secuencial para evitar operaciones concurrentes
+            // sobre el mismo DbContext scoped del request.
+            var patients = await _patientService.GetForSelectAsync();
+            var professionals = await _professionalService.GetForSelectAsync();
+            var treatments = await _treatmentService.GetForSelectAsync();
+            var offices = await _officeService.GetActiveAsync();
 
             // El repositorio ya ordena por Apellido — no se necesita OrderBy en memoria
             viewModel.Pacientes = patients

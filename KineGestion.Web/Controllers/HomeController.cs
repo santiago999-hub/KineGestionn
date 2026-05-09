@@ -35,29 +35,27 @@ public class HomeController : Controller
 
     public async Task<IActionResult> Index()
     {
-        var countPatients = SafeCountAsync(() => _patientService.CountActiveAsync(), nameof(_patientService.CountActiveAsync));
-        var countProfessionals = SafeCountAsync(() => _professionalService.CountActiveAsync(), nameof(_professionalService.CountActiveAsync));
-        var countTreatments = SafeCountAsync(() => _treatmentService.CountAsync(), nameof(_treatmentService.CountAsync));
-        var countSessions = SafeCountAsync(() => _sessionService.CountAsync(), nameof(_sessionService.CountAsync));
+        var countPatients = await SafeCountAsync(() => _patientService.CountActiveAsync(), nameof(_patientService.CountActiveAsync));
+        var countProfessionals = await SafeCountAsync(() => _professionalService.CountActiveAsync(), nameof(_professionalService.CountActiveAsync));
+        var countTreatments = await SafeCountAsync(() => _treatmentService.CountAsync(), nameof(_treatmentService.CountAsync));
+        var countSessions = await SafeCountAsync(() => _sessionService.CountAsync(), nameof(_sessionService.CountAsync));
 
         var today = DateTime.UtcNow;
-        var countToday = SafeCountAsync(() => _sessionService.CountTodayAsync(today), nameof(_sessionService.CountTodayAsync));
-        var countCompletedToday = SafeCountAsync(() => _sessionService.CountByStatusOnDateAsync(SessionStatus.Completed, today), nameof(_sessionService.CountByStatusOnDateAsync));
-        var countPendingPago = SafeCountAsync(() => _sessionService.CountByPaymentStatusAsync(PaymentStatus.Pending), nameof(_sessionService.CountByPaymentStatusAsync));
-        var countPendingStatus = SafeCountAsync(() => _sessionService.CountByStatusAsync(SessionStatus.Pending), nameof(_sessionService.CountByStatusAsync));
-
-        await Task.WhenAll(countPatients, countProfessionals, countTreatments, countSessions, countToday, countCompletedToday, countPendingPago, countPendingStatus);
+        var countToday = await SafeCountAsync(() => _sessionService.CountTodayAsync(today), nameof(_sessionService.CountTodayAsync));
+        var countCompletedToday = await SafeCountAsync(() => _sessionService.CountByStatusOnDateAsync(SessionStatus.Completed, today), nameof(_sessionService.CountByStatusOnDateAsync));
+        var countPendingPago = await SafeCountAsync(() => _sessionService.CountByPaymentStatusAsync(PaymentStatus.Pending), nameof(_sessionService.CountByPaymentStatusAsync));
+        var countPendingStatus = await SafeCountAsync(() => _sessionService.CountByStatusAsync(SessionStatus.Pending), nameof(_sessionService.CountByStatusAsync));
 
         var model = new HomeDashboardViewModel
         {
-            PacientesActivosCount = countPatients.Result,
-            ProfesionalesActivosCount = countProfessionals.Result,
-            TratamientosCount = countTreatments.Result,
-            SesionesCount = countSessions.Result,
-            SesionesHoyCount = countToday.Result,
-            SesionesCompletadasHoyCount = countCompletedToday.Result,
-            SesionesPendientesPagoCount = countPendingPago.Result,
-            SesionesPendientesConfirmacionCount = countPendingStatus.Result
+            PacientesActivosCount = countPatients,
+            ProfesionalesActivosCount = countProfessionals,
+            TratamientosCount = countTreatments,
+            SesionesCount = countSessions,
+            SesionesHoyCount = countToday,
+            SesionesCompletadasHoyCount = countCompletedToday,
+            SesionesPendientesPagoCount = countPendingPago,
+            SesionesPendientesConfirmacionCount = countPendingStatus
         };
 
         return View(model);

@@ -25,7 +25,11 @@ namespace KineGestion.Web.Mapping
                 ProfesionalNombre = session.Professional is null ? string.Empty : $"{session.Professional.Apellido}, {session.Professional.Nombre}",
                 TratamientoDescripcion = session.Treatment?.Descripcion,
                 OfficeNombre = session.Office?.Name,
-                EvolutionBloqueada = session.EvolutionLockedAt.HasValue
+                EvolutionBloqueada = session.EvolutionLockedAt.HasValue,
+                CreatedBy = session.CreatedBy,
+                UpdatedBy = session.UpdatedBy,
+                CreatedAt = session.CreatedAt,
+                UpdatedAt = session.UpdatedAt
             };
         }
 

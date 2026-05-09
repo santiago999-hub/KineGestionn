@@ -32,6 +32,10 @@ namespace KineGestion.Web.Models.ViewModels
         // Datos de solo lectura para vistas de detalle
         public string? PacienteNombre { get; set; }
         public int SesionesRealizadas { get; set; }
+        public string CreatedBy { get; set; } = string.Empty;
+        public string UpdatedBy { get; set; } = string.Empty;
+        public DateTime CreatedAt { get; set; }
+        public DateTime UpdatedAt { get; set; }
 
         // SelectList para el formulario
         public IEnumerable<SelectListItem> Pacientes { get; set; } = new List<SelectListItem>();
@@ -46,7 +50,11 @@ namespace KineGestion.Web.Models.ViewModels
             PacienteNombre = treatment.Patient is null
                 ? string.Empty
                 : $"{treatment.Patient.Apellido}, {treatment.Patient.Nombre}",
-            SesionesRealizadas = treatment.Sesiones?.Count ?? 0
+            SesionesRealizadas = treatment.Sesiones?.Count ?? 0,
+            CreatedBy = treatment.CreatedBy,
+            UpdatedBy = treatment.UpdatedBy,
+            CreatedAt = treatment.CreatedAt,
+            UpdatedAt = treatment.UpdatedAt
         };
 
         /// <summary>

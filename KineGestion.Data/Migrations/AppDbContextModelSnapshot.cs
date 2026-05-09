@@ -22,6 +22,52 @@ namespace KineGestion.Data.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("KineGestion.Core.Entities.AuditLog", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTime>("ChangedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ChangedBy")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("EntityId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("EntityName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("NewValuesJson")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("OldValuesJson")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ChangedAt");
+
+                    b.HasIndex("EntityName", "EntityId", "ChangedAt");
+
+                    b.ToTable("AuditLogs");
+                });
+
             modelBuilder.Entity("KineGestion.Core.Entities.Equipment", b =>
                 {
                     b.Property<int>("Id")
@@ -33,6 +79,12 @@ namespace KineGestion.Data.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)")
+                        .HasDefaultValue("system");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -43,6 +95,12 @@ namespace KineGestion.Data.Migrations
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)")
+                        .HasDefaultValue("system");
 
                     b.HasKey("Id");
 
@@ -62,6 +120,12 @@ namespace KineGestion.Data.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)")
+                        .HasDefaultValue("system");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
@@ -73,7 +137,16 @@ namespace KineGestion.Data.Migrations
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("UpdatedBy")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)")
+                        .HasDefaultValue("system");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
 
                     b.ToTable("Offices");
                 });
@@ -93,6 +166,12 @@ namespace KineGestion.Data.Migrations
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)")
+                        .HasDefaultValue("system");
 
                     b.Property<string>("DNI")
                         .IsRequired()
@@ -125,6 +204,12 @@ namespace KineGestion.Data.Migrations
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("UpdatedBy")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)")
+                        .HasDefaultValue("system");
+
                     b.HasKey("Id");
 
                     b.HasIndex("DNI")
@@ -132,7 +217,11 @@ namespace KineGestion.Data.Migrations
 
                     b.HasIndex("IsActivo", "Apellido", "Nombre");
 
-                    b.ToTable("Patients");
+                    b.ToTable("Patients", t =>
+                        {
+                            t.HasCheckConstraint("CK_Patients_DNI_OnlyDigits", "[DNI] NOT LIKE '%[^0-9]%' AND LEN([DNI]) BETWEEN 7 AND 8");
+                            t.HasCheckConstraint("CK_Patients_FechaNacimiento_Past", "[FechaNacimiento] < CONVERT(date, GETDATE())");
+                        });
                 });
 
             modelBuilder.Entity("KineGestion.Core.Entities.Professional", b =>
@@ -150,6 +239,12 @@ namespace KineGestion.Data.Migrations
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)")
+                        .HasDefaultValue("system");
 
                     b.Property<string>("Especialidad")
                         .IsRequired()
@@ -172,6 +267,12 @@ namespace KineGestion.Data.Migrations
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("UpdatedBy")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)")
+                        .HasDefaultValue("system");
+
                     b.HasKey("Id");
 
                     b.HasIndex("Matricula")
@@ -192,6 +293,12 @@ namespace KineGestion.Data.Migrations
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)")
+                        .HasDefaultValue("system");
 
                     b.Property<string>("Evolution")
                         .HasMaxLength(4000)
@@ -235,6 +342,12 @@ namespace KineGestion.Data.Migrations
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("UpdatedBy")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)")
+                        .HasDefaultValue("system");
+
                     b.HasKey("Id");
 
                     b.HasIndex("OfficeId");
@@ -254,7 +367,12 @@ namespace KineGestion.Data.Migrations
                     b.HasIndex("TreatmentId", "NroSesionEnTratamiento")
                         .IsUnique();
 
-                    b.ToTable("Sessions");
+                    b.ToTable("Sessions", t =>
+                        {
+                            t.HasCheckConstraint("CK_Sessions_NroSesionEnTratamiento_Positive", "[NroSesionEnTratamiento] >= 1");
+                            t.HasCheckConstraint("CK_Sessions_PaymentStatus_Valid", "[PaymentStatus] IN (0, 1)");
+                            t.HasCheckConstraint("CK_Sessions_Status_Valid", "[Status] IN (0, 1, 2)");
+                        });
                 });
 
             modelBuilder.Entity("KineGestion.Core.Entities.Treatment", b =>
@@ -271,6 +389,12 @@ namespace KineGestion.Data.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)")
+                        .HasDefaultValue("system");
+
                     b.Property<string>("Descripcion")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -285,11 +409,20 @@ namespace KineGestion.Data.Migrations
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("UpdatedBy")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)")
+                        .HasDefaultValue("system");
+
                     b.HasKey("Id");
 
                     b.HasIndex("PatientId", "FechaInicio");
 
-                    b.ToTable("Treatments");
+                    b.ToTable("Treatments", t =>
+                        {
+                            t.HasCheckConstraint("CK_Treatments_CantidadSesionesTotales_Positive", "[CantidadSesionesTotales] >= 1");
+                        });
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>

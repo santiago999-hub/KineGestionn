@@ -2,6 +2,7 @@
 
 @{
     ViewData["Title"] = "Nuevo Paciente";
+    var maxFechaNacimiento = DateTime.Today.AddDays(-1).ToString("yyyy-MM-dd");
 }
 
 <div class="kg-page-header">
@@ -45,7 +46,7 @@
                 </div>
                 <div class="col-md-6">
                     <label asp-for="FechaNacimiento" class="form-label"></label>
-                    <input asp-for="FechaNacimiento" class="form-control" type="date" />
+                    <input asp-for="FechaNacimiento" class="form-control" type="date" max="@maxFechaNacimiento" />
                     <span asp-validation-for="FechaNacimiento" class="text-danger small"></span>
                 </div>
                 <div class="col-12">

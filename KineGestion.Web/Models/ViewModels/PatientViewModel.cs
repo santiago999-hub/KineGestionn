@@ -32,7 +32,7 @@ namespace KineGestion.Web.Models.ViewModels
         [Required(ErrorMessage = "La fecha de nacimiento es obligatoria.")]
         [DataType(DataType.Date)]
         [Display(Name = "Fecha de Nacimiento")]
-        public DateTime FechaNacimiento { get; set; }
+        public DateTime? FechaNacimiento { get; set; }
 
         [StringLength(150)]
         [Display(Name = "Obra Social")]
@@ -51,6 +51,11 @@ namespace KineGestion.Web.Models.ViewModels
         [Display(Name = "Activo")]
         public bool IsActivo { get; set; } = true;
 
+        public string CreatedBy { get; set; } = string.Empty;
+        public string UpdatedBy { get; set; } = string.Empty;
+        public DateTime CreatedAt { get; set; }
+        public DateTime UpdatedAt { get; set; }
+
         // ── Métodos de Mapping (Manual, sin AutoMapper) ────────────────────────
         // El Controller llama a estos métodos para convertir entre capas.
         // La entidad nunca llega a la Vista; el ViewModel nunca llega a la BD.
@@ -66,7 +71,11 @@ namespace KineGestion.Web.Models.ViewModels
             ObraSocial       = patient.ObraSocial,
             Telefono         = patient.Telefono,
             Email            = patient.Email,
-            IsActivo         = patient.IsActivo
+            IsActivo         = patient.IsActivo,
+            CreatedBy        = patient.CreatedBy,
+            UpdatedBy        = patient.UpdatedBy,
+            CreatedAt        = patient.CreatedAt,
+            UpdatedAt        = patient.UpdatedAt
         };
 
         /// <summary>Convierte este ViewModel en una entidad Patient para la BD.</summary>
@@ -76,7 +85,7 @@ namespace KineGestion.Web.Models.ViewModels
             Nombre           = Nombre,
             Apellido         = Apellido,
             DNI              = DNI,
-            FechaNacimiento  = FechaNacimiento,
+            FechaNacimiento  = FechaNacimiento ?? DateTime.Today,
             ObraSocial       = ObraSocial,
             Telefono         = Telefono,
             Email            = Email,

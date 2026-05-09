@@ -54,7 +54,7 @@
             </div>
             <div class="kg-detail-item">
                 <dt>Fecha de nacimiento</dt>
-                <dd>@Model.FechaNacimiento.ToString("dd/MM/yyyy")</dd>
+                <dd>@(Model.FechaNacimiento?.ToString("dd/MM/yyyy") ?? "—")</dd>
             </div>
             <div class="kg-detail-item">
                 <dt>Obra social</dt>
