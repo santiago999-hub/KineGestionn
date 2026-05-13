@@ -39,4 +39,136 @@
   <data name="Audit.Entity.Equipment" xml:space="preserve">
     <value>Equipo</value>
   </data>
+  <data name="Audit.View.Title" xml:space="preserve">
+    <value>Auditoría</value>
+  </data>
+  <data name="Audit.View.HeaderTitle" xml:space="preserve">
+    <value>Auditoría del sistema</value>
+  </data>
+  <data name="Audit.View.HeaderSubtitle" xml:space="preserve">
+    <value>Historial de cambios sobre pacientes, tratamientos, sesiones y más</value>
+  </data>
+  <data name="Audit.View.CardHistory" xml:space="preserve">
+    <value>Historial de cambios</value>
+  </data>
+  <data name="Audit.View.RecordsSuffix" xml:space="preserve">
+    <value>registros</value>
+  </data>
+  <data name="Audit.View.Filter.Entity" xml:space="preserve">
+    <value>Entidad</value>
+  </data>
+  <data name="Audit.View.Filter.All" xml:space="preserve">
+    <value>Todas</value>
+  </data>
+  <data name="Audit.View.Filter.RecordId" xml:space="preserve">
+    <value>Id registro</value>
+  </data>
+  <data name="Audit.View.Filter.User" xml:space="preserve">
+    <value>Usuario</value>
+  </data>
+  <data name="Audit.View.Filter.Action" xml:space="preserve">
+    <value>Acción</value>
+  </data>
+  <data name="Audit.View.Filter.From" xml:space="preserve">
+    <value>Desde</value>
+  </data>
+  <data name="Audit.View.Filter.To" xml:space="preserve">
+    <value>Hasta</value>
+  </data>
+  <data name="Audit.View.Placeholder.RecordId" xml:space="preserve">
+    <value>Ej: 6</value>
+  </data>
+  <data name="Audit.View.Placeholder.User" xml:space="preserve">
+    <value>Ej: admin@kinegestion.com</value>
+  </data>
+  <data name="Audit.View.Button.Search" xml:space="preserve">
+    <value>Buscar</value>
+  </data>
+  <data name="Audit.View.Button.ExportCsv" xml:space="preserve">
+    <value>Exportar CSV</value>
+  </data>
+  <data name="Audit.View.Button.ExportExcel" xml:space="preserve">
+    <value>Exportar Excel</value>
+  </data>
+  <data name="Audit.View.Button.Clear" xml:space="preserve">
+    <value>Limpiar filtros</value>
+  </data>
+  <data name="Audit.View.Empty.Title" xml:space="preserve">
+    <value>Sin registros de auditoría</value>
+  </data>
+  <data name="Audit.View.Empty.Description" xml:space="preserve">
+    <value>Todavía no hay cambios guardados con los filtros actuales.</value>
+  </data>
+  <data name="Audit.View.Table.Date" xml:space="preserve">
+    <value>Fecha</value>
+  </data>
+  <data name="Audit.View.Table.User" xml:space="preserve">
+    <value>Usuario</value>
+  </data>
+  <data name="Audit.View.Table.Entity" xml:space="preserve">
+    <value>Entidad</value>
+  </data>
+  <data name="Audit.View.Table.Record" xml:space="preserve">
+    <value>Registro</value>
+  </data>
+  <data name="Audit.View.Table.Action" xml:space="preserve">
+    <value>Acción</value>
+  </data>
+  <data name="Audit.View.Table.Changes" xml:space="preserve">
+    <value>Cambios</value>
+  </data>
+  <data name="Audit.View.Details.ViewJson" xml:space="preserve">
+    <value>Ver JSON</value>
+  </data>
+  <data name="Audit.View.Details.Before" xml:space="preserve">
+    <value>Antes</value>
+  </data>
+  <data name="Audit.View.Details.After" xml:space="preserve">
+    <value>Después</value>
+  </data>
+  <data name="Audit.View.SummaryTemplate" xml:space="preserve">
+    <value>Mostrando {0} de {1} eventos de auditoría</value>
+  </data>
+  <data name="Audit.View.PageTemplate" xml:space="preserve">
+    <value>Página {0} de {1}</value>
+  </data>
+  <data name="Audit.View.Previous" xml:space="preserve">
+    <value>Anterior</value>
+  </data>
+  <data name="Audit.View.Next" xml:space="preserve">
+    <value>Siguiente</value>
+  </data>
+  <data name="Audit.Export.SheetName" xml:space="preserve">
+    <value>Auditoria</value>
+  </data>
+  <data name="Audit.Export.Column.Id" xml:space="preserve">
+    <value>Id</value>
+  </data>
+  <data name="Audit.Export.Column.ChangedAt" xml:space="preserve">
+    <value>FechaCambio</value>
+  </data>
+  <data name="Audit.Export.Column.ChangedBy" xml:space="preserve">
+    <value>UsuarioCambio</value>
+  </data>
+  <data name="Audit.Export.Column.EntityName" xml:space="preserve">
+    <value>Entidad</value>
+  </data>
+  <data name="Audit.Export.Column.EntityId" xml:space="preserve">
+    <value>IdEntidad</value>
+  </data>
+  <data name="Audit.Export.Column.Action" xml:space="preserve">
+    <value>Accion</value>
+  </data>
+  <data name="Audit.Export.Column.OldValuesJson" xml:space="preserve">
+    <value>ValoresAnterioresJson</value>
+  </data>
+  <data name="Audit.Export.Column.NewValuesJson" xml:space="preserve">
+    <value>ValoresNuevosJson</value>
+  </data>
+  <data name="Audit.Export.FilePrefix" xml:space="preserve">
+    <value>registro-auditoria</value>
+  </data>
+  <data name="Audit.Export.DateFormat" xml:space="preserve">
+    <value>dd/MM/yyyy HH:mm</value>
+  </data>
 </root>

@@ -41,7 +41,9 @@ namespace KineGestion.Web.Models.ViewModels
         public int Page { get; set; } = 1;
         public int PageSize { get; set; } = 10;
         public int TotalCount { get; set; }
-        public int TotalPages => TotalCount <= 0 ? 1 : (int)System.Math.Ceiling((double)TotalCount / PageSize);
+        public int TotalPages => TotalCount <= 0 || PageSize <= 0
+            ? 1
+            : (int)System.Math.Ceiling((double)TotalCount / PageSize);
 
         public static string GetActionLabel(AuditActionType action) => action switch
         {

@@ -11,6 +11,8 @@ using Moq;
 using ClosedXML.Excel;
 using System.IO;
 using KineGestion.Core;
+using KineGestion.Web.Localization;
+using System.Globalization;
 
 namespace KineGestion.Web.Tests
 {
@@ -118,6 +120,51 @@ namespace KineGestion.Web.Tests
         }
 
         [Fact]
+        public async Task Index_ShouldNormalizeInvalidEntityAndActionFilters_ToNull()
+        {
+            var auditService = new Mock<IAuditLogService>();
+
+            auditService
+                .Setup(s => s.GetPagedAsync(null, null, "admin", null, null, null, 1, 10))
+                .ReturnsAsync((Array.Empty<AuditLog>(), 0));
+
+            var controller = new AuditController(auditService.Object);
+
+            var result = await controller.Index("NoExiste", null, "  admin  ", "Otro", null, null, 1, 10);
+
+            var view = Assert.IsType<ViewResult>(result);
+            var model = Assert.IsType<AuditIndexViewModel>(view.Model);
+
+            Assert.Null(model.EntityName);
+            Assert.Null(model.Action);
+            Assert.Equal("admin", model.ChangedBy);
+            auditService.Verify(s => s.GetPagedAsync(null, null, "admin", null, null, null, 1, 10), Times.Once);
+        }
+
+        [Fact]
+        public async Task Index_ShouldNormalizeInvertedDateRange_BeforeCallingService()
+        {
+            var auditService = new Mock<IAuditLogService>();
+            var dateFrom = new DateTime(2026, 5, 9);
+            var dateTo = new DateTime(2026, 5, 1);
+
+            auditService
+                .Setup(s => s.GetPagedAsync("Patient", null, null, "Update", new DateTime(2026, 5, 1), new DateTime(2026, 5, 9), 1, 10))
+                .ReturnsAsync((Array.Empty<AuditLog>(), 0));
+
+            var controller = new AuditController(auditService.Object);
+
+            var result = await controller.Index("Patient", null, null, "Update", dateFrom, dateTo, 1, 10);
+
+            var view = Assert.IsType<ViewResult>(result);
+            var model = Assert.IsType<AuditIndexViewModel>(view.Model);
+
+            Assert.Equal(new DateTime(2026, 5, 1), model.DateFrom);
+            Assert.Equal(new DateTime(2026, 5, 9), model.DateTo);
+            auditService.Verify(s => s.GetPagedAsync("Patient", null, null, "Update", new DateTime(2026, 5, 1), new DateTime(2026, 5, 9), 1, 10), Times.Once);
+        }
+
+        [Fact]
         public async Task Index_ShouldPopulatePredefinedEntityOptions()
         {
             var auditService = new Mock<IAuditLogService>();
@@ -175,14 +222,29 @@ namespace KineGestion.Web.Tests
             var file = Assert.IsType<FileContentResult>(result);
             Assert.Equal("text/csv; charset=utf-8", file.ContentType);
             Assert.EndsWith(".csv", file.FileDownloadName, StringComparison.OrdinalIgnoreCase);
+            Assert.StartsWith($"{AuditText.Get("Audit.Export.FilePrefix", "audit-log")}-", file.FileDownloadName, StringComparison.OrdinalIgnoreCase);
 
             var csv = System.Text.Encoding.UTF8.GetString(file.FileContents);
             var expectedEntityLabel = AuditIndexViewModel.GetEntityLabel("Patient");
             var expectedActionLabel = AuditIndexViewModel.GetActionLabel("Update");
-            Assert.Contains("Id,ChangedAt,ChangedBy,EntityName,EntityId,Action,OldValuesJson,NewValuesJson", csv);
+            var expectedHeaders = string.Join(",",
+                AuditText.Get("Audit.Export.Column.Id", "Id"),
+                AuditText.Get("Audit.Export.Column.ChangedAt", "ChangedAt"),
+                AuditText.Get("Audit.Export.Column.ChangedBy", "ChangedBy"),
+                AuditText.Get("Audit.Export.Column.EntityName", "EntityName"),
+                AuditText.Get("Audit.Export.Column.EntityId", "EntityId"),
+                AuditText.Get("Audit.Export.Column.Action", "Action"),
+                AuditText.Get("Audit.Export.Column.OldValuesJson", "OldValuesJson"),
+                AuditText.Get("Audit.Export.Column.NewValuesJson", "NewValuesJson"));
+
+            Assert.Contains(expectedHeaders, csv);
             Assert.Contains("\"admin@local\"", csv);
             Assert.Contains($"\"{expectedEntityLabel}\"", csv);
             Assert.Contains($"\"{expectedActionLabel}\"", csv);
+            var expectedDate = new DateTime(2026, 5, 8, 10, 15, 0)
+                .ToLocalTime()
+                .ToString(AuditText.Get("Audit.Export.DateFormat", "dd/MM/yyyy HH:mm"), CultureInfo.CurrentCulture);
+            Assert.Contains($"\"{expectedDate}\"", csv);
 
             auditService.Verify(s => s.GetAllAsync("Patient", null, "admin", "Update", dateFrom, dateTo), Times.Once);
         }
@@ -218,19 +280,88 @@ namespace KineGestion.Web.Tests
             var file = Assert.IsType<FileContentResult>(result);
             Assert.Equal("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", file.ContentType);
             Assert.EndsWith(".xlsx", file.FileDownloadName, StringComparison.OrdinalIgnoreCase);
+            Assert.StartsWith($"{AuditText.Get("Audit.Export.FilePrefix", "audit-log")}-", file.FileDownloadName, StringComparison.OrdinalIgnoreCase);
 
             using var stream = new MemoryStream(file.FileContents);
             using var workbook = new XLWorkbook(stream);
-            var worksheet = workbook.Worksheet("Auditoria");
+            var worksheet = workbook.Worksheet(AuditText.Get("Audit.Export.SheetName", "Auditoria"));
             var expectedEntityLabel = AuditIndexViewModel.GetEntityLabel("Patient");
             var expectedActionLabel = AuditIndexViewModel.GetActionLabel("Update");
 
-            Assert.Equal("Id", worksheet.Cell(1, 1).GetString());
-            Assert.Equal("ChangedAt", worksheet.Cell(1, 2).GetString());
+            Assert.Equal(AuditText.Get("Audit.Export.Column.Id", "Id"), worksheet.Cell(1, 1).GetString());
+            Assert.Equal(AuditText.Get("Audit.Export.Column.ChangedAt", "ChangedAt"), worksheet.Cell(1, 2).GetString());
+            Assert.Equal(AuditText.Get("Audit.Export.DateFormat", "dd/MM/yyyy HH:mm"), worksheet.Cell(2, 2).Style.DateFormat.Format);
             Assert.Equal(expectedEntityLabel, worksheet.Cell(2, 4).GetString());
             Assert.Equal(expectedActionLabel, worksheet.Cell(2, 6).GetString());
 
             auditService.Verify(s => s.GetAllAsync("Patient", null, "admin", "Update", dateFrom, dateTo), Times.Once);
+        }
+
+        [Fact]
+        public async Task Export_ShouldNormalizeInvalidFilters_BeforeCallingService()
+        {
+            var auditService = new Mock<IAuditLogService>();
+
+            auditService
+                .Setup(s => s.GetAllAsync(null, null, null, null, new DateTime(2026, 5, 1), new DateTime(2026, 5, 9)))
+                .ReturnsAsync(Array.Empty<AuditLog>());
+
+            var controller = new AuditController(auditService.Object);
+
+            var result = await controller.Export("Invalida", null, " ", "NoAction", new DateTime(2026, 5, 9), new DateTime(2026, 5, 1));
+
+            var file = Assert.IsType<FileContentResult>(result);
+            Assert.Equal("text/csv; charset=utf-8", file.ContentType);
+            auditService.Verify(s => s.GetAllAsync(null, null, null, null, new DateTime(2026, 5, 1), new DateTime(2026, 5, 9)), Times.Once);
+        }
+
+        [Fact]
+        public async Task Export_ShouldUseEnglishDateFormat_WhenCurrentCultureIsEn()
+        {
+            var previousCulture = CultureInfo.CurrentCulture;
+            var previousUICulture = CultureInfo.CurrentUICulture;
+
+            try
+            {
+                CultureInfo.CurrentCulture = new CultureInfo("en");
+                CultureInfo.CurrentUICulture = new CultureInfo("en");
+
+                var auditService = new Mock<IAuditLogService>();
+
+                auditService
+                    .Setup(s => s.GetAllAsync("Patient", null, "admin", "Update", null, null))
+                    .ReturnsAsync(new[]
+                    {
+                        new AuditLog
+                        {
+                            Id = 9,
+                            EntityName = "Patient",
+                            EntityId = "12",
+                            Action = "Update",
+                            ChangedBy = "admin@local",
+                            ChangedAt = new DateTime(2026, 5, 8, 10, 15, 0),
+                            OldValuesJson = "{}",
+                            NewValuesJson = "{}"
+                        }
+                    });
+
+                var controller = new AuditController(auditService.Object);
+
+                var result = await controller.Export("Patient", null, "admin", "Update", null, null);
+
+                var file = Assert.IsType<FileContentResult>(result);
+                var csv = System.Text.Encoding.UTF8.GetString(file.FileContents);
+                var expectedDate = new DateTime(2026, 5, 8, 10, 15, 0)
+                    .ToLocalTime()
+                    .ToString(AuditText.Get("Audit.Export.DateFormat", "dd/MM/yyyy HH:mm"), CultureInfo.CurrentCulture);
+
+                Assert.Contains($"\"{expectedDate}\"", csv);
+            }
+            finally
+            {
+                CultureInfo.CurrentCulture = previousCulture;
+                CultureInfo.CurrentUICulture = previousUICulture;
+            }
         }
 
         [Fact]

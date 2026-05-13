@@ -1,30 +1,31 @@
 @model KineGestion.Web.Models.ViewModels.AuditIndexViewModel
+@using KineGestion.Web.Localization
 
 @{
-    ViewData["Title"] = "Auditoría";
+    ViewData["Title"] = AuditText.Get("Audit.View.Title", "Auditoría");
 }
 
 <div class="kg-page-header">
     <div>
-        <h2>Auditoría del sistema</h2>
-        <p class="text-muted mb-0">Historial de cambios sobre pacientes, tratamientos, sesiones y más</p>
+        <h2>@AuditText.Get("Audit.View.HeaderTitle", "Auditoría del sistema")</h2>
+        <p class="text-muted mb-0">@AuditText.Get("Audit.View.HeaderSubtitle", "Historial de cambios sobre pacientes, tratamientos, sesiones y más")</p>
     </div>
 </div>
 
 <div class="kg-card">
     <div class="kg-card-header">
         <h5 class="kg-card-header-title">
-            <i class="bi bi-clock-history"></i> Historial de cambios
+            <i class="bi bi-clock-history"></i> @AuditText.Get("Audit.View.CardHistory", "Historial de cambios")
         </h5>
-        <span class="kg-badge kg-badge-muted">@Model.TotalCount registros</span>
+        <span class="kg-badge kg-badge-muted">@Model.TotalCount @AuditText.Get("Audit.View.RecordsSuffix", "registros")</span>
     </div>
 
     <form method="get" class="px-3 pt-3 pb-1">
         <div class="row g-2 align-items-end">
             <div class="col-md-3">
-                <label class="form-label small text-muted">Entidad</label>
+                <label class="form-label small text-muted">@AuditText.Get("Audit.View.Filter.Entity", "Entidad")</label>
                 <select name="entityName" class="form-select">
-                    <option value="">Todas</option>
+                    <option value="">@AuditText.Get("Audit.View.Filter.All", "Todas")</option>
                     @foreach (var entity in Model.EntityOptions)
                     {
                         var entityValue = entity.ToString();
@@ -41,17 +42,17 @@
                 </select>
             </div>
             <div class="col-md-2">
-                <label class="form-label small text-muted">Id registro</label>
-                <input name="entityId" value="@Model.EntityId" class="form-control" placeholder="6" />
+                <label class="form-label small text-muted">@AuditText.Get("Audit.View.Filter.RecordId", "Id registro")</label>
+                <input name="entityId" value="@Model.EntityId" class="form-control" placeholder="@AuditText.Get("Audit.View.Placeholder.RecordId", "Ej: 6")" />
             </div>
             <div class="col-md-4">
-                <label class="form-label small text-muted">Usuario</label>
-                <input name="changedBy" value="@Model.ChangedBy" class="form-control" placeholder="admin@kinegestion.com" />
+                <label class="form-label small text-muted">@AuditText.Get("Audit.View.Filter.User", "Usuario")</label>
+                <input name="changedBy" value="@Model.ChangedBy" class="form-control" placeholder="@AuditText.Get("Audit.View.Placeholder.User", "Ej: admin@kinegestion.com")" />
             </div>
             <div class="col-md-2">
-                <label class="form-label small text-muted">Acción</label>
+                <label class="form-label small text-muted">@AuditText.Get("Audit.View.Filter.Action", "Acción")</label>
                 <select name="action" class="form-select">
-                    <option value="">Todas</option>
+                    <option value="">@AuditText.Get("Audit.View.Filter.All", "Todas")</option>
                     @foreach (var action in Model.ActionOptions)
                     {
                         var actionValue = action.ToString();
@@ -69,18 +70,18 @@
                 </select>
             </div>
             <div class="col-md-2">
-                <label class="form-label small text-muted">Desde</label>
+                <label class="form-label small text-muted">@AuditText.Get("Audit.View.Filter.From", "Desde")</label>
                 <input type="date" name="dateFrom" value="@(Model.DateFrom?.ToString("yyyy-MM-dd"))" class="form-control" />
             </div>
             <div class="col-md-2">
-                <label class="form-label small text-muted">Hasta</label>
+                <label class="form-label small text-muted">@AuditText.Get("Audit.View.Filter.To", "Hasta")</label>
                 <input type="date" name="dateTo" value="@(Model.DateTo?.ToString("yyyy-MM-dd"))" class="form-control" />
             </div>
             <div class="col-md-3 d-flex gap-2">
-                <button type="submit" class="btn-kg-primary w-100"><i class="bi bi-search"></i></button>
-                <button type="submit" formaction="@Url.Action("Export", "Audit")" formmethod="get" class="btn-kg-outline w-100"><i class="bi bi-download"></i></button>
-                <button type="submit" formaction="@Url.Action("ExportExcel", "Audit")" formmethod="get" class="btn-kg-outline w-100"><i class="bi bi-file-earmark-excel"></i></button>
-                <a asp-action="Index" class="btn-kg-outline w-100"><i class="bi bi-x-lg"></i></a>
+                <button type="submit" class="btn-kg-primary w-100" title="@AuditText.Get("Audit.View.Button.Search", "Buscar")" aria-label="@AuditText.Get("Audit.View.Button.Search", "Buscar")"><i class="bi bi-search"></i></button>
+                <button type="submit" formaction="@Url.Action("Export", "Audit")" formmethod="get" class="btn-kg-outline w-100" title="@AuditText.Get("Audit.View.Button.ExportCsv", "Exportar CSV")" aria-label="@AuditText.Get("Audit.View.Button.ExportCsv", "Exportar CSV")"><i class="bi bi-download"></i></button>
+                <button type="submit" formaction="@Url.Action("ExportExcel", "Audit")" formmethod="get" class="btn-kg-outline w-100" title="@AuditText.Get("Audit.View.Button.ExportExcel", "Exportar Excel")" aria-label="@AuditText.Get("Audit.View.Button.ExportExcel", "Exportar Excel")"><i class="bi bi-file-earmark-excel"></i></button>
+                <a asp-action="Index" class="btn-kg-outline w-100" title="@AuditText.Get("Audit.View.Button.Clear", "Limpiar filtros")" aria-label="@AuditText.Get("Audit.View.Button.Clear", "Limpiar filtros")"><i class="bi bi-x-lg"></i></a>
             </div>
         </div>
     </form>
@@ -89,8 +90,8 @@
     {
         <div class="kg-empty">
             <div class="kg-empty-icon"><i class="bi bi-database-exclamation"></i></div>
-            <h5>Sin registros de auditoría</h5>
-            <p>Todavía no hay cambios guardados con los filtros actuales.</p>
+            <h5>@AuditText.Get("Audit.View.Empty.Title", "Sin registros de auditoría")</h5>
+            <p>@AuditText.Get("Audit.View.Empty.Description", "Todavía no hay cambios guardados con los filtros actuales.")</p>
         </div>
     }
     else
@@ -99,50 +100,52 @@
             <table class="kg-table">
                 <thead>
                     <tr>
-                        <th>Fecha</th>
-                        <th>Usuario</th>
-                        <th>Entidad</th>
-                        <th>Registro</th>
-                        <th>Acción</th>
-                        <th>Cambios</th>
+                        <th>@AuditText.Get("Audit.View.Table.Date", "Fecha")</th>
+                        <th>@AuditText.Get("Audit.View.Table.User", "Usuario")</th>
+                        <th>@AuditText.Get("Audit.View.Table.Entity", "Entidad")</th>
+                        <th>@AuditText.Get("Audit.View.Table.Record", "Registro")</th>
+                        <th>@AuditText.Get("Audit.View.Table.Action", "Acción")</th>
+                        <th>@AuditText.Get("Audit.View.Table.Changes", "Cambios")</th>
                     </tr>
                 </thead>
                 <tbody>
                     @foreach (var item in Model.Items)
                     {
+                        var entityLabel = KineGestion.Web.Models.ViewModels.AuditIndexViewModel.GetEntityLabel(item.EntityName);
+                        var actionLabel = KineGestion.Web.Models.ViewModels.AuditIndexViewModel.GetActionLabel(item.Action);
                         <tr>
-                            <td style="white-space:nowrap">@item.ChangedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                            <td style="white-space:nowrap">@item.ChangedAt.ToLocalTime().ToString(AuditText.Get("Audit.Export.DateFormat", "dd/MM/yyyy HH:mm"), System.Globalization.CultureInfo.CurrentCulture)</td>
                             <td>@item.ChangedBy</td>
-                            <td>@item.EntityName</td>
+                            <td>@entityLabel</td>
                             <td>#@item.EntityId</td>
                             <td>
                                 @if (item.Action == "Create")
                                 {
-                                    <span class="kg-badge kg-badge-success">Alta</span>
+                                    <span class="kg-badge kg-badge-success">@actionLabel</span>
                                 }
                                 else if (item.Action == "Delete")
                                 {
-                                    <span class="kg-badge kg-badge-danger">Baja</span>
+                                    <span class="kg-badge kg-badge-danger">@actionLabel</span>
                                 }
                                 else
                                 {
-                                    <span class="kg-badge kg-badge-warning">Edición</span>
+                                    <span class="kg-badge kg-badge-warning">@actionLabel</span>
                                 }
                             </td>
                             <td style="min-width:260px">
                                 <details>
-                                    <summary style="cursor:pointer;color:var(--kg-primary);font-weight:600">Ver JSON</summary>
+                                    <summary style="cursor:pointer;color:var(--kg-primary);font-weight:600">@AuditText.Get("Audit.View.Details.ViewJson", "Ver JSON")</summary>
                                     @if (!string.IsNullOrWhiteSpace(item.OldValuesJson))
                                     {
                                         <div style="margin-top:.75rem">
-                                            <div style="font-size:.75rem;color:var(--kg-text-muted);text-transform:uppercase;margin-bottom:.25rem">Antes</div>
+                                            <div style="font-size:.75rem;color:var(--kg-text-muted);text-transform:uppercase;margin-bottom:.25rem">@AuditText.Get("Audit.View.Details.Before", "Antes")</div>
                                             <pre style="white-space:pre-wrap;background:#0f172a;color:#e2e8f0;padding:.75rem;border-radius:8px;font-size:.75rem">@item.OldValuesJson</pre>
                                         </div>
                                     }
                                     @if (!string.IsNullOrWhiteSpace(item.NewValuesJson))
                                     {
                                         <div style="margin-top:.75rem">
-                                            <div style="font-size:.75rem;color:var(--kg-text-muted);text-transform:uppercase;margin-bottom:.25rem">Después</div>
+                                            <div style="font-size:.75rem;color:var(--kg-text-muted);text-transform:uppercase;margin-bottom:.25rem">@AuditText.Get("Audit.View.Details.After", "Después")</div>
                                             <pre style="white-space:pre-wrap;background:#0f172a;color:#e2e8f0;padding:.75rem;border-radius:8px;font-size:.75rem">@item.NewValuesJson</pre>
                                         </div>
                                     }
@@ -154,16 +157,16 @@
             </table>
         </div>
         <div style="padding:12px 18px;border-top:1px solid var(--kg-border);font-size:.76rem;color:var(--kg-text-muted)">
-            Mostrando @Model.Items.Count() de @Model.TotalCount eventos de auditoría
+            @string.Format(AuditText.Get("Audit.View.SummaryTemplate", "Mostrando {0} de {1} eventos de auditoría"), Model.Items.Count(), Model.TotalCount)
         </div>
 
         @if (Model.TotalPages > 1)
         {
             <div style="padding:12px 18px;border-top:1px solid var(--kg-border);display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
-                <span style="font-size:.78rem;color:var(--kg-text-muted)">Página @Model.Page de @Model.TotalPages</span>
+                <span style="font-size:.78rem;color:var(--kg-text-muted)">@string.Format(AuditText.Get("Audit.View.PageTemplate", "Página {0} de {1}"), Model.Page, Model.TotalPages)</span>
                 <div style="display:flex;gap:6px">
-                    <a asp-action="Index" asp-route-page="@(Model.Page - 1)" asp-route-pageSize="@Model.PageSize" asp-route-entityName="@Model.EntityName" asp-route-entityId="@Model.EntityId" asp-route-changedBy="@Model.ChangedBy" asp-route-action="@Model.Action" asp-route-dateFrom="@(Model.DateFrom?.ToString("yyyy-MM-dd"))" asp-route-dateTo="@(Model.DateTo?.ToString("yyyy-MM-dd"))" class="btn-kg-outline @(Model.Page <= 1 ? "disabled" : "")">Anterior</a>
-                    <a asp-action="Index" asp-route-page="@(Model.Page + 1)" asp-route-pageSize="@Model.PageSize" asp-route-entityName="@Model.EntityName" asp-route-entityId="@Model.EntityId" asp-route-changedBy="@Model.ChangedBy" asp-route-action="@Model.Action" asp-route-dateFrom="@(Model.DateFrom?.ToString("yyyy-MM-dd"))" asp-route-dateTo="@(Model.DateTo?.ToString("yyyy-MM-dd"))" class="btn-kg-outline @(Model.Page >= Model.TotalPages ? "disabled" : "")">Siguiente</a>
+                    <a asp-action="Index" asp-route-page="@(Model.Page - 1)" asp-route-pageSize="@Model.PageSize" asp-route-entityName="@Model.EntityName" asp-route-entityId="@Model.EntityId" asp-route-changedBy="@Model.ChangedBy" asp-route-action="@Model.Action" asp-route-dateFrom="@(Model.DateFrom?.ToString("yyyy-MM-dd"))" asp-route-dateTo="@(Model.DateTo?.ToString("yyyy-MM-dd"))" class="btn-kg-outline @(Model.Page <= 1 ? "disabled" : "")">@AuditText.Get("Audit.View.Previous", "Anterior")</a>
+                    <a asp-action="Index" asp-route-page="@(Model.Page + 1)" asp-route-pageSize="@Model.PageSize" asp-route-entityName="@Model.EntityName" asp-route-entityId="@Model.EntityId" asp-route-changedBy="@Model.ChangedBy" asp-route-action="@Model.Action" asp-route-dateFrom="@(Model.DateFrom?.ToString("yyyy-MM-dd"))" asp-route-dateTo="@(Model.DateTo?.ToString("yyyy-MM-dd"))" class="btn-kg-outline @(Model.Page >= Model.TotalPages ? "disabled" : "")">@AuditText.Get("Audit.View.Next", "Siguiente")</a>
                 </div>
             </div>
         }
