@@ -1,0 +1,71 @@
+@model KineGestion.Web.Models.ViewModels.ProfileViewModel
+
+@{
+    ViewData["Title"] = "Mi Perfil";
+}
+
+<div class="kg-page-header">
+    <div>
+        <h2>Perfil de Usuario</h2>
+        <p class="text-muted mb-0">Información de identidad y acceso del usuario autenticado</p>
+    </div>
+    <a asp-controller="Home" asp-action="Index" class="btn-kg-outline">
+        <i class="bi bi-house-door"></i> Volver al panel
+    </a>
+</div>
+
+<div class="kg-profile-shell">
+    <section class="kg-profile-card kg-card">
+        <div class="kg-card-body">
+            <div class="kg-profile-head">
+                <div class="kg-profile-avatar">
+                    <i class="bi bi-person-fill"></i>
+                </div>
+                <div>
+                    <h3>@Model.DisplayName</h3>
+                    <p>@(string.IsNullOrWhiteSpace(Model.Email) ? "Sin correo registrado" : Model.Email)</p>
+                </div>
+            </div>
+
+            <dl class="kg-profile-grid">
+                <div class="kg-detail-item">
+                    <dt>Nombre de usuario</dt>
+                    <dd>@(string.IsNullOrWhiteSpace(Model.UserName) ? "No disponible" : Model.UserName)</dd>
+                </div>
+                <div class="kg-detail-item">
+                    <dt>Email institucional</dt>
+                    <dd>@(string.IsNullOrWhiteSpace(Model.Email) ? "No disponible" : Model.Email)</dd>
+                </div>
+            </dl>
+        </div>
+    </section>
+
+    <section class="kg-profile-card kg-card">
+        <div class="kg-card-header">
+            <h5 class="kg-card-header-title">
+                <i class="bi bi-shield-lock"></i> Roles activos
+            </h5>
+        </div>
+        <div class="kg-card-body">
+            @if (Model.Roles.Count == 0)
+            {
+                <div class="kg-empty p-0">
+                    <div class="kg-empty-icon"><i class="bi bi-person-x"></i></div>
+                    <h5>Sin roles asignados</h5>
+                    <p>Este usuario no tiene permisos activos configurados.</p>
+                </div>
+            }
+            else
+            {
+                <div class="kg-role-list">
+                    @foreach (var role in Model.Roles)
+                    {
+                        <span class="kg-badge kg-badge-primary kg-role-badge">
+                            <i class="bi bi-check-circle"></i> @role
+                        </span>
+                    }
+                </div>
+            }
+        </div>
+    </section>
+</div>

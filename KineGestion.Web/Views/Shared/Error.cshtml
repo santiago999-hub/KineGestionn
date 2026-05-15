@@ -13,28 +13,38 @@
     </a>
 </div>
 
-<div class="kg-form-card">
-    <div class="kg-form-header" style="background:#fef2f2">
-        <div class="kg-form-header-icon" style="background:#fee2e2;color:#dc2626">
-            <i class="bi bi-exclamation-triangle-fill"></i>
-        </div>
-        <div>
-            <h4>Algo salió mal</h4>
-            <p>El error fue registrado para su revisión.</p>
-        </div>
+<section class="kg-status-page kg-card kg-status-page-error">
+    <div class="kg-status-icon">
+        <i class="bi bi-exclamation-octagon"></i>
     </div>
-    <div class="kg-form-body">
-        <p style="margin:0;font-size:.92rem">@Model.FriendlyMessage</p>
-        @if (Model.ShowRequestId)
-        {
-            <p class="mt-3 mb-0" style="font-size:.8rem;color:var(--kg-text-muted)">
-                ID de solicitud: <strong>@Model.RequestId</strong>
-            </p>
-        }
+    <h4>Algo salió mal</h4>
+    <p class="text-muted mb-0">El incidente fue registrado para revisión técnica.</p>
+
+    <div class="kg-status-message">
+        @Model.FriendlyMessage
     </div>
-    <div class="kg-form-footer">
+
+    @if (Model.ShowRequestId)
+    {
+        <p class="kg-status-request-id mb-0">
+            ID de solicitud: <strong>@Model.RequestId</strong>
+        </p>
+    }
+
+    <div class="kg-status-actions">
         <a asp-controller="Home" asp-action="Index" class="btn-kg-primary">
             <i class="bi bi-arrow-repeat"></i> Reintentar
         </a>
+        <a asp-controller="Home" asp-action="Index" class="btn-kg-outline">
+            <i class="bi bi-house-door"></i> Volver al inicio
+        </a>
     </div>
-</div>
+</section>
+
+<section class="kg-status-help">
+    <h5>Recomendaciones rápidas</h5>
+    <ul>
+        <li>Intentá nuevamente en unos segundos.</li>
+        <li>Si el error persiste, informá el ID de solicitud al equipo técnico.</li>
+    </ul>
+</section>

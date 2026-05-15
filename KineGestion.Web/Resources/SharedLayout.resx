@@ -13,19 +13,19 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="Brand.Center" xml:space="preserve">
-    <value>Centro de Kinesiología</value>
+    <value>Unidad de Kinesiología</value>
   </data>
   <data name="Nav.Main" xml:space="preserve">
-    <value>Principal</value>
+    <value>Panel Clínico</value>
   </data>
   <data name="Nav.Management" xml:space="preserve">
-    <value>Gestión</value>
+    <value>Operación Clínica</value>
   </data>
   <data name="Nav.Admin" xml:space="preserve">
-    <value>Administración</value>
+    <value>Seguridad y Control</value>
   </data>
   <data name="Nav.Dashboard" xml:space="preserve">
-    <value>Dashboard</value>
+    <value>Panel Ejecutivo</value>
   </data>
   <data name="Nav.Patients" xml:space="preserve">
     <value>Pacientes</value>
@@ -34,30 +34,36 @@
     <value>Mi Agenda</value>
   </data>
   <data name="Nav.Professionals" xml:space="preserve">
-    <value>Profesionales</value>
+    <value>Equipo Clínico</value>
   </data>
   <data name="Nav.Treatments" xml:space="preserve">
-    <value>Tratamientos</value>
+    <value>Planes Terapéuticos</value>
   </data>
   <data name="Nav.Sessions" xml:space="preserve">
-    <value>Sesiones</value>
+    <value>Agenda de Sesiones</value>
   </data>
   <data name="Nav.Offices" xml:space="preserve">
-    <value>Consultorios</value>
+    <value>Salas y Consultorios</value>
   </data>
   <data name="Nav.Users" xml:space="preserve">
-    <value>Usuarios</value>
+    <value>Gestión de Usuarios</value>
   </data>
   <data name="Nav.Audit" xml:space="preserve">
-    <value>Auditoría</value>
+    <value>Trazabilidad y Auditoría</value>
   </data>
   <data name="Status.Operating" xml:space="preserve">
-    <value>Sistema Operativo</value>
+    <value>Plataforma en servicio</value>
   </data>
   <data name="Action.Logout" xml:space="preserve">
     <value>Cerrar sesión</value>
   </data>
+  <data name="Action.SwitchTheme" xml:space="preserve">
+    <value>Cambiar tema visual</value>
+  </data>
+  <data name="Action.Profile" xml:space="preserve">
+    <value>Ver perfil</value>
+  </data>
   <data name="Footer.Text" xml:space="preserve">
-    <value>Sistema de Gestión Clínica - Todos los derechos reservados.</value>
+    <value>Plataforma de Gestión Clínica - Todos los derechos reservados.</value>
   </data>
 </root>

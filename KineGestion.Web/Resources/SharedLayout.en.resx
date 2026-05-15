@@ -13,19 +13,19 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="Brand.Center" xml:space="preserve">
-    <value>Kinesiology Center</value>
+    <value>Kinesiology Unit</value>
   </data>
   <data name="Nav.Main" xml:space="preserve">
-    <value>Main</value>
+    <value>Clinical Panel</value>
   </data>
   <data name="Nav.Management" xml:space="preserve">
-    <value>Management</value>
+    <value>Clinical Operations</value>
   </data>
   <data name="Nav.Admin" xml:space="preserve">
-    <value>Administration</value>
+    <value>Security and Control</value>
   </data>
   <data name="Nav.Dashboard" xml:space="preserve">
-    <value>Dashboard</value>
+    <value>Executive Dashboard</value>
   </data>
   <data name="Nav.Patients" xml:space="preserve">
     <value>Patients</value>
@@ -34,30 +34,36 @@
     <value>My Agenda</value>
   </data>
   <data name="Nav.Professionals" xml:space="preserve">
-    <value>Professionals</value>
+    <value>Clinical Team</value>
   </data>
   <data name="Nav.Treatments" xml:space="preserve">
-    <value>Treatments</value>
+    <value>Therapy Plans</value>
   </data>
   <data name="Nav.Sessions" xml:space="preserve">
-    <value>Sessions</value>
+    <value>Session Schedule</value>
   </data>
   <data name="Nav.Offices" xml:space="preserve">
-    <value>Offices</value>
+    <value>Rooms and Offices</value>
   </data>
   <data name="Nav.Users" xml:space="preserve">
-    <value>Users</value>
+    <value>User Management</value>
   </data>
   <data name="Nav.Audit" xml:space="preserve">
-    <value>Audit</value>
+    <value>Traceability and Audit</value>
   </data>
   <data name="Status.Operating" xml:space="preserve">
-    <value>System Operational</value>
+    <value>Platform in Service</value>
   </data>
   <data name="Action.Logout" xml:space="preserve">
     <value>Sign out</value>
   </data>
+  <data name="Action.SwitchTheme" xml:space="preserve">
+    <value>Switch visual theme</value>
+  </data>
+  <data name="Action.Profile" xml:space="preserve">
+    <value>View profile</value>
+  </data>
   <data name="Footer.Text" xml:space="preserve">
-    <value>Clinical Management System - All rights reserved.</value>
+    <value>Clinical Management Platform - All rights reserved.</value>
   </data>
 </root>

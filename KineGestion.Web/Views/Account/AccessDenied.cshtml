@@ -7,13 +7,31 @@
         <h2>Acceso denegado</h2>
         <p class="text-muted mb-0">No tenés permisos para ver esta página</p>
     </div>
-</div>
-
-<div class="kg-card text-center" style="padding: 3rem">
-    <div style="font-size:3rem;color:#ef4444;margin-bottom:1rem"><i class="bi bi-shield-x-fill"></i></div>
-    <h4>Sin autorización</h4>
-    <p class="text-muted">Tu rol no tiene acceso a esta sección del sistema.</p>
-    <a asp-controller="Home" asp-action="Index" class="btn-kg-primary mt-2">
-        <i class="bi bi-house-fill"></i> Volver al Dashboard
+    <a asp-controller="Home" asp-action="Index" class="btn-kg-outline">
+        <i class="bi bi-house-door"></i> Volver al panel
     </a>
 </div>
+
+<section class="kg-status-page kg-card kg-status-page-denied">
+    <div class="kg-status-icon">
+        <i class="bi bi-shield-lock"></i>
+    </div>
+    <h4>Sin autorización para continuar</h4>
+    <p class="text-muted">Tu perfil actual no tiene permisos para acceder a este módulo clínico.</p>
+    <div class="kg-status-actions">
+        <a asp-controller="Home" asp-action="Index" class="btn-kg-primary">
+            <i class="bi bi-grid-1x2"></i> Ir al panel
+        </a>
+        <a asp-controller="Account" asp-action="Profile" class="btn-kg-outline">
+            <i class="bi bi-person-circle"></i> Ver perfil
+        </a>
+    </div>
+</section>
+
+<section class="kg-status-help">
+    <h5>¿Qué podés hacer ahora?</h5>
+    <ul>
+        <li>Verificá que estés ingresando con el usuario correcto.</li>
+        <li>Consultá con un administrador si necesitás permisos adicionales.</li>
+    </ul>
+</section>

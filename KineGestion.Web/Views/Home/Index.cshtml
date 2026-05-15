@@ -11,7 +11,7 @@
         <p class="text-muted mb-0">Resumen operativo del centro de kinesiología</p>
     </div>
     <span class="kg-badge kg-badge-success">
-        <i class="bi bi-circle-fill" style="font-size:.5rem"></i> Sistema activo
+        <i class="bi bi-circle-fill kg-badge-dot"></i> Sistema activo
     </span>
 </div>
 
@@ -58,7 +58,7 @@
 <!-- Operational Cards -->
 <div class="row g-3 mb-4">
     <div class="col-sm-6 col-xl-3">
-        <a asp-controller="Sessions" asp-action="Index" asp-route-dateFrom="@DateTime.Today.ToString("yyyy-MM-dd")" asp-route-dateTo="@DateTime.Today.ToString("yyyy-MM-dd")" class="kg-stat-card" style="text-decoration:none;color:inherit">
+        <a asp-controller="Sessions" asp-action="Index" asp-route-dateFrom="@DateTime.Today.ToString("yyyy-MM-dd")" asp-route-dateTo="@DateTime.Today.ToString("yyyy-MM-dd")" class="kg-stat-card kg-stat-link">
             <div class="kg-stat-icon orange"><i class="bi bi-calendar2-day-fill"></i></div>
             <div>
                 <div class="kg-stat-label">Sesiones hoy</div>
@@ -67,7 +67,7 @@
         </a>
     </div>
     <div class="col-sm-6 col-xl-3">
-        <a asp-controller="Sessions" asp-action="Index" asp-route-status="Completed" asp-route-dateFrom="@DateTime.Today.ToString("yyyy-MM-dd")" asp-route-dateTo="@DateTime.Today.ToString("yyyy-MM-dd")" class="kg-stat-card" style="text-decoration:none;color:inherit">
+        <a asp-controller="Sessions" asp-action="Index" asp-route-status="Completed" asp-route-dateFrom="@DateTime.Today.ToString("yyyy-MM-dd")" asp-route-dateTo="@DateTime.Today.ToString("yyyy-MM-dd")" class="kg-stat-card kg-stat-link">
             <div class="kg-stat-icon green"><i class="bi bi-check2-circle"></i></div>
             <div>
                 <div class="kg-stat-label">Completadas hoy</div>
@@ -76,7 +76,7 @@
         </a>
     </div>
     <div class="col-sm-6 col-xl-3">
-        <a asp-controller="Sessions" asp-action="Index" asp-route-paymentStatus="Pending" class="kg-stat-card" style="text-decoration:none;color:inherit">
+        <a asp-controller="Sessions" asp-action="Index" asp-route-paymentStatus="Pending" class="kg-stat-card kg-stat-link">
             <div class="kg-stat-icon red"><i class="bi bi-credit-card-fill"></i></div>
             <div>
                 <div class="kg-stat-label">Pago pendiente</div>
@@ -85,7 +85,7 @@
         </a>
     </div>
     <div class="col-sm-6 col-xl-3">
-        <a asp-controller="Sessions" asp-action="Index" asp-route-status="Pending" class="kg-stat-card" style="text-decoration:none;color:inherit">
+        <a asp-controller="Sessions" asp-action="Index" asp-route-status="Pending" class="kg-stat-card kg-stat-link">
             <div class="kg-stat-icon yellow"><i class="bi bi-hourglass-split"></i></div>
             <div>
                 <div class="kg-stat-label">Sin confirmar</div>
@@ -113,7 +113,7 @@
                                 <i class="bi bi-cash-stack"></i>
                                 <div>
                                     <div>Pagos Pendientes de Hoy</div>
-                                    <div style="font-size:.72rem;font-weight:400;color:var(--kg-text-muted)">Filtrar cobros pendientes del día</div>
+                                    <div class="kg-quick-action-help">Filtrar cobros pendientes del día</div>
                                 </div>
                             </a>
                         </div>
@@ -122,7 +122,7 @@
                                 <i class="bi bi-hourglass-split"></i>
                                 <div>
                                     <div>Sin Confirmar de Hoy</div>
-                                    <div style="font-size:.72rem;font-weight:400;color:var(--kg-text-muted)">Revisar sesiones pendientes del día</div>
+                                    <div class="kg-quick-action-help">Revisar sesiones pendientes del día</div>
                                 </div>
                             </a>
                         </div>
@@ -131,7 +131,7 @@
                                 <i class="bi bi-calendar2-plus-fill"></i>
                                 <div>
                                     <div>Nueva Sesión</div>
-                                    <div style="font-size:.72rem;font-weight:400;color:var(--kg-text-muted)">Registrar sesión clínica</div>
+                                    <div class="kg-quick-action-help">Registrar sesión clínica</div>
                                 </div>
                             </a>
                         </div>
@@ -140,7 +140,7 @@
                                 <i class="bi bi-person-plus-fill"></i>
                                 <div>
                                     <div>Nuevo Paciente</div>
-                                    <div style="font-size:.72rem;font-weight:400;color:var(--kg-text-muted)">Registrar en el sistema</div>
+                                    <div class="kg-quick-action-help">Registrar en el sistema</div>
                                 </div>
                             </a>
                         </div>
@@ -149,7 +149,7 @@
                                 <i class="bi bi-journal-plus"></i>
                                 <div>
                                     <div>Nuevo Tratamiento</div>
-                                    <div style="font-size:.72rem;font-weight:400;color:var(--kg-text-muted)">Asignar a un paciente</div>
+                                    <div class="kg-quick-action-help">Asignar a un paciente</div>
                                 </div>
                             </a>
                         </div>
@@ -158,7 +158,7 @@
                                 <i class="bi bi-person-badge-fill"></i>
                                 <div>
                                     <div>Nuevo Profesional</div>
-                                    <div style="font-size:.72rem;font-weight:400;color:var(--kg-text-muted)">Dar de alta kinesiólogo</div>
+                                    <div class="kg-quick-action-help">Dar de alta kinesiólogo</div>
                                 </div>
                             </a>
                         </div>
@@ -170,7 +170,7 @@
                                 <i class="bi bi-calendar2-week-fill"></i>
                                 <div>
                                     <div>Mi Agenda de Hoy</div>
-                                    <div style="font-size:.72rem;font-weight:400;color:var(--kg-text-muted)">Ver solo tus turnos de hoy</div>
+                                    <div class="kg-quick-action-help">Ver solo tus turnos de hoy</div>
                                 </div>
                             </a>
                         </div>
@@ -179,7 +179,7 @@
                                 <i class="bi bi-calendar2-plus-fill"></i>
                                 <div>
                                     <div>Nueva Sesión</div>
-                                    <div style="font-size:.72rem;font-weight:400;color:var(--kg-text-muted)">Registrar sesión clínica</div>
+                                    <div class="kg-quick-action-help">Registrar sesión clínica</div>
                                 </div>
                             </a>
                         </div>
@@ -197,14 +197,14 @@
                 </h5>
             </div>
             <div class="kg-card-body">
-                <ul class="list-unstyled mb-0" style="font-size:.84rem;display:flex;flex-direction:column;gap:12px">
+                <ul class="list-unstyled mb-0 kg-system-list">
                     <li class="d-flex justify-content-between align-items-center">
                         <span class="text-muted">Versión</span>
                         <span class="kg-badge kg-badge-primary">v1.0 — Sprint 2</span>
                     </li>
                     <li class="d-flex justify-content-between align-items-center">
                         <span class="text-muted">Base de datos</span>
-                        <span class="kg-badge kg-badge-success"><i class="bi bi-circle-fill" style="font-size:.45rem"></i> SQL Server</span>
+                        <span class="kg-badge kg-badge-success"><i class="bi bi-circle-fill kg-badge-dot-sm"></i> SQL Server</span>
                     </li>
                     <li class="d-flex justify-content-between align-items-center">
                         <span class="text-muted">Framework</span>
@@ -216,7 +216,7 @@
                     </li>
                     <li class="d-flex justify-content-between align-items-center">
                         <span class="text-muted">Fecha</span>
-                        <span class="fw-600" style="font-weight:600">@DateTime.Today.ToString("dd/MM/yyyy")</span>
+                        <span class="kg-system-date">@DateTime.Today.ToString("dd/MM/yyyy")</span>
                     </li>
                 </ul>
             </div>

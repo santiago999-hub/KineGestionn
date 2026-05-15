@@ -2,6 +2,7 @@ using KineGestion.Web.Models.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using System.Linq;
 
 namespace KineGestion.Web.Controllers
 {
@@ -73,6 +74,27 @@ namespace KineGestion.Web.Controllers
         public IActionResult AccessDenied()
         {
             return View();
+        }
+
+        // GET: /Account/Profile
+        [Authorize]
+        public async Task<IActionResult> Profile()
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user is null)
+                return RedirectToAction(nameof(Login));
+
+            var roles = await _userManager.GetRolesAsync(user);
+
+            var model = new ProfileViewModel
+            {
+                DisplayName = string.IsNullOrWhiteSpace(user.UserName) ? user.Email ?? "Usuario" : user.UserName,
+                Email = user.Email,
+                UserName = user.UserName,
+                Roles = roles.OrderBy(r => r).ToList()
+            };
+
+            return View(model);
         }
     }
 }

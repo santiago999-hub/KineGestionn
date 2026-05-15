@@ -13,49 +13,93 @@
     <title>KineGestión — Acceso</title>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Serif:wght@500;600&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
-    <style>
-        body { background: var(--kg-bg, #f1f5f9); display: flex; align-items: center; justify-content: center; min-height: 100vh; font-family: 'Inter', sans-serif; }
-        .login-card { background: #fff; border-radius: 16px; box-shadow: 0 4px 24px rgba(0,0,0,.08); padding: 2.5rem; width: 100%; max-width: 420px; }
-        .login-logo { width: 52px; height: 52px; border-radius: 14px; background: #2563eb; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 1.6rem; margin: 0 auto 1rem; }
-    </style>
 </head>
-<body>
-    <div class="login-card">
-        <div class="login-logo"><i class="bi bi-heart-pulse-fill"></i></div>
-        <h4 class="text-center fw-bold mb-1">KineGestión</h4>
-        <p class="text-center text-muted mb-4" style="font-size:.85rem">Centro de Kinesiología — Acceso al sistema</p>
-
-        <form asp-action="Login" method="post">
-            @Html.AntiForgeryToken()
-            <input type="hidden" asp-for="ReturnUrl" />
-            <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2" role="alert" style="font-size:.84rem"></div>
-
-            <div class="mb-3">
-                <label asp-for="Email" class="form-label fw-medium"></label>
-                <input asp-for="Email" type="email" class="form-control" placeholder="admin@kinegestion.com" autofocus />
-                <span asp-validation-for="Email" class="text-danger small"></span>
+<body class="kg-theme-professional kg-login-body" id="kgBody">
+    <div class="kg-login-shell">
+        <section class="kg-login-panel">
+            <div class="kg-login-theme-switch">
+                <button type="button" class="kg-topbar-badge kg-theme-toggle" id="themeToggleLogin" title="Cambiar tema visual" aria-label="Cambiar tema visual">
+                    <i class="bi bi-circle-half"></i>
+                </button>
             </div>
-            <div class="mb-3">
-                <label asp-for="Password" class="form-label fw-medium"></label>
-                <input asp-for="Password" type="password" class="form-control" placeholder="••••••••" />
-                <span asp-validation-for="Password" class="text-danger small"></span>
+            <div class="kg-login-panel-head">
+                <div class="kg-login-logo"><i class="bi bi-heart-pulse-fill"></i></div>
+                <div>
+                    <h1>KineGestión</h1>
+                    <p>Plataforma profesional para operaciones de kinesiología y rehabilitación.</p>
+                </div>
             </div>
-            <div class="mb-4 form-check">
-                <input asp-for="RememberMe" class="form-check-input" type="checkbox" />
-                <label asp-for="RememberMe" class="form-check-label text-muted" style="font-size:.85rem"></label>
-            </div>
-            <button type="submit" class="btn btn-primary w-100 fw-semibold py-2">
-                <i class="bi bi-box-arrow-in-right me-1"></i> Ingresar
-            </button>
-        </form>
 
-        <p class="text-center text-muted mt-4 mb-0" style="font-size:.75rem">
-            &copy; 2026 KineGestión — Sistema de Gestión Clínica
-        </p>
+            <ul class="kg-login-highlights">
+                <li>
+                    <i class="bi bi-shield-check"></i>
+                    <div>
+                        <strong>Acceso seguro</strong>
+                        <span>Autenticación y trazabilidad para cada acción clínica.</span>
+                    </div>
+                </li>
+                <li>
+                    <i class="bi bi-calendar2-week"></i>
+                    <div>
+                        <strong>Coordinación diaria</strong>
+                        <span>Agenda, turnos y seguimiento terapéutico en una sola interfaz.</span>
+                    </div>
+                </li>
+                <li>
+                    <i class="bi bi-clipboard2-pulse"></i>
+                    <div>
+                        <strong>Gestión integral</strong>
+                        <span>Pacientes, profesionales y tratamiento con enfoque operativo.</span>
+                    </div>
+                </li>
+            </ul>
+
+            <p class="kg-login-panel-foot">&copy; 2026 KineGestión</p>
+        </section>
+
+        <section class="kg-login-card">
+            <div class="kg-login-card-head">
+                <h2>Acceso profesional</h2>
+                <p>Ingresá con tus credenciales institucionales.</p>
+            </div>
+
+            <form asp-action="Login" method="post" data-loading-submit="true">
+                @Html.AntiForgeryToken()
+                <input type="hidden" asp-for="ReturnUrl" />
+                <div asp-validation-summary="ModelOnly" class="alert alert-danger kg-login-validation" role="alert"></div>
+
+                <div class="mb-3">
+                    <label asp-for="Email" class="form-label fw-medium"></label>
+                    <input asp-for="Email" type="email" class="form-control" placeholder="admin@kinegestion.com" autofocus />
+                    <span asp-validation-for="Email" class="text-danger small"></span>
+                </div>
+                <div class="mb-3">
+                    <label asp-for="Password" class="form-label fw-medium"></label>
+                    <input asp-for="Password" type="password" class="form-control" placeholder="••••••••" />
+                    <span asp-validation-for="Password" class="text-danger small"></span>
+                </div>
+
+                <div class="mb-4 form-check kg-login-remember">
+                    <input asp-for="RememberMe" class="form-check-input" type="checkbox" />
+                    <label asp-for="RememberMe" class="form-check-label text-muted"></label>
+                </div>
+
+                <button type="submit" class="btn-kg-primary w-100 justify-content-center py-2">
+                    <i class="bi bi-box-arrow-in-right"></i> Ingresar al sistema
+                </button>
+            </form>
+
+            <p class="kg-login-card-foot">
+                KineGestión - Plataforma de Gestión Clínica
+            </p>
+        </section>
     </div>
 
+    <script src="~/js/site.js" asp-append-version="true"></script>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
 </body>
