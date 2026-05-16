@@ -1,0 +1,210 @@
+@{
+    ViewData["Title"] = "¿Quiénes Somos?";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/quienes-somos.css" asp-append-version="true" />
+}
+
+<main class="qs-page">
+    <section class="qs-hero">
+        <div class="qs-hero-inner qs-reveal">
+            <div class="qs-hero-badge">
+                <i class="bi bi-info-circle"></i>
+                Sobre la plataforma
+            </div>
+            <div class="qs-hero-icon-ring">
+                <i class="bi bi-heart-pulse-fill"></i>
+            </div>
+            <h1 class="qs-hero-title">KineGestión, una solución creada para <span>organizar la atención clínica</span>.</h1>
+            <p class="qs-hero-desc">
+                La plataforma centraliza pacientes, profesionales, tratamientos, sesiones y auditoría en un solo entorno,
+                con foco en trazabilidad, orden operativo y experiencia de uso.
+            </p>
+            <div class="qs-hero-chips">
+                <span class="qs-hero-chip">Gestión clínica</span>
+                <span class="qs-hero-chip">Agenda y turnos</span>
+                <span class="qs-hero-chip">Auditoría</span>
+                <span class="qs-hero-chip">Acceso seguro</span>
+            </div>
+        </div>
+    </section>
+
+    <svg class="qs-wave" viewBox="0 0 1440 60" preserveAspectRatio="none" aria-hidden="true">
+        <path fill="#FFFFFF" d="M0,32L60,37.3C120,43,240,53,360,48C480,43,600,21,720,16C840,11,960,21,1080,26.7C1200,32,1320,32,1380,32L1440,32L1440,60L1380,60C1320,60,1200,60,1080,60C960,60,840,60,720,60C600,60,480,60,360,60C240,60,120,60,60,60L0,60Z"></path>
+    </svg>
+
+    <section class="qs-section qs-dev-section">
+        <div class="qs-container qs-dev-grid">
+            <div class="qs-dev-card qs-reveal-left">
+                <div class="qs-dev-avatar">SI</div>
+                <div class="qs-dev-name">Santiago Irigoín</div>
+                <div class="qs-dev-role">Analista / Desarrollador · Proyecto académico KineGestión</div>
+                <div class="qs-dev-divider"></div>
+                <div class="qs-dev-meta">
+                    <div class="qs-dev-meta-item"><i class="bi bi-mortarboard-fill"></i><span>Prácticas Profesionalizantes III · IPR · 2025</span></div>
+                    <div class="qs-dev-meta-item"><i class="bi bi-shield-check"></i><span>Diseño orientado a trazabilidad y control</span></div>
+                    <div class="qs-dev-meta-item"><i class="bi bi-gear-fill"></i><span>Arquitectura pensada para operación clínica</span></div>
+                </div>
+            </div>
+
+            <div class="qs-dev-info qs-reveal-right">
+                <div class="qs-section-label"><i class="bi bi-person-badge"></i> Quién desarrolla</div>
+                <h3>Un desarrollo enfocado en la necesidad real del consultorio</h3>
+                <p>
+                    KineGestión nace para ordenar el trabajo diario de una clínica o espacio de rehabilitación.
+                    La idea fue unir en una sola aplicación lo que normalmente queda disperso en planillas, mensajes y registros manuales.
+                </p>
+                <p>
+                    El objetivo principal es que cada acción importante quede registrada, que la información esté disponible
+                    en el momento correcto y que el equipo trabaje con una interfaz simple, clara y consistente.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <section class="qs-section qs-project-section">
+        <div class="qs-container">
+            <div class="qs-section-label qs-reveal"><i class="bi bi-grid-1x2-fill"></i> El proyecto</div>
+            <h2 class="qs-section-title qs-reveal">Una plataforma clínica con procesos conectados</h2>
+            <p class="qs-section-sub qs-reveal">
+                Cada módulo fue pensado para resolver una parte concreta del flujo de trabajo y evitar duplicación de datos.
+            </p>
+
+            <div class="qs-project-grid qs-stagger">
+                <article class="qs-project-card qs-reveal">
+                    <div class="qs-project-card-icon"><i class="bi bi-people-fill"></i></div>
+                    <h4>Pacientes</h4>
+                    <p>Historia, datos de contacto y seguimiento administrativo en un mismo lugar.</p>
+                </article>
+                <article class="qs-project-card qs-reveal">
+                    <div class="qs-project-card-icon"><i class="bi bi-person-workspace"></i></div>
+                    <h4>Profesionales</h4>
+                    <p>Gestión del equipo, roles y asignación operativa para el trabajo diario.</p>
+                </article>
+                <article class="qs-project-card qs-reveal">
+                    <div class="qs-project-card-icon"><i class="bi bi-calendar2-check"></i></div>
+                    <h4>Sesiones</h4>
+                    <p>Control de turnos, estados, pagos y asistencia con trazabilidad completa.</p>
+                </article>
+            </div>
+        </div>
+    </section>
+
+    <section class="qs-section qs-stack-section">
+        <div class="qs-container">
+            <div class="qs-section-label qs-reveal"><i class="bi bi-layers-fill"></i> Stack tecnológico</div>
+            <h2 class="qs-section-title qs-reveal">Tecnologías utilizadas en la solución</h2>
+            <p class="qs-section-sub qs-reveal">
+                El proyecto combina capas de negocio, persistencia y presentación para sostener el crecimiento funcional.
+            </p>
+
+            <div class="qs-stack-grid qs-stagger">
+                <div class="qs-stack-badge qs-reveal"><div class="qs-stack-badge-icon">C#</div><div class="qs-stack-badge-info"><strong>.NET 8</strong><span>Backend y aplicación web</span></div></div>
+                <div class="qs-stack-badge qs-reveal"><div class="qs-stack-badge-icon"><i class="bi bi-server"></i></div><div class="qs-stack-badge-info"><strong>Entity Framework</strong><span>Persistencia y consultas</span></div></div>
+                <div class="qs-stack-badge qs-reveal"><div class="qs-stack-badge-icon"><i class="bi bi-bootstrap-fill"></i></div><div class="qs-stack-badge-info"><strong>Bootstrap</strong><span>Interfaz responsiva</span></div></div>
+                <div class="qs-stack-badge qs-reveal"><div class="qs-stack-badge-icon"><i class="bi bi-shield-lock-fill"></i></div><div class="qs-stack-badge-info"><strong>Identity</strong><span>Autenticación y roles</span></div></div>
+            </div>
+        </div>
+    </section>
+
+    <section class="qs-section qs-arch-section">
+        <div class="qs-container qs-arch-grid">
+            <div class="qs-arch-layers qs-reveal-left">
+                <div class="qs-arch-layer qs-arch-layer-1">
+                    <div class="qs-arch-layer-num">1</div>
+                    <div class="qs-arch-layer-body">
+                        <h5>Presentación</h5>
+                        <p>Vistas MVC y experiencia de usuario.</p>
+                    </div>
+                </div>
+                <div class="qs-arch-layer qs-arch-layer-2">
+                    <div class="qs-arch-layer-num">2</div>
+                    <div class="qs-arch-layer-body">
+                        <h5>Aplicación</h5>
+                        <p>Servicios, validaciones y reglas de negocio.</p>
+                    </div>
+                </div>
+                <div class="qs-arch-layer qs-arch-layer-3">
+                    <div class="qs-arch-layer-num">3</div>
+                    <div class="qs-arch-layer-body">
+                        <h5>Persistencia</h5>
+                        <p>Repositorios y acceso a datos con SQL Server.</p>
+                    </div>
+                </div>
+                <div class="qs-arch-layer qs-arch-layer-4">
+                    <div class="qs-arch-layer-num">4</div>
+                    <div class="qs-arch-layer-body">
+                        <h5>Seguridad</h5>
+                        <p>Sesión, roles y trazabilidad por usuario.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="qs-arch-desc qs-reveal-right">
+                <div class="qs-section-label"><i class="bi bi-diagram-3-fill"></i> Arquitectura</div>
+                <h2 class="qs-section-title">Capas separadas para mantener el sistema ordenado</h2>
+                <p>
+                    La solución sigue una estructura por capas para que la lógica de negocio no dependa de la interfaz
+                    y para que el mantenimiento sea más simple cuando aparecen nuevos requisitos.
+                </p>
+                <div class="qs-arch-principle">
+                    <i class="bi bi-lightbulb-fill"></i>
+                    <p>
+                        La prioridad es que el sistema sea fácil de operar por el equipo clínico sin sacrificar control,
+                        seguridad ni consistencia en los datos.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="qs-stats-section qs-reveal">
+        <div class="qs-container">
+            <div class="qs-stats-grid">
+                <div class="qs-stat-item"><i class="qs-stat-icon bi bi-people-fill"></i><div class="qs-stat-num">1</div><div class="qs-stat-label">Equipo de desarrollo</div></div>
+                <div class="qs-stat-item"><i class="qs-stat-icon bi bi-folder-check"></i><div class="qs-stat-num">5+</div><div class="qs-stat-label">Módulos principales</div></div>
+                <div class="qs-stat-item"><i class="qs-stat-icon bi bi-clock-history"></i><div class="qs-stat-num">24/7</div><div class="qs-stat-label">Disponibilidad operativa</div></div>
+                <div class="qs-stat-item"><i class="qs-stat-icon bi bi-shield-lock"></i><div class="qs-stat-num">RBAC</div><div class="qs-stat-label">Acceso por roles</div></div>
+                <div class="qs-stat-item"><i class="qs-stat-icon bi bi-journal-check"></i><div class="qs-stat-num">100%</div><div class="qs-stat-label">Trazabilidad de acciones</div></div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="qs-footer-band">
+        <div class="qs-footer-logo">
+            <div class="qs-footer-logo-icon"><i class="bi bi-heart-pulse-fill"></i></div>
+            <div class="qs-footer-logo-text">KineGestión</div>
+        </div>
+        <div class="qs-footer-chips">
+            <span class="qs-footer-chip">Gestión clínica</span>
+            <span class="qs-footer-chip">Control operativo</span>
+            <span class="qs-footer-chip">Experiencia simple</span>
+        </div>
+        <div class="qs-footer-copy">Plataforma desarrollada para acompañar procesos reales de kinesiología y rehabilitación.</div>
+    </footer>
+</main>
+
+@section Scripts {
+    <script>
+        (() => {
+            const targets = document.querySelectorAll('.qs-reveal, .qs-reveal-left, .qs-reveal-right');
+            if (!targets.length) {
+                return;
+            }
+
+            const observer = new IntersectionObserver((entries, instance) => {
+                for (const entry of entries) {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('qs-visible');
+                        instance.unobserve(entry.target);
+                    }
+                }
+            }, { threshold: 0.15 });
+
+            targets.forEach(target => observer.observe(target));
+        })();
+    </script>
+}
+
