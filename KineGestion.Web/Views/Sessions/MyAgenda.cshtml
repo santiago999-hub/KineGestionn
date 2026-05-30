@@ -6,6 +6,12 @@
     var today = DateTime.Today.ToString("yyyy-MM-dd");
     var isTodayFilter = Model.DateFrom?.Date == DateTime.Today && Model.DateTo?.Date == DateTime.Today;
     var hasFilters = !string.IsNullOrWhiteSpace(Model.Search) || Model.Status.HasValue || Model.PaymentStatus.HasValue || Model.DateFrom.HasValue || Model.DateTo.HasValue;
+    var activeFilters = new List<string>();
+    if (!string.IsNullOrWhiteSpace(Model.Search)) { activeFilters.Add($"Busqueda: {Model.Search}"); }
+    if (Model.Status.HasValue) { activeFilters.Add($"Estado: {Model.Status}"); }
+    if (Model.PaymentStatus.HasValue) { activeFilters.Add($"Pago: {Model.PaymentStatus}"); }
+    if (Model.DateFrom.HasValue) { activeFilters.Add($"Desde: {Model.DateFrom.Value:dd/MM/yyyy}"); }
+    if (Model.DateTo.HasValue) { activeFilters.Add($"Hasta: {Model.DateTo.Value:dd/MM/yyyy}"); }
 }
 
 <div class="kg-page-header">
@@ -91,6 +97,21 @@
             </div>
         </div>
     </form>
+
+    @if (activeFilters.Any())
+    {
+        <div class="kg-active-filters px-3 pb-2">
+            <span class="kg-active-filters-label">Filtros activos</span>
+            @foreach (var filter in activeFilters)
+            {
+                <span class="kg-active-filter-chip">@filter</span>
+            }
+            <a asp-action="MyAgenda" class="kg-active-filters-clear">
+                <i class="bi bi-x-circle"></i>
+                Limpiar todo
+            </a>
+        </div>
+    }
 
     @if (!Model.Items.Any())
     {

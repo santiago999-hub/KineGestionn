@@ -1581,6 +1581,48 @@ body.kg-theme-dark .kg-logout-btn:hover {
     justify-content: flex-end;
 }
 
+.kg-active-filters {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.kg-active-filters-label {
+    font-size: .72rem;
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--kg-text-muted);
+}
+
+.kg-active-filter-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 5px 10px;
+    border-radius: 999px;
+    border: 1px solid #d6e4f2;
+    background: #f2f7fc;
+    color: #295271;
+    font-size: .73rem;
+    font-weight: 600;
+}
+
+.kg-active-filters-clear {
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    text-decoration: none;
+    font-size: .76rem;
+    font-weight: 700;
+    color: #1f7bbf;
+}
+
+.kg-active-filters-clear:hover {
+    color: #185f95;
+}
+
 .kg-session-sort-btn {
     font-size: .78rem;
 }
@@ -1632,6 +1674,20 @@ body.kg-theme-dark .kg-session-chip.active {
     border-color: #3a9fe0;
     background: #3a9fe0;
     color: #07223a;
+}
+
+body.kg-theme-dark .kg-active-filter-chip {
+    border-color: #355173;
+    background: #152b43;
+    color: #9dcdf1;
+}
+
+body.kg-theme-dark .kg-active-filters-clear {
+    color: #7ec8f8;
+}
+
+body.kg-theme-dark .kg-active-filters-clear:hover {
+    color: #a5dafb;
 }
 
 .kg-system-list {
