@@ -191,6 +191,77 @@
     margin-top: -1px;
 }
 
+/* ── Banda de acciones ─────────────────────────────── */
+.qs-actions-section {
+    background: linear-gradient(180deg, #F8FAFF 0%, #EEF5FC 100%);
+}
+.qs-actions-panel {
+    display: grid;
+    grid-template-columns: 1.15fr .85fr;
+    gap: 24px;
+    align-items: center;
+    padding: 28px;
+    border-radius: calc(var(--qs-radius) + 4px);
+    background: linear-gradient(145deg, #FFFFFF 0%, #F6FBFF 100%);
+    border: 1px solid rgba(74,144,217,.15);
+    box-shadow: var(--qs-shadow-md);
+}
+@media (max-width: 900px) {
+    .qs-actions-panel { grid-template-columns: 1fr; }
+}
+.qs-actions-copy .qs-section-title { margin-bottom: 12px; }
+.qs-actions-copy .qs-section-sub { max-width: 640px; }
+.qs-actions-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+}
+.qs-action-card {
+    display: grid;
+    grid-template-columns: 42px 1fr;
+    gap: 12px;
+    align-items: center;
+    text-decoration: none;
+    padding: 16px 18px;
+    border-radius: 14px;
+    border: 1px solid var(--qs-gray-300);
+    background: #FFFFFF;
+    color: var(--qs-text);
+    box-shadow: var(--qs-shadow-sm);
+    transition: transform var(--qs-transition), box-shadow var(--qs-transition), border-color var(--qs-transition), background var(--qs-transition);
+}
+.qs-action-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--qs-shadow-md);
+    border-color: var(--qs-blue-light);
+    background: var(--qs-blue-xsoft);
+}
+.qs-action-card i {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    color: #FFFFFF;
+    background: linear-gradient(135deg, var(--qs-blue-mid), var(--qs-blue-dark));
+    box-shadow: 0 8px 18px rgba(31,78,121,.15);
+}
+.qs-action-card strong {
+    display: block;
+    font-size: .95rem;
+    font-weight: 700;
+    color: var(--qs-blue-dark);
+    margin-bottom: 2px;
+}
+.qs-action-card span {
+    display: block;
+    font-size: .8rem;
+    color: var(--qs-text-muted);
+    line-height: 1.45;
+}
+
 /* ── Contenedor genérico ────────────────────────────── */
 .qs-section { padding: 72px 24px; }
 .qs-container { max-width: 1100px; margin: 0 auto; }

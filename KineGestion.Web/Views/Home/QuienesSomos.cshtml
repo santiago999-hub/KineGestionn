@@ -31,6 +31,39 @@
         </div>
     </section>
 
+    <section class="qs-section qs-actions-section">
+        <div class="qs-container">
+            <div class="qs-actions-panel qs-reveal">
+                <div class="qs-actions-copy">
+                    <div class="qs-section-label"><i class="bi bi-stars"></i> Siguiente paso</div>
+                    <h2 class="qs-section-title">Entrar al sistema o revisar lo que resuelve la plataforma</h2>
+                    <p class="qs-section-sub">
+                        Si ya tenés acceso, podés ir directo al panel. Si todavía estás explorando, esta vista resume
+                        cómo se organiza KineGestión y qué módulos cubre.
+                    </p>
+                </div>
+
+                <div class="qs-actions-grid qs-stagger">
+                    <a class="qs-action-card qs-reveal" asp-controller="Account" asp-action="Login">
+                        <i class="bi bi-box-arrow-in-right"></i>
+                        <strong>Iniciar sesión</strong>
+                        <span>Accedé con tu usuario para operar la clínica.</span>
+                    </a>
+                    <a class="qs-action-card qs-reveal" asp-controller="Home" asp-action="Index">
+                        <i class="bi bi-speedometer2"></i>
+                        <strong>Ir al panel</strong>
+                        <span>Vas directo al tablero con métricas y accesos rápidos.</span>
+                    </a>
+                    <a class="qs-action-card qs-reveal" href="#qs-modulos">
+                        <i class="bi bi-grid-1x2-fill"></i>
+                        <strong>Ver módulos</strong>
+                        <span>Saltá a la parte donde se resume el alcance funcional.</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <svg class="qs-wave" viewBox="0 0 1440 60" preserveAspectRatio="none" aria-hidden="true">
         <path fill="#FFFFFF" d="M0,32L60,37.3C120,43,240,53,360,48C480,43,600,21,720,16C840,11,960,21,1080,26.7C1200,32,1320,32,1380,32L1440,32L1440,60L1380,60C1320,60,1200,60,1080,60C960,60,840,60,720,60C600,60,480,60,360,60C240,60,120,60,60,60L0,60Z"></path>
     </svg>
@@ -64,7 +97,7 @@
         </div>
     </section>
 
-    <section class="qs-section qs-project-section">
+    <section class="qs-section qs-project-section" id="qs-modulos">
         <div class="qs-container">
             <div class="qs-section-label qs-reveal"><i class="bi bi-grid-1x2-fill"></i> El proyecto</div>
             <h2 class="qs-section-title qs-reveal">Una plataforma clínica con procesos conectados</h2>
