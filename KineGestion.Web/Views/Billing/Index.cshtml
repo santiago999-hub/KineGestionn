@@ -15,6 +15,16 @@
 <div class="row g-3 mb-4">
     <div class="col-md-4">
         <div class="kg-stat-card">
+            <div class="kg-stat-icon orange"><i class="bi bi-exclamation-triangle-fill"></i></div>
+            <div>
+                <div class="kg-stat-label">Completadas sin cobrar</div>
+                <div class="kg-stat-value">@Model.CompletedPendingCount</div>
+                <small class="text-muted">$ @Model.CompletedPendingAmount.ToString("N2") estimado</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="kg-stat-card">
             <div class="kg-stat-icon red"><i class="bi bi-wallet2"></i></div>
             <div>
                 <div class="kg-stat-label">Pendientes</div>
@@ -45,6 +55,39 @@
     </div>
 </div>
 
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="kg-stat-card">
+            <div class="kg-stat-icon yellow"><i class="bi bi-hourglass-top"></i></div>
+            <div>
+                <div class="kg-stat-label">Aging 0-2 días</div>
+                <div class="kg-stat-value">@Model.Aging0To2DaysCount</div>
+                <small class="text-muted">Completadas pendientes recientes</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="kg-stat-card">
+            <div class="kg-stat-icon orange"><i class="bi bi-hourglass-split"></i></div>
+            <div>
+                <div class="kg-stat-label">Aging 3-7 días</div>
+                <div class="kg-stat-value">@Model.Aging3To7DaysCount</div>
+                <small class="text-muted">Riesgo medio de atraso</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="kg-stat-card">
+            <div class="kg-stat-icon red"><i class="bi bi-hourglass-bottom"></i></div>
+            <div>
+                <div class="kg-stat-label">Aging +8 días</div>
+                <div class="kg-stat-value">@Model.Aging8PlusDaysCount</div>
+                <small class="text-muted">Prioridad alta de recupero</small>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="kg-card mb-3">
     <div class="kg-card-body">
         <form asp-action="Index" method="get" class="row g-2 align-items-end">
@@ -59,6 +102,21 @@
             <div class="col-md-4">
                 <label class="form-label">Busqueda</label>
                 <input type="text" name="search" class="form-control" value="@Model.Search" placeholder="Paciente, profesional o tratamiento" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Modo</label>
+                <select name="onlyCompletedPending" class="form-select">
+                    @if (Model.OnlyCompletedPending)
+                    {
+                        <option value="true" selected>Solo completadas sin cobrar</option>
+                        <option value="false">Todas las sesiones</option>
+                    }
+                    else
+                    {
+                        <option value="true">Solo completadas sin cobrar</option>
+                        <option value="false" selected>Todas las sesiones</option>
+                    }
+                </select>
             </div>
             <div class="col-md-2">
                 <button type="submit" class="btn btn-primary w-100">Aplicar</button>
@@ -108,6 +166,7 @@
                                         <input type="hidden" name="dateFrom" value="@Model.DateFrom.ToString("yyyy-MM-dd")" />
                                         <input type="hidden" name="dateTo" value="@Model.DateTo.ToString("yyyy-MM-dd")" />
                                         <input type="hidden" name="search" value="@Model.Search" />
+                                        <input type="hidden" name="onlyCompletedPending" value="@Model.OnlyCompletedPending" />
                                         <input type="hidden" name="page" value="@Model.Page" />
                                         <input type="hidden" name="pageSize" value="@Model.PageSize" />
                                         <button class="btn btn-sm btn-outline-warning" type="submit">Reabrir</button>
@@ -121,6 +180,7 @@
                                         <input type="hidden" name="dateFrom" value="@Model.DateFrom.ToString("yyyy-MM-dd")" />
                                         <input type="hidden" name="dateTo" value="@Model.DateTo.ToString("yyyy-MM-dd")" />
                                         <input type="hidden" name="search" value="@Model.Search" />
+                                        <input type="hidden" name="onlyCompletedPending" value="@Model.OnlyCompletedPending" />
                                         <input type="hidden" name="page" value="@Model.Page" />
                                         <input type="hidden" name="pageSize" value="@Model.PageSize" />
                                         <button class="btn btn-sm btn-outline-success" type="submit">Marcar pagada</button>

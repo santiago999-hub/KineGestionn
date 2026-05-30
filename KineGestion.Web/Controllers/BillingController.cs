@@ -21,7 +21,7 @@ namespace KineGestion.Web.Controllers
             _configuration = configuration;
         }
 
-        public async Task<IActionResult> Index(DateTime? dateFrom, DateTime? dateTo, string? search, int page = 1, int pageSize = 10)
+        public async Task<IActionResult> Index(DateTime? dateFrom, DateTime? dateTo, string? search, bool onlyCompletedPending = true, int page = 1, int pageSize = 10)
         {
             if (page < 1) page = 1;
             if (pageSize is < 5 or > 50) pageSize = 10;
@@ -31,13 +31,27 @@ namespace KineGestion.Web.Controllers
 
             var pendingCount = await _sessionService.CountByPaymentStatusInRangeAsync(PaymentStatus.Pending, from, to);
             var paidCount = await _sessionService.CountByPaymentStatusInRangeAsync(PaymentStatus.Paid, from, to);
+            var completedPendingCount = await CountFilteredTotalAsync(
+                from,
+                to,
+                null,
+                SessionStatus.Completed,
+                PaymentStatus.Pending);
+
+            var today = DateTime.UtcNow.Date;
+            var aging0To2Days = await CountFilteredTotalAsync(today.AddDays(-2), today.AddDays(1), null, SessionStatus.Completed, PaymentStatus.Pending);
+            var aging3To7Days = await CountFilteredTotalAsync(today.AddDays(-7), today.AddDays(-2), null, SessionStatus.Completed, PaymentStatus.Pending);
+            var aging8PlusDays = await CountFilteredTotalAsync(DateTime.MinValue, today.AddDays(-7), null, SessionStatus.Completed, PaymentStatus.Pending);
+
+            SessionStatus? statusFilter = onlyCompletedPending ? SessionStatus.Completed : null;
+            PaymentStatus? paymentFilter = onlyCompletedPending ? PaymentStatus.Pending : null;
 
             var (items, totalCount) = await _sessionService.GetPagedListForAdminAsync(
                 page,
                 pageSize,
                 search,
-                null,
-                null,
+                statusFilter,
+                paymentFilter,
                 from,
                 to,
                 "fecha",
@@ -49,8 +63,13 @@ namespace KineGestion.Web.Controllers
             {
                 DateFrom = from,
                 DateTo = to.AddDays(-1),
+                OnlyCompletedPending = onlyCompletedPending,
                 PendingCount = pendingCount,
                 PaidCount = paidCount,
+                CompletedPendingCount = completedPendingCount,
+                Aging0To2DaysCount = aging0To2Days,
+                Aging3To7DaysCount = aging3To7Days,
+                Aging8PlusDaysCount = aging8PlusDays,
                 DefaultSessionAmount = defaultSessionAmount,
                 Page = page,
                 PageSize = pageSize,
@@ -60,24 +79,40 @@ namespace KineGestion.Web.Controllers
             };
 
             return View(model);
+
+            async Task<int> CountFilteredTotalAsync(DateTime rangeFrom, DateTime rangeTo, string? rangeSearch, SessionStatus? status, PaymentStatus? paymentStatus)
+            {
+                var (_, filteredTotal) = await _sessionService.GetPagedListForAdminAsync(
+                    page: 1,
+                    pageSize: 1,
+                    search: rangeSearch,
+                    status: status,
+                    paymentStatus: paymentStatus,
+                    dateFrom: rangeFrom,
+                    dateTo: rangeTo,
+                    sortBy: "fecha",
+                    sortDir: "desc");
+
+                return filteredTotal;
+            }
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> MarkPaid(int sessionId, DateTime? dateFrom, DateTime? dateTo, string? search, int page = 1, int pageSize = 10)
+        public async Task<IActionResult> MarkPaid(int sessionId, DateTime? dateFrom, DateTime? dateTo, string? search, bool onlyCompletedPending = true, int page = 1, int pageSize = 10)
         {
             await _sessionService.SetPaymentStatusAsync(sessionId, PaymentStatus.Paid);
             TempData["Success"] = "Cobro marcado como pagado.";
-            return RedirectToAction(nameof(Index), new { dateFrom, dateTo, search, page, pageSize });
+            return RedirectToAction(nameof(Index), new { dateFrom, dateTo, search, onlyCompletedPending, page, pageSize });
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> MarkPending(int sessionId, DateTime? dateFrom, DateTime? dateTo, string? search, int page = 1, int pageSize = 10)
+        public async Task<IActionResult> MarkPending(int sessionId, DateTime? dateFrom, DateTime? dateTo, string? search, bool onlyCompletedPending = true, int page = 1, int pageSize = 10)
         {
             await _sessionService.SetPaymentStatusAsync(sessionId, PaymentStatus.Pending);
             TempData["Success"] = "Cobro marcado como pendiente.";
-            return RedirectToAction(nameof(Index), new { dateFrom, dateTo, search, page, pageSize });
+            return RedirectToAction(nameof(Index), new { dateFrom, dateTo, search, onlyCompletedPending, page, pageSize });
         }
     }
 }

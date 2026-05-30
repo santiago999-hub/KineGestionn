@@ -115,10 +115,10 @@
         </a>
     </div>
     <div class="col-sm-6 col-xl-3">
-        <a asp-controller="Sessions" asp-action="Index" asp-route-paymentStatus="Pending" class="kg-stat-card kg-stat-link">
+        <a asp-controller="Billing" asp-action="Index" asp-route-onlyCompletedPending="true" class="kg-stat-card kg-stat-link">
             <div class="kg-stat-icon red"><i class="bi bi-credit-card-fill"></i></div>
             <div>
-                <div class="kg-stat-label">Pago pendiente</div>
+                <div class="kg-stat-label">Completadas sin cobrar</div>
                 <div class="kg-stat-value">@Model.SesionesPendientesPagoCount</div>
             </div>
         </a>

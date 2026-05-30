@@ -8,11 +8,20 @@
     <div>
         <h2>Recordatorios de turnos</h2>
         <p class="text-muted mb-0">Ventana UTC: @Model.WindowStartUtc.ToString("dd/MM/yyyy HH:mm") - @Model.WindowEndUtc.ToString("dd/MM/yyyy HH:mm")</p>
+        <p class="text-muted mb-0">Operativo diario: @Model.OperationalWindowsLabel | Elegibles: @Model.OperationalCandidatesCount</p>
     </div>
 </div>
 
 <div class="kg-card mb-3">
     <div class="kg-card-body">
+        <form asp-action="DispatchOperational" method="post" class="d-flex justify-content-end mb-3">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="hoursAhead" value="@Model.HoursAhead" />
+            <button type="submit" class="btn btn-success">
+                <i class="bi bi-lightning-charge-fill"></i> Enviar operativo (@Model.OperationalWindowsLabel)
+            </button>
+        </form>
+
         <form asp-action="Index" method="get" class="row g-2 align-items-end">
             <div class="col-md-3">
                 <label class="form-label">Ventana próxima (horas)</label>

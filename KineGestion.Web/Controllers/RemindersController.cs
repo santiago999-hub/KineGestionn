@@ -3,6 +3,8 @@ using System.Globalization;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
+using System.Collections.Generic;
+using KineGestion.Core.DTOs;
 using KineGestion.Core.Entities;
 using KineGestion.Core.Interfaces;
 using KineGestion.Web.Models.ViewModels;
@@ -10,6 +12,7 @@ using KineGestion.Web.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
 
 namespace KineGestion.Web.Controllers
 {
@@ -21,19 +24,22 @@ namespace KineGestion.Web.Controllers
         private readonly IReminderDispatchQueue _reminderDispatchQueue;
         private readonly IReminderDeliveryService _reminderDeliveryService;
         private readonly IAuditLogService _auditLogService;
+        private readonly IConfiguration _configuration;
 
         public RemindersController(
             ISessionService sessionService,
             IDataProtectionProvider dataProtectionProvider,
             IReminderDispatchQueue reminderDispatchQueue,
             IReminderDeliveryService reminderDeliveryService,
-            IAuditLogService auditLogService)
+            IAuditLogService auditLogService,
+            IConfiguration configuration)
         {
             _sessionService = sessionService;
             _protector = dataProtectionProvider.CreateProtector("KineGestion.ReminderLink.v1");
             _reminderDispatchQueue = reminderDispatchQueue;
             _reminderDeliveryService = reminderDeliveryService;
             _auditLogService = auditLogService;
+            _configuration = configuration;
         }
 
         public async Task<IActionResult> Index(int hoursAhead = 24)
@@ -43,14 +49,31 @@ namespace KineGestion.Web.Controllers
 
             var start = DateTime.UtcNow;
             var end = start.AddHours(hoursAhead);
+            var operationalWindows = GetOperationalWindowsHours();
 
             var candidates = await _sessionService.GetReminderCandidatesAsync(start, end);
+
+            var operationalCount = 0;
+            if (operationalWindows.Count > 0)
+            {
+                var operationSet = new HashSet<int>();
+                foreach (var windowHours in operationalWindows)
+                {
+                    var operationalCandidates = await _sessionService.GetReminderCandidatesAsync(start, start.AddHours(windowHours));
+                    foreach (var c in operationalCandidates)
+                        operationSet.Add(c.SessionId);
+                }
+
+                operationalCount = operationSet.Count;
+            }
 
             var model = new ReminderCampaignViewModel
             {
                 HoursAhead = hoursAhead,
                 WindowStartUtc = start,
                 WindowEndUtc = end,
+                OperationalWindowsHours = operationalWindows,
+                OperationalCandidatesCount = operationalCount,
                 Items = candidates.Select(c => new ReminderItemViewModel
                 {
                     SessionId = c.SessionId,
@@ -135,6 +158,57 @@ namespace KineGestion.Web.Controllers
             if (errorMessages.Count > 0)
                 TempData["Error"] = string.Join(" | ", errorMessages.Take(5));
 
+            return RedirectToAction(nameof(Index), new { hoursAhead });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DispatchOperational(int hoursAhead = 24)
+        {
+            var windows = GetOperationalWindowsHours();
+            if (windows.Count == 0)
+            {
+                TempData["Error"] = "No hay ventanas operativas configuradas para envío.";
+                return RedirectToAction(nameof(Index), new { hoursAhead });
+            }
+
+            var now = DateTime.UtcNow;
+            var bySessionId = new Dictionary<int, SessionReminderCandidateDto>();
+
+            foreach (var windowHours in windows)
+            {
+                var candidates = await _sessionService.GetReminderCandidatesAsync(now, now.AddHours(windowHours));
+                foreach (var candidate in candidates)
+                    bySessionId[candidate.SessionId] = candidate;
+            }
+
+            if (bySessionId.Count == 0)
+            {
+                TempData["Success"] = "No hay sesiones elegibles en ventanas operativas para enviar recordatorios.";
+                return RedirectToAction(nameof(Index), new { hoursAhead });
+            }
+
+            foreach (var candidate in bySessionId.Values)
+            {
+                var workItem = new ReminderDispatchWorkItem
+                {
+                    SessionId = candidate.SessionId,
+                    FechaHora = candidate.FechaHora,
+                    PacienteNombre = candidate.PacienteNombre,
+                    PacienteEmail = candidate.PacienteEmail,
+                    PacienteTelefono = candidate.PacienteTelefono,
+                    ProfesionalNombre = candidate.ProfesionalNombre,
+                    TratamientoDescripcion = candidate.TratamientoDescripcion,
+                    ConfirmUrl = BuildActionUrl(candidate.SessionId, "confirm"),
+                    CancelUrl = BuildActionUrl(candidate.SessionId, "cancel"),
+                    ChangedBy = User?.Identity?.Name,
+                    EnqueuedAtUtc = DateTime.UtcNow
+                };
+
+                await _reminderDispatchQueue.QueueAsync(workItem);
+            }
+
+            TempData["Success"] = $"Recordatorios operativos encolados: {bySessionId.Count}. Ventanas: {string.Join(" + ", windows.Select(w => w + "h"))}.";
             return RedirectToAction(nameof(Index), new { hoursAhead });
         }
 
@@ -340,6 +414,24 @@ namespace KineGestion.Web.Controllers
             {
                 return false;
             }
+        }
+
+        private List<int> GetOperationalWindowsHours()
+        {
+            var configured = _configuration.GetValue<string>("Reminders:OperationalWindowsHours");
+
+            if (string.IsNullOrWhiteSpace(configured))
+                return new List<int> { 24, 3 };
+
+            var windows = configured
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Select(value => int.TryParse(value, out var parsed) ? parsed : 0)
+                .Where(value => value is >= 1 and <= 168)
+                .Distinct()
+                .OrderByDescending(value => value)
+                .ToList();
+
+            return windows.Count == 0 ? new List<int> { 24, 3 } : windows;
         }
     }
 }

@@ -1,5 +1,6 @@
 using KineGestion.Core;
 using KineGestion.Core.Interfaces;
+using System.Diagnostics;
 
 namespace KineGestion.Web.Services
 {
@@ -10,6 +11,7 @@ namespace KineGestion.Web.Services
         private readonly bool _enabled;
         private readonly int _startupDelayMs;
         private readonly int _repeatIntervalSeconds;
+        private readonly int _operationTimeoutSeconds;
 
         public CacheWarmupBackgroundService(
             IServiceScopeFactory scopeFactory,
@@ -21,6 +23,7 @@ namespace KineGestion.Web.Services
             _enabled = configuration.GetValue<bool?>("Performance:Warmup:Enabled") ?? true;
             _startupDelayMs = Math.Clamp(configuration.GetValue<int?>("Performance:Warmup:StartupDelayMs") ?? 1500, 0, 60000);
             _repeatIntervalSeconds = Math.Max(0, configuration.GetValue<int?>("Performance:Warmup:RepeatIntervalSeconds") ?? 0);
+            _operationTimeoutSeconds = Math.Clamp(configuration.GetValue<int?>("Performance:Warmup:OperationTimeoutSeconds") ?? 10, 2, 120);
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -32,7 +35,16 @@ namespace KineGestion.Web.Services
             }
 
             if (_startupDelayMs > 0)
-                await Task.Delay(_startupDelayMs, stoppingToken);
+            {
+                try
+                {
+                    await Task.Delay(_startupDelayMs, stoppingToken);
+                }
+                catch (OperationCanceledException)
+                {
+                    return;
+                }
+            }
 
             do
             {
@@ -48,6 +60,9 @@ namespace KineGestion.Web.Services
 
         private async Task WarmupOnceAsync(CancellationToken stoppingToken)
         {
+            var failures = 0;
+            var stopwatch = Stopwatch.StartNew();
+
             try
             {
                 using var scope = _scopeFactory.CreateScope();
@@ -77,7 +92,8 @@ namespace KineGestion.Web.Services
                 };
 
                 await Task.WhenAll(tasks);
-                _logger.LogInformation("Warmup de caché completado correctamente.");
+                stopwatch.Stop();
+                _logger.LogInformation("Warmup de caché completado en {ElapsedMs} ms con {FailureCount} omisiones.", stopwatch.ElapsedMilliseconds, failures);
             }
             catch (OperationCanceledException)
             {
@@ -85,6 +101,7 @@ namespace KineGestion.Web.Services
             }
             catch (Exception ex)
             {
+                stopwatch.Stop();
                 _logger.LogWarning(ex, "Warmup de caché finalizó con errores no críticos.");
             }
 
@@ -92,14 +109,20 @@ namespace KineGestion.Web.Services
             {
                 try
                 {
-                    _ = await action();
+                    _ = await action().WaitAsync(TimeSpan.FromSeconds(_operationTimeoutSeconds), stoppingToken);
                 }
                 catch (OperationCanceledException)
                 {
                     throw;
                 }
+                catch (TimeoutException ex)
+                {
+                    Interlocked.Increment(ref failures);
+                    _logger.LogWarning(ex, "Warmup excedió timeout en {MetricName} ({TimeoutSeconds}s)", metricName, _operationTimeoutSeconds);
+                }
                 catch (Exception ex)
                 {
+                    Interlocked.Increment(ref failures);
                     _logger.LogDebug(ex, "Warmup omitido para {MetricName}", metricName);
                 }
             }

@@ -9,7 +9,10 @@ namespace KineGestion.Core.Services
 
         public static async Task<T> GetOrCreateAsync<T>(string key, Func<Task<T>> factory, TimeSpan ttl)
         {
-            if (Entries.TryGetValue(key, out var existing) && existing.TryGetValue(out T? cachedValue))
+            if (ttl <= TimeSpan.Zero)
+                return await factory();
+
+            if (TryGetFreshValue(key, out T? cachedValue))
                 return cachedValue!;
 
             var keyLock = KeyLocks.GetOrAdd(key, _ => new SemaphoreSlim(1, 1));
@@ -17,7 +20,7 @@ namespace KineGestion.Core.Services
 
             try
             {
-                if (Entries.TryGetValue(key, out existing) && existing.TryGetValue(out cachedValue))
+                if (TryGetFreshValue(key, out cachedValue))
                     return cachedValue!;
 
                 var value = await factory();
@@ -27,9 +30,6 @@ namespace KineGestion.Core.Services
             finally
             {
                 keyLock.Release();
-
-                if (keyLock.CurrentCount == 1)
-                    KeyLocks.TryRemove(new KeyValuePair<string, SemaphoreSlim>(key, keyLock));
             }
         }
 
@@ -44,6 +44,22 @@ namespace KineGestion.Core.Services
         {
             Entries.Clear();
             KeyLocks.Clear();
+        }
+
+        private static bool TryGetFreshValue<T>(string key, out T? value)
+        {
+            if (!Entries.TryGetValue(key, out var existing))
+            {
+                value = default;
+                return false;
+            }
+
+            if (existing.TryGetValue(out value))
+                return true;
+
+            Entries.TryRemove(key, out _);
+            value = default;
+            return false;
         }
 
         private sealed record CacheEntry(object Value, DateTimeOffset ExpiresAt)

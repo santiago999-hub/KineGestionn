@@ -12,6 +12,7 @@ using KineGestion.Core.Interfaces;
 using KineGestion.Web.Controllers;
 using KineGestion.Web.Models.ViewModels;
 using KineGestion.Web.Services;
+using Microsoft.Extensions.Configuration;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -76,7 +77,7 @@ namespace KineGestion.Web.Tests
             Assert.Equal("Enviado", model.History[0].Status);
             Assert.Equal("Email", model.History[0].ChannelSummary);
 
-            sessionService.Verify(s => s.GetReminderCandidatesAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>()), Times.Once);
+            sessionService.Verify(s => s.GetReminderCandidatesAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>()), Times.Exactly(3));
             auditLogService.Verify(a => a.GetPagedAsync("ReminderDispatch", null, null, "Create", null, null, 1, 20), Times.Once);
         }
 
@@ -143,6 +144,48 @@ namespace KineGestion.Web.Tests
             reminderDispatchQueue.Verify(q => q.QueueAsync(It.Is<ReminderDispatchWorkItem>(w => w.SessionId == 7 && w.ChangedBy == "admin@kinegestion.com"), default), Times.Once);
             reminderDeliveryService.Verify(d => d.SendAsync(It.IsAny<ReminderDeliveryRequest>(), default), Times.Never);
             auditLogService.Verify(a => a.AddAsync(It.IsAny<AuditLog>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task DispatchOperational_ShouldQueueDistinctSessions_FromConfiguredWindows()
+        {
+            var sessionService = new Mock<ISessionService>();
+            var reminderDeliveryService = new Mock<IReminderDeliveryService>();
+            var reminderDispatchQueue = new Mock<IReminderDispatchQueue>();
+            var auditLogService = new Mock<IAuditLogService>();
+
+            sessionService
+                .Setup(s => s.GetReminderCandidatesAsync(It.IsAny<DateTime>(), It.Is<DateTime>(to => to <= DateTime.UtcNow.AddHours(4))))
+                .ReturnsAsync(new[]
+                {
+                    new SessionReminderCandidateDto(101, DateTime.UtcNow.AddHours(2), "A", "a@test.com", "549111", "Prof A", "Tx")
+                });
+
+            sessionService
+                .Setup(s => s.GetReminderCandidatesAsync(It.IsAny<DateTime>(), It.Is<DateTime>(to => to > DateTime.UtcNow.AddHours(4))))
+                .ReturnsAsync(new[]
+                {
+                    new SessionReminderCandidateDto(101, DateTime.UtcNow.AddHours(2), "A", "a@test.com", "549111", "Prof A", "Tx"),
+                    new SessionReminderCandidateDto(202, DateTime.UtcNow.AddHours(10), "B", "b@test.com", "549222", "Prof B", "Tx")
+                });
+
+            reminderDispatchQueue
+                .Setup(q => q.QueueAsync(It.IsAny<ReminderDispatchWorkItem>(), default))
+                .Returns(new ValueTask());
+
+            var controller = BuildController(
+                sessionService.Object,
+                reminderDispatchQueue.Object,
+                reminderDeliveryService.Object,
+                auditLogService.Object,
+                "admin@kinegestion.com",
+                new Dictionary<string, string?> { ["Reminders:OperationalWindowsHours"] = "12,3" });
+
+            var result = await controller.DispatchOperational(24);
+
+            var redirect = Assert.IsType<RedirectToActionResult>(result);
+            Assert.Equal("Index", redirect.ActionName);
+            reminderDispatchQueue.Verify(q => q.QueueAsync(It.IsAny<ReminderDispatchWorkItem>(), default), Times.Exactly(2));
         }
 
         [Fact]
@@ -266,14 +309,20 @@ namespace KineGestion.Web.Tests
             IReminderDispatchQueue reminderDispatchQueue,
             IReminderDeliveryService reminderDeliveryService,
             IAuditLogService auditLogService,
-            string? userName = null)
+            string? userName = null,
+            IDictionary<string, string?>? configurationValues = null)
         {
+            var configuration = new ConfigurationBuilder()
+                .AddInMemoryCollection(configurationValues ?? new Dictionary<string, string?>())
+                .Build();
+
             var controller = new RemindersController(
                 sessionService,
                 new FakeDataProtectionProvider(),
                 reminderDispatchQueue,
                 reminderDeliveryService,
-                auditLogService);
+                auditLogService,
+                configuration);
 
             var httpContext = new DefaultHttpContext();
             httpContext.Request.Scheme = "https";

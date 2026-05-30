@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace KineGestion.Web.Models.ViewModels
 {
@@ -8,6 +9,11 @@ namespace KineGestion.Web.Models.ViewModels
         public int HoursAhead { get; set; }
         public DateTime WindowStartUtc { get; set; }
         public DateTime WindowEndUtc { get; set; }
+        public List<int> OperationalWindowsHours { get; set; } = new();
+        public string OperationalWindowsLabel => OperationalWindowsHours.Count == 0
+            ? "24h + 3h"
+            : string.Join(" + ", OperationalWindowsHours.Select(w => $"{w}h"));
+        public int OperationalCandidatesCount { get; set; }
         public List<ReminderItemViewModel> Items { get; set; } = new();
         public List<ReminderDispatchHistoryItemViewModel> History { get; set; } = new();
     }
