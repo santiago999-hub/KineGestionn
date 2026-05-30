@@ -62,13 +62,15 @@ namespace KineGestion.Web.Services
                 return result;
             }
 
-            var message = BuildMessage(request);
+            var emailSubject = BuildEmailSubject(request);
+            var emailBody = BuildEmailBody(request);
+            var whatsappBody = BuildWhatsAppBody(request);
 
             if (emailEnabled)
-                await TrySendEmailAsync(request, message, result, cancellationToken);
+                await TrySendEmailAsync(request, emailSubject, emailBody, result, cancellationToken);
 
             if (whatsappEnabled)
-                await TrySendWhatsAppAsync(request, message, result, cancellationToken);
+                await TrySendWhatsAppAsync(request, whatsappBody, result, cancellationToken);
 
             if (!result.AnyChannelSent && result.Errors.Count == 0)
                 result.Errors.Add("No se pudo enviar: faltan datos de contacto válidos.");
@@ -76,7 +78,7 @@ namespace KineGestion.Web.Services
             return result;
         }
 
-        private async Task TrySendEmailAsync(ReminderDeliveryRequest request, string body, ReminderDeliveryResult result, CancellationToken cancellationToken)
+        private async Task TrySendEmailAsync(ReminderDeliveryRequest request, string subject, string body, ReminderDeliveryResult result, CancellationToken cancellationToken)
         {
             if (string.IsNullOrWhiteSpace(request.PacienteEmail))
             {
@@ -112,7 +114,7 @@ namespace KineGestion.Web.Services
 
                 using var mail = new MailMessage(from, request.PacienteEmail)
                 {
-                    Subject = $"Recordatorio de sesión - {request.FechaHora:dd/MM/yyyy HH:mm}",
+                    Subject = subject,
                     Body = body,
                     IsBodyHtml = false
                 };
@@ -179,9 +181,41 @@ namespace KineGestion.Web.Services
             }
         }
 
-        private string BuildMessage(ReminderDeliveryRequest request)
+        private string BuildEmailSubject(ReminderDeliveryRequest request)
         {
-            var clinicName = _configuration["Reminders:ClinicName"] ?? "KineGestión";
+            var template = _configuration["Reminders:Templates:Email:Subject"]
+                ?? "Recordatorio de sesión - {{SessionDateTime}}";
+
+            return ApplyTemplate(template, BuildTemplateContext(request));
+        }
+
+        private string BuildEmailBody(ReminderDeliveryRequest request)
+        {
+            var template = _configuration["Reminders:Templates:Email:Body"];
+            if (string.IsNullOrWhiteSpace(template))
+            {
+                return BuildDefaultBody(request);
+            }
+
+            return ApplyTemplate(template, BuildTemplateContext(request));
+        }
+
+        private string BuildWhatsAppBody(ReminderDeliveryRequest request)
+        {
+            var template = _configuration["Reminders:Templates:WhatsApp:Body"];
+            if (string.IsNullOrWhiteSpace(template))
+            {
+                return BuildDefaultBody(request);
+            }
+
+            return ApplyTemplate(template, BuildTemplateContext(request));
+        }
+
+        private string BuildDefaultBody(ReminderDeliveryRequest request)
+        {
+            var clinicName = GetClinicName();
+            var signature = GetSignature();
+
             var sb = new StringBuilder();
             sb.AppendLine($"Hola {request.PacienteNombre}, este es un recordatorio de {clinicName}.");
             sb.AppendLine($"Sesión: {request.FechaHora:dd/MM/yyyy HH:mm}");
@@ -191,8 +225,60 @@ namespace KineGestion.Web.Services
             sb.AppendLine();
             sb.AppendLine($"Confirmar asistencia: {request.ConfirmUrl}");
             sb.AppendLine($"Cancelar sesión: {request.CancelUrl}");
+
+            if (!string.IsNullOrWhiteSpace(signature))
+            {
+                sb.AppendLine();
+                sb.AppendLine(signature);
+            }
+
             return sb.ToString();
         }
+
+        private Dictionary<string, string> BuildTemplateContext(ReminderDeliveryRequest request)
+        {
+            var sessionDateTime = request.FechaHora.ToString("dd/MM/yyyy HH:mm");
+            var clinicName = GetClinicName();
+            var signature = GetSignature();
+            var contactPhone = _configuration["Reminders:Brand:ContactPhone"] ?? string.Empty;
+            var contactEmail = _configuration["Reminders:Brand:ContactEmail"] ?? string.Empty;
+
+            return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["ClinicName"] = clinicName,
+                ["PatientName"] = request.PacienteNombre,
+                ["SessionDateTime"] = sessionDateTime,
+                ["ProfessionalName"] = request.ProfesionalNombre,
+                ["TreatmentDescription"] = request.TratamientoDescripcion ?? string.Empty,
+                ["ConfirmUrl"] = request.ConfirmUrl,
+                ["CancelUrl"] = request.CancelUrl,
+                ["Signature"] = signature,
+                ["ContactPhone"] = contactPhone,
+                ["ContactEmail"] = contactEmail
+            };
+        }
+
+        private static string ApplyTemplate(string template, Dictionary<string, string> context)
+        {
+            var result = template;
+            foreach (var entry in context)
+            {
+                result = result.Replace("{{" + entry.Key + "}}", entry.Value, StringComparison.OrdinalIgnoreCase);
+            }
+
+            // Permite escribir \n en appsettings para saltos de línea reales
+            result = result.Replace("\\n", Environment.NewLine, StringComparison.Ordinal);
+            return result;
+        }
+
+        private string GetClinicName()
+            => _configuration["Reminders:Brand:ClinicName"]
+                ?? _configuration["Reminders:ClinicName"]
+                ?? "KineGestión";
+
+        private string GetSignature()
+            => _configuration["Reminders:Brand:Signature"]
+                ?? "Equipo " + GetClinicName();
 
         private string NormalizePhone(string? raw)
         {
