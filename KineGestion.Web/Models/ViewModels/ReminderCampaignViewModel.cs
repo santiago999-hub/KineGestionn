@@ -43,4 +43,22 @@ namespace KineGestion.Web.Models.ViewModels
         public string Status { get; set; } = string.Empty;
         public string? ErrorSummary { get; set; }
     }
+
+    public class ReminderTestResultViewModel
+    {
+        public bool DryRun { get; set; }
+        public int SessionId { get; set; }
+        public string PacienteNombre { get; set; } = string.Empty;
+        public string? DestinoEmail { get; set; }
+        public string? DestinoWhatsApp { get; set; }
+        public string EmailSubject { get; set; } = string.Empty;
+        public string EmailBody { get; set; } = string.Empty;
+        public string WhatsAppBody { get; set; } = string.Empty;
+        public bool CanEmail { get; set; }
+        public bool CanWhatsApp { get; set; }
+        public bool EmailSent { get; set; }
+        public bool WhatsAppSent { get; set; }
+        public List<string> Warnings { get; set; } = new();
+        public List<string> Errors { get; set; } = new();
+    }
 }

@@ -183,6 +183,76 @@ namespace KineGestion.Web.Tests
             sessionService.Verify(s => s.CancelByReminderAsync(It.IsAny<int>()), Times.Never);
         }
 
+        [Fact]
+        public async Task SendTest_ShouldReturnPreviewView_WhenDryRunIsTrue()
+        {
+            var sessionService = new Mock<ISessionService>();
+            var reminderDeliveryService = new Mock<IReminderDeliveryService>();
+            var auditLogService = new Mock<IAuditLogService>();
+
+            sessionService
+                .Setup(s => s.GetReminderCandidatesAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>()))
+                .ReturnsAsync(new[]
+                {
+                    new SessionReminderCandidateDto(
+                        14,
+                        new DateTime(2026, 5, 29, 20, 0, 0),
+                        "Mendez, Laura",
+                        "laura@test.com",
+                        "5491177776666",
+                        "Rios, Carla",
+                        "Dolor lumbar")
+                });
+
+            reminderDeliveryService
+                .Setup(d => d.BuildPreview(It.IsAny<ReminderDeliveryRequest>()))
+                .Returns(new ReminderPreviewResult
+                {
+                    EmailSubject = "Asunto preview",
+                    EmailBody = "Cuerpo email preview",
+                    WhatsAppBody = "Cuerpo whatsapp preview",
+                    CanEmail = true,
+                    CanWhatsApp = true
+                });
+
+            var controller = BuildController(sessionService.Object, reminderDeliveryService.Object, auditLogService.Object);
+
+            var result = await controller.SendTest(24, 14, "qa@kine.com", "5491199998888", true);
+
+            var view = Assert.IsType<ViewResult>(result);
+            Assert.Equal("TestResult", view.ViewName);
+            var model = Assert.IsType<ReminderTestResultViewModel>(view.Model);
+            Assert.True(model.DryRun);
+            Assert.Equal(14, model.SessionId);
+            Assert.Equal("qa@kine.com", model.DestinoEmail);
+            Assert.Equal("5491199998888", model.DestinoWhatsApp);
+            Assert.Equal("Asunto preview", model.EmailSubject);
+
+            reminderDeliveryService.Verify(d => d.BuildPreview(It.IsAny<ReminderDeliveryRequest>()), Times.Once);
+            reminderDeliveryService.Verify(d => d.SendAsync(It.IsAny<ReminderDeliveryRequest>(), default), Times.Never);
+        }
+
+        [Fact]
+        public async Task SendTest_ShouldRedirectWithError_WhenNoCandidateExists()
+        {
+            var sessionService = new Mock<ISessionService>();
+            var reminderDeliveryService = new Mock<IReminderDeliveryService>();
+            var auditLogService = new Mock<IAuditLogService>();
+
+            sessionService
+                .Setup(s => s.GetReminderCandidatesAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>()))
+                .ReturnsAsync(Array.Empty<SessionReminderCandidateDto>());
+
+            var controller = BuildController(sessionService.Object, reminderDeliveryService.Object, auditLogService.Object);
+
+            var result = await controller.SendTest(24, null, null, null, true);
+
+            var redirect = Assert.IsType<RedirectToActionResult>(result);
+            Assert.Equal("Index", redirect.ActionName);
+            Assert.Equal("No hay sesiones disponibles en la ventana para ejecutar una prueba.", controller.TempData["Error"]);
+            reminderDeliveryService.Verify(d => d.BuildPreview(It.IsAny<ReminderDeliveryRequest>()), Times.Never);
+        }
+
         private static RemindersController BuildController(
             ISessionService sessionService,
             IReminderDeliveryService reminderDeliveryService,

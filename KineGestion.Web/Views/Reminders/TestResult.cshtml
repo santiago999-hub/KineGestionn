@@ -1,0 +1,104 @@
+@model KineGestion.Web.Models.ViewModels.ReminderTestResultViewModel
+
+@{
+    ViewData["Title"] = "Prueba de recordatorio";
+}
+
+<div class="kg-page-header">
+    <div>
+        <h2>Prueba de recordatorio</h2>
+        <p class="text-muted mb-0">Sesión #@Model.SessionId - @Model.PacienteNombre</p>
+    </div>
+    <span class="kg-badge @(Model.DryRun ? "kg-badge-info" : "kg-badge-success")">
+        @(Model.DryRun ? "Dry-run" : "Envío real")
+    </span>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-md-6">
+        <div class="kg-card h-100">
+            <div class="kg-card-header">
+                <h5 class="kg-card-header-title mb-0">Destinos</h5>
+            </div>
+            <div class="kg-card-body">
+                <p class="mb-1"><strong>Email:</strong> @(string.IsNullOrWhiteSpace(Model.DestinoEmail) ? "-" : Model.DestinoEmail)</p>
+                <p class="mb-0"><strong>WhatsApp:</strong> @(string.IsNullOrWhiteSpace(Model.DestinoWhatsApp) ? "-" : Model.DestinoWhatsApp)</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="kg-card h-100">
+            <div class="kg-card-header">
+                <h5 class="kg-card-header-title mb-0">Estado por canal</h5>
+            </div>
+            <div class="kg-card-body">
+                @if (Model.DryRun)
+                {
+                    <p class="text-muted mb-0">No se envió nada. Solo previsualización.</p>
+                }
+                else
+                {
+                    <p class="mb-1"><strong>Email:</strong> @(Model.EmailSent ? "Enviado" : "No enviado")</p>
+                    <p class="mb-0"><strong>WhatsApp:</strong> @(Model.WhatsAppSent ? "Enviado" : "No enviado")</p>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (Model.Warnings.Any())
+{
+    <div class="alert alert-warning">
+        @foreach (var warning in Model.Warnings)
+        {
+            <div>@warning</div>
+        }
+    </div>
+}
+
+@if (Model.Errors.Any())
+{
+    <div class="alert alert-danger">
+        @foreach (var error in Model.Errors)
+        {
+            <div>@error</div>
+        }
+    </div>
+}
+
+<div class="row g-3">
+    <div class="col-lg-6">
+        <div class="kg-card h-100">
+            <div class="kg-card-header">
+                <h5 class="kg-card-header-title mb-0">Asunto email</h5>
+            </div>
+            <div class="kg-card-body">
+                <pre class="mb-0" style="white-space:pre-wrap;">@Model.EmailSubject</pre>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="kg-card h-100">
+            <div class="kg-card-header">
+                <h5 class="kg-card-header-title mb-0">Mensaje WhatsApp</h5>
+            </div>
+            <div class="kg-card-body">
+                <pre class="mb-0" style="white-space:pre-wrap;">@Model.WhatsAppBody</pre>
+            </div>
+        </div>
+    </div>
+    <div class="col-12">
+        <div class="kg-card">
+            <div class="kg-card-header">
+                <h5 class="kg-card-header-title mb-0">Cuerpo email</h5>
+            </div>
+            <div class="kg-card-body">
+                <pre class="mb-0" style="white-space:pre-wrap;">@Model.EmailBody</pre>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="mt-3">
+    <a asp-controller="Reminders" asp-action="Index" class="btn btn-outline-secondary">Volver a recordatorios</a>
+</div>

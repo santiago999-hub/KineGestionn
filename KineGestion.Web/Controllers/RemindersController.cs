@@ -164,6 +164,68 @@ namespace KineGestion.Web.Controllers
             return RedirectToAction(nameof(Index), new { hoursAhead });
         }
 
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SendTest(int hoursAhead, int? sessionId, string? testEmail, string? testPhone, bool dryRun = true)
+        {
+            if (hoursAhead < 1) hoursAhead = 1;
+            if (hoursAhead > 168) hoursAhead = 168;
+
+            var start = DateTime.UtcNow;
+            var end = start.AddHours(hoursAhead);
+            var candidates = await _sessionService.GetReminderCandidatesAsync(start, end);
+
+            var candidate = sessionId.HasValue
+                ? candidates.FirstOrDefault(c => c.SessionId == sessionId.Value)
+                : candidates.FirstOrDefault();
+
+            if (candidate is null)
+            {
+                TempData["Error"] = "No hay sesiones disponibles en la ventana para ejecutar una prueba.";
+                return RedirectToAction(nameof(Index), new { hoursAhead });
+            }
+
+            var request = new ReminderDeliveryRequest
+            {
+                SessionId = candidate.SessionId,
+                FechaHora = candidate.FechaHora,
+                PacienteNombre = candidate.PacienteNombre,
+                PacienteEmail = string.IsNullOrWhiteSpace(testEmail) ? candidate.PacienteEmail : testEmail.Trim(),
+                PacienteTelefono = string.IsNullOrWhiteSpace(testPhone) ? candidate.PacienteTelefono : testPhone.Trim(),
+                ProfesionalNombre = candidate.ProfesionalNombre,
+                TratamientoDescripcion = candidate.TratamientoDescripcion,
+                ConfirmUrl = BuildActionUrl(candidate.SessionId, "confirm"),
+                CancelUrl = BuildActionUrl(candidate.SessionId, "cancel")
+            };
+
+            var preview = _reminderDeliveryService.BuildPreview(request);
+
+            var model = new ReminderTestResultViewModel
+            {
+                DryRun = dryRun,
+                SessionId = candidate.SessionId,
+                PacienteNombre = candidate.PacienteNombre,
+                DestinoEmail = request.PacienteEmail,
+                DestinoWhatsApp = request.PacienteTelefono,
+                EmailSubject = preview.EmailSubject,
+                EmailBody = preview.EmailBody,
+                WhatsAppBody = preview.WhatsAppBody,
+                CanEmail = preview.CanEmail,
+                CanWhatsApp = preview.CanWhatsApp,
+                Warnings = preview.Warnings.ToList()
+            };
+
+            if (!dryRun)
+            {
+                var sendResult = await _reminderDeliveryService.SendAsync(request);
+                model.EmailSent = sendResult.EmailSent;
+                model.WhatsAppSent = sendResult.WhatsAppSent;
+                model.Errors = sendResult.Errors.ToList();
+            }
+
+            return View("TestResult", model);
+        }
+
         private static ReminderDispatchHistoryItemViewModel MapHistoryItem(AuditLog log)
         {
             var item = new ReminderDispatchHistoryItemViewModel
