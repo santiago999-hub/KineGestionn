@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Security.Claims;
+using System.Text.Json;
 using System.Threading.Tasks;
 using KineGestion.Core;
 using KineGestion.Core.Exceptions;
@@ -15,6 +16,9 @@ namespace KineGestion.Web.Controllers
     [Authorize(Roles = "Admin,Kinesiologo")]
     public class SessionsController : Controller
     {
+        private const string IndexFiltersCookieKey = "kg.sessions.index.filters";
+        private const string MyAgendaFiltersCookieKey = "kg.sessions.myagenda.filters";
+
         private readonly ISessionService _sessionService;
         private readonly IPatientService _patientService;
         private readonly IProfessionalService _professionalService;
@@ -38,8 +42,33 @@ namespace KineGestion.Web.Controllers
         // Listado administrativo: no incluye Evolution
         public async Task<IActionResult> Index(string? search, SessionStatus? status, PaymentStatus? paymentStatus, DateTime? dateFrom, DateTime? dateTo, string? sortBy = "fecha", string? sortDir = "desc", int page = 1, int pageSize = 10)
         {
+            if (HasNoQueryString() && TryReadFilters(IndexFiltersCookieKey, out var savedFilters))
+            {
+                search = savedFilters.Search;
+                status = ParseEnumOrNull<SessionStatus>(savedFilters.Status);
+                paymentStatus = ParseEnumOrNull<PaymentStatus>(savedFilters.PaymentStatus);
+                dateFrom = ParseDateOrNull(savedFilters.DateFrom);
+                dateTo = ParseDateOrNull(savedFilters.DateTo);
+                sortBy = string.IsNullOrWhiteSpace(savedFilters.SortBy) ? sortBy : savedFilters.SortBy;
+                sortDir = string.IsNullOrWhiteSpace(savedFilters.SortDir) ? sortDir : savedFilters.SortDir;
+                if (savedFilters.PageSize.HasValue)
+                    pageSize = savedFilters.PageSize.Value;
+            }
+
             if (page < 1) page = 1;
             if (pageSize is < 5 or > 50) pageSize = 10;
+
+            SaveFilters(IndexFiltersCookieKey, new SavedSessionFilters
+            {
+                Search = search,
+                Status = status?.ToString(),
+                PaymentStatus = paymentStatus?.ToString(),
+                DateFrom = dateFrom?.ToString("yyyy-MM-dd"),
+                DateTo = dateTo?.ToString("yyyy-MM-dd"),
+                SortBy = sortBy,
+                SortDir = sortDir,
+                PageSize = pageSize
+            });
 
             var (items, totalCount) = await _sessionService.GetPagedListForAdminAsync(page, pageSize, search, status, paymentStatus, dateFrom, dateTo, sortBy, sortDir);
             var viewModels = items.Select(SessionViewModel.FromDto).ToList();
@@ -73,6 +102,17 @@ namespace KineGestion.Web.Controllers
             int page = 1,
             int pageSize = 10)
         {
+            if (HasNoQueryString() && TryReadFilters(MyAgendaFiltersCookieKey, out var savedFilters))
+            {
+                search = savedFilters.Search;
+                status = ParseEnumOrNull<SessionStatus>(savedFilters.Status);
+                paymentStatus = ParseEnumOrNull<PaymentStatus>(savedFilters.PaymentStatus);
+                dateFrom = ParseDateOrNull(savedFilters.DateFrom);
+                dateTo = ParseDateOrNull(savedFilters.DateTo);
+                if (savedFilters.PageSize.HasValue)
+                    pageSize = savedFilters.PageSize.Value;
+            }
+
             var profIdClaim = User.FindFirstValue("ProfessionalId");
             if (!int.TryParse(profIdClaim, out var professionalId))
             {
@@ -82,6 +122,16 @@ namespace KineGestion.Web.Controllers
 
             if (page < 1) page = 1;
             if (pageSize is < 5 or > 50) pageSize = 10;
+
+            SaveFilters(MyAgendaFiltersCookieKey, new SavedSessionFilters
+            {
+                Search = search,
+                Status = status?.ToString(),
+                PaymentStatus = paymentStatus?.ToString(),
+                DateFrom = dateFrom?.ToString("yyyy-MM-dd"),
+                DateTo = dateTo?.ToString("yyyy-MM-dd"),
+                PageSize = pageSize
+            });
 
             var (items, totalCount) = await _sessionService.GetPagedListByProfessionalAsync(
                 professionalId, page, pageSize, search, status, paymentStatus, dateFrom, dateTo);
@@ -104,6 +154,80 @@ namespace KineGestion.Web.Controllers
             };
 
             return View(model);
+        }
+
+        private bool TryReadFilters(string cookieKey, out SavedSessionFilters filters)
+        {
+            filters = new SavedSessionFilters();
+
+            if (HttpContext?.Request is null)
+                return false;
+
+            if (!Request.Cookies.TryGetValue(cookieKey, out var value) || string.IsNullOrWhiteSpace(value))
+                return false;
+
+            try
+            {
+                var parsed = JsonSerializer.Deserialize<SavedSessionFilters>(value);
+                if (parsed is null)
+                    return false;
+
+                filters = parsed;
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private void SaveFilters(string cookieKey, SavedSessionFilters filters)
+        {
+            if (HttpContext?.Request is null || HttpContext.Response is null)
+                return;
+
+            var payload = JsonSerializer.Serialize(filters);
+            Response.Cookies.Append(cookieKey, payload, new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = !Request.IsHttps ? false : true,
+                SameSite = SameSiteMode.Lax,
+                Expires = DateTimeOffset.UtcNow.AddDays(14),
+                IsEssential = true
+            });
+        }
+
+        private bool HasNoQueryString()
+        {
+            return HttpContext?.Request?.QueryString.HasValue != true;
+        }
+
+        private static DateTime? ParseDateOrNull(string? input)
+        {
+            if (string.IsNullOrWhiteSpace(input))
+                return null;
+
+            return DateTime.TryParse(input, out var result) ? result : null;
+        }
+
+        private static TEnum? ParseEnumOrNull<TEnum>(string? input) where TEnum : struct
+        {
+            if (string.IsNullOrWhiteSpace(input))
+                return null;
+
+            return Enum.TryParse<TEnum>(input, out var parsed) ? parsed : null;
+        }
+
+        private sealed class SavedSessionFilters
+        {
+            public string? Search { get; set; }
+            public string? Status { get; set; }
+            public string? PaymentStatus { get; set; }
+            public string? DateFrom { get; set; }
+            public string? DateTo { get; set; }
+            public string? SortBy { get; set; }
+            public string? SortDir { get; set; }
+            public int? PageSize { get; set; }
         }
 
         public async Task<IActionResult> Create(int? patientId = null)        {
