@@ -10,6 +10,7 @@ namespace KineGestion.Web.Services
     public interface IReminderDeliveryService
     {
         Task<ReminderDeliveryResult> SendAsync(ReminderDeliveryRequest request, CancellationToken cancellationToken = default);
+        ReminderPreviewResult BuildPreview(ReminderDeliveryRequest request);
     }
 
     public class ReminderDeliveryRequest
@@ -31,6 +32,16 @@ namespace KineGestion.Web.Services
         public bool WhatsAppSent { get; set; }
         public List<string> Errors { get; set; } = new();
         public bool AnyChannelSent => EmailSent || WhatsAppSent;
+    }
+
+    public class ReminderPreviewResult
+    {
+        public string EmailSubject { get; set; } = string.Empty;
+        public string EmailBody { get; set; } = string.Empty;
+        public string WhatsAppBody { get; set; } = string.Empty;
+        public bool CanEmail { get; set; }
+        public bool CanWhatsApp { get; set; }
+        public List<string> Warnings { get; set; } = new();
     }
 
     public class ReminderDeliveryService : IReminderDeliveryService
@@ -76,6 +87,26 @@ namespace KineGestion.Web.Services
                 result.Errors.Add("No se pudo enviar: faltan datos de contacto válidos.");
 
             return result;
+        }
+
+        public ReminderPreviewResult BuildPreview(ReminderDeliveryRequest request)
+        {
+            var preview = new ReminderPreviewResult
+            {
+                EmailSubject = BuildEmailSubject(request),
+                EmailBody = BuildEmailBody(request),
+                WhatsAppBody = BuildWhatsAppBody(request),
+                CanEmail = !string.IsNullOrWhiteSpace(request.PacienteEmail),
+                CanWhatsApp = !string.IsNullOrWhiteSpace(request.PacienteTelefono)
+            };
+
+            if (!preview.CanEmail)
+                preview.Warnings.Add("Sin email de destino para el canal Email.");
+
+            if (!preview.CanWhatsApp)
+                preview.Warnings.Add("Sin teléfono de destino para el canal WhatsApp.");
+
+            return preview;
         }
 
         private async Task TrySendEmailAsync(ReminderDeliveryRequest request, string subject, string body, ReminderDeliveryResult result, CancellationToken cancellationToken)
