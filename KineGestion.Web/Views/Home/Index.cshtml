@@ -95,6 +95,39 @@
     </div>
 </div>
 
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-4">
+        <div class="kg-stat-card">
+            <div class="kg-stat-icon green"><i class="bi bi-graph-up-arrow"></i></div>
+            <div>
+                <div class="kg-stat-label">Cumplimiento hoy</div>
+                <div class="kg-stat-value">@Model.CompletionRateToday.ToString("N2")%</div>
+                <small class="text-muted">Completadas sobre sesiones del día</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-4">
+        <div class="kg-stat-card">
+            <div class="kg-stat-icon cyan"><i class="bi bi-cash-stack"></i></div>
+            <div>
+                <div class="kg-stat-label">Tasa de cobranza (30d)</div>
+                <div class="kg-stat-value">@Model.CollectionRateLast30Days.ToString("N2")%</div>
+                <small class="text-muted">Sesiones pagadas sobre total de sesiones</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-4">
+        <div class="kg-stat-card">
+            <div class="kg-stat-icon orange"><i class="bi bi-exclamation-circle"></i></div>
+            <div>
+                <div class="kg-stat-label">Tasa de cancelación (30d)</div>
+                <div class="kg-stat-value">@Model.CancellationRateLast30Days.ToString("N2")%</div>
+                <small class="text-muted">Canceladas sobre total de sesiones</small>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Quick Actions + Info -->
 <div class="row g-3">
     <div class="col-lg-7">

@@ -371,6 +371,39 @@ namespace KineGestion.Data.Repositories
                 .CountAsync(s => s.Status == status && s.FechaHora >= utcDay.Date && s.FechaHora < tomorrow);
         }
 
+        public async Task<int> CountInRangeAsync(DateTime fromInclusiveUtc, DateTime toExclusiveUtc)
+            => await _context.Sessions
+                .AsNoTracking()
+                .CountAsync(s => s.FechaHora >= fromInclusiveUtc && s.FechaHora < toExclusiveUtc);
+
+        public async Task<int> CountByStatusInRangeAsync(SessionStatus status, DateTime fromInclusiveUtc, DateTime toExclusiveUtc)
+            => await _context.Sessions
+                .AsNoTracking()
+                .CountAsync(s => s.Status == status && s.FechaHora >= fromInclusiveUtc && s.FechaHora < toExclusiveUtc);
+
+        public async Task<int> CountByPaymentStatusInRangeAsync(PaymentStatus paymentStatus, DateTime fromInclusiveUtc, DateTime toExclusiveUtc)
+            => await _context.Sessions
+                .AsNoTracking()
+                .CountAsync(s => s.PaymentStatus == paymentStatus && s.FechaHora >= fromInclusiveUtc && s.FechaHora < toExclusiveUtc);
+
+        public async Task<IEnumerable<SessionReminderCandidateDto>> GetReminderCandidatesAsync(DateTime fromInclusiveUtc, DateTime toExclusiveUtc)
+            => await _context.Sessions
+                .AsNoTracking()
+                .Where(s => s.Status == SessionStatus.Pending
+                    && s.FechaHora >= fromInclusiveUtc
+                    && s.FechaHora < toExclusiveUtc)
+                .OrderBy(s => s.FechaHora)
+                .Select(s => new SessionReminderCandidateDto(
+                    s.Id,
+                    s.FechaHora,
+                    s.Patient != null ? s.Patient.Apellido + ", " + s.Patient.Nombre : "Paciente",
+                    s.Patient != null ? s.Patient.Email : null,
+                    s.Patient != null ? s.Patient.Telefono : null,
+                    s.Professional != null ? s.Professional.Apellido + ", " + s.Professional.Nombre : "Profesional",
+                    s.Treatment != null ? s.Treatment.Descripcion : null
+                ))
+                .ToListAsync();
+
         /// <summary>
         /// Inserta una sesión de forma atómica bajo una transacción Serializable.
         /// Se recalcula el conteo dentro de la transacción para evitar phantoms entre el COUNT

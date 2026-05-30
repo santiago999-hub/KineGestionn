@@ -124,6 +124,59 @@ namespace KineGestion.Core.Services
             public async Task<int> CountByStatusOnDateAsync(SessionStatus status, DateTime utcDay)
                 => await _repository.CountByStatusOnDateAsync(status, utcDay);
 
+            public async Task<int> CountInRangeAsync(DateTime fromInclusiveUtc, DateTime toExclusiveUtc)
+                => await _repository.CountInRangeAsync(fromInclusiveUtc, toExclusiveUtc);
+
+            public async Task<int> CountByStatusInRangeAsync(SessionStatus status, DateTime fromInclusiveUtc, DateTime toExclusiveUtc)
+                => await _repository.CountByStatusInRangeAsync(status, fromInclusiveUtc, toExclusiveUtc);
+
+            public async Task<int> CountByPaymentStatusInRangeAsync(PaymentStatus paymentStatus, DateTime fromInclusiveUtc, DateTime toExclusiveUtc)
+                => await _repository.CountByPaymentStatusInRangeAsync(paymentStatus, fromInclusiveUtc, toExclusiveUtc);
+
+            public async Task<IEnumerable<SessionReminderCandidateDto>> GetReminderCandidatesAsync(DateTime fromInclusiveUtc, DateTime toExclusiveUtc)
+                => await _repository.GetReminderCandidatesAsync(fromInclusiveUtc, toExclusiveUtc);
+
+            public async Task ConfirmByReminderAsync(int sessionId)
+            {
+                var session = await _repository.GetByIdAsync(sessionId);
+                if (session is null)
+                    throw new BusinessValidationException("La sesión no existe.", nameof(Session.Id));
+
+                if (session.Status == SessionStatus.Canceled)
+                    throw new BusinessValidationException("La sesión ya está cancelada.", nameof(Session.Status));
+
+                AppendSystemNote(session, "CONFIRMADA_PACIENTE");
+                await _repository.UpdateAsync(session);
+            }
+
+            public async Task CancelByReminderAsync(int sessionId)
+            {
+                var session = await _repository.GetByIdAsync(sessionId);
+                if (session is null)
+                    throw new BusinessValidationException("La sesión no existe.", nameof(Session.Id));
+
+                if (session.Status == SessionStatus.Canceled)
+                    return;
+
+                session.Status = SessionStatus.Canceled;
+                AppendSystemNote(session, "CANCELADA_PACIENTE");
+                await _repository.UpdateAsync(session);
+            }
+
+            public async Task SetPaymentStatusAsync(int sessionId, PaymentStatus paymentStatus)
+            {
+                var session = await _repository.GetByIdAsync(sessionId);
+                if (session is null)
+                    throw new BusinessValidationException("La sesión no existe.", nameof(Session.Id));
+
+                if (session.PaymentStatus == paymentStatus)
+                    return;
+
+                session.PaymentStatus = paymentStatus;
+                AppendSystemNote(session, paymentStatus == PaymentStatus.Paid ? "COBRO_REGISTRADO" : "COBRO_REABIERTO");
+                await _repository.UpdateAsync(session);
+            }
+
         public async Task<Session> CreateAsync(Session session)
         {
             await ValidateProfessionalAvailabilityAsync(session.ProfessionalId, session.FechaHora);
@@ -203,6 +256,15 @@ namespace KineGestion.Core.Services
                     $"El profesional ya tiene una sesion asignada en un rango de +/- {_professionalConflictWindowMinutes} minutos para el horario seleccionado.",
                     nameof(Session.FechaHora));
             }
+        }
+
+        private static void AppendSystemNote(Session session, string action)
+        {
+            var stamp = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm 'UTC'");
+            var note = $"[{stamp}] {action}";
+            session.InternalNotes = string.IsNullOrWhiteSpace(session.InternalNotes)
+                ? note
+                : session.InternalNotes + Environment.NewLine + note;
         }
     }
 }

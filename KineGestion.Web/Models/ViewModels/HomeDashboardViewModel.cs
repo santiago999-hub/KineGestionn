@@ -10,5 +10,8 @@ namespace KineGestion.Web.Models.ViewModels
         public int SesionesCompletadasHoyCount { get; set; }
         public int SesionesPendientesPagoCount { get; set; }
         public int SesionesPendientesConfirmacionCount { get; set; }
+        public decimal CompletionRateToday { get; set; }
+        public decimal CollectionRateLast30Days { get; set; }
+        public decimal CancellationRateLast30Days { get; set; }
     }
 }

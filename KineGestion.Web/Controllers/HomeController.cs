@@ -46,6 +46,16 @@ public class HomeController : Controller
         var countPendingPago = await SafeCountAsync(() => _sessionService.CountByPaymentStatusAsync(PaymentStatus.Pending), nameof(_sessionService.CountByPaymentStatusAsync));
         var countPendingStatus = await SafeCountAsync(() => _sessionService.CountByStatusAsync(SessionStatus.Pending), nameof(_sessionService.CountByStatusAsync));
 
+        var rangeFrom = DateTime.UtcNow.Date.AddDays(-30);
+        var rangeTo = DateTime.UtcNow.Date.AddDays(1);
+        var totalLast30 = await SafeCountAsync(() => _sessionService.CountInRangeAsync(rangeFrom, rangeTo), nameof(_sessionService.CountInRangeAsync));
+        var paidLast30 = await SafeCountAsync(() => _sessionService.CountByPaymentStatusInRangeAsync(PaymentStatus.Paid, rangeFrom, rangeTo), nameof(_sessionService.CountByPaymentStatusInRangeAsync));
+        var canceledLast30 = await SafeCountAsync(() => _sessionService.CountByStatusInRangeAsync(SessionStatus.Canceled, rangeFrom, rangeTo), nameof(_sessionService.CountByStatusInRangeAsync));
+
+        var completionRateToday = countToday == 0 ? 0m : Math.Round((decimal)countCompletedToday * 100m / countToday, 2);
+        var collectionRateLast30 = totalLast30 == 0 ? 0m : Math.Round((decimal)paidLast30 * 100m / totalLast30, 2);
+        var cancellationRateLast30 = totalLast30 == 0 ? 0m : Math.Round((decimal)canceledLast30 * 100m / totalLast30, 2);
+
         var model = new HomeDashboardViewModel
         {
             PacientesActivosCount = countPatients,
@@ -55,7 +65,10 @@ public class HomeController : Controller
             SesionesHoyCount = countToday,
             SesionesCompletadasHoyCount = countCompletedToday,
             SesionesPendientesPagoCount = countPendingPago,
-            SesionesPendientesConfirmacionCount = countPendingStatus
+            SesionesPendientesConfirmacionCount = countPendingStatus,
+            CompletionRateToday = completionRateToday,
+            CollectionRateLast30Days = collectionRateLast30,
+            CancellationRateLast30Days = cancellationRateLast30
         };
 
         return View(model);

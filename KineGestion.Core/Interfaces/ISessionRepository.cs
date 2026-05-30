@@ -42,6 +42,10 @@ namespace KineGestion.Core.Interfaces
         Task<int> CountByPaymentStatusAsync(PaymentStatus paymentStatus);
         Task<int> CountByStatusAsync(SessionStatus status);
         Task<int> CountByStatusOnDateAsync(SessionStatus status, DateTime utcDay);
+        Task<int> CountInRangeAsync(DateTime fromInclusiveUtc, DateTime toExclusiveUtc);
+        Task<int> CountByStatusInRangeAsync(SessionStatus status, DateTime fromInclusiveUtc, DateTime toExclusiveUtc);
+        Task<int> CountByPaymentStatusInRangeAsync(PaymentStatus paymentStatus, DateTime fromInclusiveUtc, DateTime toExclusiveUtc);
+        Task<IEnumerable<SessionReminderCandidateDto>> GetReminderCandidatesAsync(DateTime fromInclusiveUtc, DateTime toExclusiveUtc);
         Task<Session> AddAsync(Session session);
         Task<Session> UpdateAsync(Session session);
         Task DeleteAsync(int id);

@@ -1,0 +1,14 @@
+@model KineGestion.Web.Models.ViewModels.ReminderResponseViewModel
+
+@{
+    ViewData["Title"] = "Resultado recordatorio";
+}
+
+<div class="container py-5" style="max-width:680px;">
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-4">
+            <h3 class="mb-3">@Model.Title</h3>
+            <p class="text-muted mb-0">@Model.Message</p>
+        </div>
+    </div>
+</div>

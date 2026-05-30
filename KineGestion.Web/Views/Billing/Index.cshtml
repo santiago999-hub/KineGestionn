@@ -1,0 +1,136 @@
+@using KineGestion.Core
+@model KineGestion.Web.Models.ViewModels.BillingDashboardViewModel
+
+@{
+    ViewData["Title"] = "Cobranzas";
+}
+
+<div class="kg-page-header">
+    <div>
+        <h2>Cobranzas</h2>
+        <p class="text-muted mb-0">Control de pagos por sesiones y resumen financiero estimado.</p>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="kg-stat-card">
+            <div class="kg-stat-icon red"><i class="bi bi-wallet2"></i></div>
+            <div>
+                <div class="kg-stat-label">Pendientes</div>
+                <div class="kg-stat-value">@Model.PendingCount</div>
+                <small class="text-muted">$ @Model.PendingAmount.ToString("N2") estimado</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="kg-stat-card">
+            <div class="kg-stat-icon green"><i class="bi bi-cash-coin"></i></div>
+            <div>
+                <div class="kg-stat-label">Pagadas</div>
+                <div class="kg-stat-value">@Model.PaidCount</div>
+                <small class="text-muted">$ @Model.PaidAmount.ToString("N2") estimado</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="kg-stat-card">
+            <div class="kg-stat-icon cyan"><i class="bi bi-sliders"></i></div>
+            <div>
+                <div class="kg-stat-label">Valor por sesión</div>
+                <div class="kg-stat-value">$ @Model.DefaultSessionAmount.ToString("N2")</div>
+                <small class="text-muted">Config: Billing:DefaultSessionAmount</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="kg-card mb-3">
+    <div class="kg-card-body">
+        <form asp-action="Index" method="get" class="row g-2 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label">Desde</label>
+                <input type="date" name="dateFrom" class="form-control" value="@Model.DateFrom.ToString("yyyy-MM-dd")" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Hasta</label>
+                <input type="date" name="dateTo" class="form-control" value="@Model.DateTo.ToString("yyyy-MM-dd")" />
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Busqueda</label>
+                <input type="text" name="search" class="form-control" value="@Model.Search" placeholder="Paciente, profesional o tratamiento" />
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">Aplicar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="kg-card">
+    <div class="kg-card-body">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th>Fecha/Hora</th>
+                        <th>Paciente</th>
+                        <th>Profesional</th>
+                        <th>Tratamiento</th>
+                        <th>Estado Pago</th>
+                        <th>Accion</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model.Items)
+                    {
+                        <tr>
+                            <td>@item.FechaHora.ToString("dd/MM/yyyy HH:mm")</td>
+                            <td>@item.PacienteNombre</td>
+                            <td>@item.ProfesionalNombre</td>
+                            <td>@item.TratamientoDescripcion</td>
+                            <td>
+                                @if (item.PaymentStatus == PaymentStatus.Paid)
+                                {
+                                    <span class="badge text-bg-success">Pagada</span>
+                                }
+                                else
+                                {
+                                    <span class="badge text-bg-warning">Pendiente</span>
+                                }
+                            </td>
+                            <td>
+                                @if (item.PaymentStatus == PaymentStatus.Paid)
+                                {
+                                    <form asp-action="MarkPending" method="post" class="d-inline">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="sessionId" value="@item.Id" />
+                                        <input type="hidden" name="dateFrom" value="@Model.DateFrom.ToString("yyyy-MM-dd")" />
+                                        <input type="hidden" name="dateTo" value="@Model.DateTo.ToString("yyyy-MM-dd")" />
+                                        <input type="hidden" name="search" value="@Model.Search" />
+                                        <input type="hidden" name="page" value="@Model.Page" />
+                                        <input type="hidden" name="pageSize" value="@Model.PageSize" />
+                                        <button class="btn btn-sm btn-outline-warning" type="submit">Reabrir</button>
+                                    </form>
+                                }
+                                else
+                                {
+                                    <form asp-action="MarkPaid" method="post" class="d-inline">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="sessionId" value="@item.Id" />
+                                        <input type="hidden" name="dateFrom" value="@Model.DateFrom.ToString("yyyy-MM-dd")" />
+                                        <input type="hidden" name="dateTo" value="@Model.DateTo.ToString("yyyy-MM-dd")" />
+                                        <input type="hidden" name="search" value="@Model.Search" />
+                                        <input type="hidden" name="page" value="@Model.Page" />
+                                        <input type="hidden" name="pageSize" value="@Model.PageSize" />
+                                        <button class="btn btn-sm btn-outline-success" type="submit">Marcar pagada</button>
+                                    </form>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

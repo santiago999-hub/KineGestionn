@@ -12,6 +12,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Serif:wght@500;600&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    @RenderSection("Styles", required: false)
 </head>
 <body class="kg-theme-professional" id="kgBody">
     @{
@@ -85,6 +86,16 @@
                     <i class="bi bi-people"></i>
                     <span>@LayoutText.Get("Nav.Users", "Gestión de Usuarios")</span>
                 </a>
+                <a class="kg-nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Reminders" ? "active" : "")"
+                   asp-controller="Reminders" asp-action="Index">
+                    <i class="bi bi-send"></i>
+                    <span>Recordatorios</span>
+                </a>
+                <a class="kg-nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Billing" ? "active" : "")"
+                   asp-controller="Billing" asp-action="Index">
+                    <i class="bi bi-cash-coin"></i>
+                    <span>Cobranzas</span>
+                </a>
                 <a class="kg-nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Audit" ? "active" : "")"
                    asp-controller="Audit" asp-action="Index">
                     <i class="bi bi-shield-check"></i>
@@ -94,6 +105,12 @@
         </nav>
 
         <div class="kg-sidebar-footer">
+            <a class="kg-nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Home" && ViewContext.RouteData.Values["action"]?.ToString() == "QuienesSomos" ? "active" : "")"
+               asp-controller="Home" asp-action="QuienesSomos"
+               style="font-size:.76rem; margin-bottom:8px;">
+                <i class="bi bi-info-circle"></i>
+                <span>¿Quiénes Somos?</span>
+            </a>
             <i class="bi bi-circle-fill text-success me-1 kg-status-dot"></i>
             @LayoutText.Get("Status.Operating", "Sistema Operativo")
         </div>
