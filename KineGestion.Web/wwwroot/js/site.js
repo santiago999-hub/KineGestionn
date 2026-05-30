@@ -12,7 +12,7 @@
 			return;
 		}
 
-		icon.className = theme === "hospital" ? "bi bi-hospital" : "bi bi-circle-half";
+		icon.className = theme === "dark" ? "bi bi-sun-fill" : "bi bi-moon-fill";
 	}
 
 	function applyTheme(theme) {
@@ -20,9 +20,9 @@
 			return;
 		}
 
-		var selected = theme === "hospital" ? "hospital" : "professional";
-		body.classList.remove("kg-theme-professional", "kg-theme-hospital");
-		body.classList.add(selected === "hospital" ? "kg-theme-hospital" : "kg-theme-professional");
+		var selected = theme === "dark" ? "dark" : "professional";
+		body.classList.remove("kg-theme-professional", "kg-theme-dark");
+		body.classList.add(selected === "dark" ? "kg-theme-dark" : "kg-theme-professional");
 		paintThemeIcon(selected);
 	}
 
@@ -32,8 +32,8 @@
 
 		if (themeToggle) {
 			themeToggle.addEventListener("click", function () {
-				var isHospital = body.classList.contains("kg-theme-hospital");
-				var nextTheme = isHospital ? "professional" : "hospital";
+				var isDark = body.classList.contains("kg-theme-dark");
+				var nextTheme = isDark ? "professional" : "dark";
 				localStorage.setItem("kg-theme", nextTheme);
 				applyTheme(nextTheme);
 			});

@@ -51,30 +51,110 @@ body {
     background-attachment: fixed;
 }
 
-body.kg-theme-hospital {
-    --kg-sidebar-bg:      #0f3a34;
-    --kg-sidebar-bg-2:    #155248;
-    --kg-sidebar-hover:   rgba(119, 214, 187, 0.14);
-    --kg-sidebar-active:  #53ba99;
-    --kg-sidebar-text:    #b4d7cd;
+/* ── Tema Oscuro (dark) ─────────────────────────────────── */
+body.kg-theme-dark {
+    --kg-sidebar-bg:      #0a1929;
+    --kg-sidebar-bg-2:    #0d2240;
+    --kg-sidebar-hover:   rgba(90, 176, 255, 0.15);
+    --kg-sidebar-active:  #5ab0ff;
+    --kg-sidebar-text:    #8fb8d8;
 
-    --kg-accent:          #1f8a70;
-    --kg-accent-dark:     #156853;
-    --kg-success:         #1d7b55;
-    --kg-warning:         #8f6a1c;
-    --kg-danger:          #b34444;
-    --kg-info:            #2e6f82;
+    --kg-accent:          #3a9fe0;
+    --kg-accent-dark:     #2278b5;
+    --kg-success:         #22a06b;
+    --kg-warning:         #c88a1a;
+    --kg-danger:          #e05555;
+    --kg-info:            #6a85d0;
 
-    --kg-body-bg:         #eff7f3;
-    --kg-border:          #d0e2da;
-    --kg-text:            #17312e;
-    --kg-text-muted:      #4f7069;
+    --kg-body-bg:         #0d1b2a;
+    --kg-card-bg:         #132032;
+    --kg-border:          #1e3148;
+    --kg-text:            #d8e8f4;
+    --kg-text-muted:      #6e93b3;
+
+    --kg-shadow:          0 6px 20px rgba(0, 0, 0, 0.40), 0 2px 6px rgba(0, 0, 0, 0.25);
+    --kg-shadow-md:       0 14px 32px rgba(0, 0, 0, 0.55), 0 4px 10px rgba(0, 0, 0, 0.35);
 
     background-image:
-        radial-gradient(circle at 12% -12%, rgba(46, 145, 120, 0.14), transparent 40%),
-        radial-gradient(circle at 90% 10%, rgba(84, 168, 147, 0.15), transparent 34%),
-        linear-gradient(180deg, #f5fbf8 0%, #eaf3ee 100%);
+        radial-gradient(circle at 10% -10%, rgba(31, 123, 191, 0.18), transparent 42%),
+        radial-gradient(circle at 92% 8%, rgba(52, 101, 164, 0.20), transparent 34%),
+        linear-gradient(180deg, #0d1b2a 0%, #0a1625 100%);
+    background-attachment: fixed;
+    color-scheme: dark;
 }
+
+/* Topbar en dark */
+body.kg-theme-dark .kg-topbar {
+    background: rgba(13, 28, 44, 0.92);
+    border-bottom-color: #1e3148;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+}
+body.kg-theme-dark .kg-topbar-badge {
+    background: #162840;
+    border-color: #1e3550;
+    color: #6e93b3;
+}
+body.kg-theme-dark .kg-topbar-badge:hover {
+    background: #1d3353;
+    border-color: #2a4a6e;
+    color: #aacfea;
+}
+body.kg-theme-dark .kg-topbar-user-link:hover {
+    background: #162840;
+    border-color: #1e3550;
+    color: var(--kg-text);
+}
+body.kg-theme-dark .kg-theme-toggle {
+    border-color: #2a4565;
+}
+
+/* Footer en dark */
+body.kg-theme-dark .kg-footer {
+    background: rgba(13, 28, 44, 0.80);
+    border-top-color: #1e3148;
+}
+
+/* Cards en dark */
+body.kg-theme-dark .kg-stat-card:hover { border-color: #2a4a6e; }
+body.kg-theme-dark .kg-stat-icon.blue   { background: #0f2a4a; color: #5ab0ff; }
+body.kg-theme-dark .kg-stat-icon.cyan   { background: #0d2a3d; color: #38bdf8; }
+body.kg-theme-dark .kg-stat-icon.green  { background: #0f2e20; color: #4ade80; }
+body.kg-theme-dark .kg-stat-icon.violet { background: #1e1440; color: #a78bfa; }
+body.kg-theme-dark .kg-stat-icon.amber  { background: #2a1e0a; color: #fbbf24; }
+body.kg-theme-dark .kg-stat-icon.orange { background: #2a1508; color: #fb923c; }
+body.kg-theme-dark .kg-stat-icon.red    { background: #2a0f0f; color: #f87171; }
+body.kg-theme-dark .kg-stat-icon.yellow { background: #251f06; color: #facc15; }
+
+/* Tabla en dark */
+body.kg-theme-dark .kg-table thead th {
+    background: #0f2030;
+    color: var(--kg-text-muted);
+    border-bottom-color: var(--kg-border);
+}
+body.kg-theme-dark .kg-table tbody td {
+    border-bottom-color: #192d40;
+    color: var(--kg-text);
+}
+body.kg-theme-dark .kg-table tbody tr:hover td { background: #162a3e; }
+
+/* Badges en dark */
+body.kg-theme-dark .kg-badge-success { background: #0e2d1e; color: #4ade80; }
+body.kg-theme-dark .kg-badge-warning { background: #2a1c08; color: #fbbf24; }
+body.kg-theme-dark .kg-badge-danger  { background: #2a0f0f; color: #f87171; }
+body.kg-theme-dark .kg-badge-muted   { background: #162840; color: #8fb8d8; }
+body.kg-theme-dark .kg-badge-info    { background: #0d2035; color: #60b4e8; }
+body.kg-theme-dark .kg-badge-primary { background: #0f2540; color: #7ec8f8; }
+
+/* Avatar en dark */
+body.kg-theme-dark .kg-avatar {
+    background: linear-gradient(135deg, #3a9fe0 0%, #2278b5 100%);
+}
+
+/* Nav section label en dark */
+body.kg-theme-dark .kg-nav-section-label { color: #3a6080; }
+
+/* Sidebar footer en dark */
+body.kg-theme-dark .kg-sidebar-footer { color: #3a6080; }
 
 h1, h2, h3, h4, h5, h6 {
     font-family: 'IBM Plex Serif', 'Times New Roman', serif;
@@ -114,9 +194,6 @@ h1, h2, h3, h4, h5, h6 {
     color: #fff;
     flex-shrink: 0;
     box-shadow: 0 8px 20px rgba(8, 57, 92, 0.35);
-}
-body.kg-theme-hospital .kg-sidebar-logo {
-    background: linear-gradient(135deg, #76dec0 0%, #2f9f7f 100%);
 }
 .kg-sidebar-title {
     display: block;
@@ -237,6 +314,17 @@ body.kg-theme-hospital .kg-sidebar-logo {
     background: #e4edf6;
     border-color: #c5d3e2;
     color: #41566f;
+}
+
+.kg-topbar-badge:focus-visible,
+.kg-theme-toggle:focus-visible,
+.kg-logout-btn:focus-visible,
+.kg-language-select:focus-visible,
+.kg-nav-item:focus-visible,
+.btn-kg-primary:focus-visible,
+.btn-kg-secondary:focus-visible {
+    outline: 3px solid rgba(31, 123, 191, 0.35);
+    outline-offset: 2px;
 }
 .kg-topbar-user {
     display: flex; align-items: center; gap: 8px;
@@ -1018,12 +1106,12 @@ body.kg-theme-hospital .kg-sidebar-logo {
     padding: 5px 11px;
 }
 
-body.kg-theme-hospital .kg-login-panel {
-    background: linear-gradient(160deg, rgba(12, 56, 50, 0.96) 0%, rgba(18, 82, 70, 0.95) 100%);
+body.kg-theme-dark .kg-login-panel {
+    background: linear-gradient(160deg, rgba(8, 24, 40, 0.96) 0%, rgba(12, 36, 58, 0.95) 100%);
 }
 
-body.kg-theme-hospital .kg-login-logo {
-    background: linear-gradient(145deg, #6dddb7 0%, #2f9f7f 100%);
+body.kg-theme-dark .kg-login-logo {
+    background: linear-gradient(145deg, #5ab0ff 0%, #2278b5 100%);
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -1104,6 +1192,33 @@ body.kg-theme-hospital .kg-login-logo {
     color: #3e5065;
     background: #ebf1f8;
     border-color: #cfdae6;
+}
+
+body.kg-theme-dark .kg-language-select {
+    background-color: #162840;
+    border-color: #2a4565;
+    color: var(--kg-text);
+}
+
+body.kg-theme-dark .kg-topbar-badge:focus-visible,
+body.kg-theme-dark .kg-theme-toggle:focus-visible,
+body.kg-theme-dark .kg-logout-btn:focus-visible,
+body.kg-theme-dark .kg-language-select:focus-visible,
+body.kg-theme-dark .kg-nav-item:focus-visible,
+body.kg-theme-dark .btn-kg-primary:focus-visible,
+body.kg-theme-dark .btn-kg-secondary:focus-visible {
+    outline-color: rgba(90, 176, 255, 0.5);
+}
+
+body.kg-theme-dark .kg-language-select:focus {
+    border-color: #3a9fe0;
+    box-shadow: 0 0 0 0.2rem rgba(58, 159, 224, 0.2);
+}
+
+body.kg-theme-dark .kg-logout-btn:hover {
+    color: #d8e8f4;
+    background: #162840;
+    border-color: #2a4565;
 }
 
 .kg-status-dot {
