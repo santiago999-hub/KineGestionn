@@ -3,6 +3,9 @@
 
 @{
     ViewData["Title"] = "Sesiones";
+    var today = DateTime.Today.ToString("yyyy-MM-dd");
+    var isTodayFilter = Model.DateFrom?.Date == DateTime.Today && Model.DateTo?.Date == DateTime.Today;
+    var hasFilters = !string.IsNullOrWhiteSpace(Model.Search) || Model.Status.HasValue || Model.PaymentStatus.HasValue || Model.DateFrom.HasValue || Model.DateTo.HasValue;
 }
 
 <div class="kg-page-header">
@@ -21,6 +24,43 @@
             <i class="bi bi-calendar2-check-fill"></i> Historial de Sesiones
         </h5>
         <span class="kg-badge kg-badge-muted">@Model.TotalCount registros</span>
+    </div>
+
+    <div class="kg-session-toolbar px-3 pt-3">
+        <div class="kg-action-priority-label mb-2">Atajos operativos</div>
+        <div class="kg-session-quick-filters">
+            <a asp-action="Index"
+               asp-route-dateFrom="@today"
+               asp-route-dateTo="@today"
+               asp-route-sortBy="@Model.SortBy"
+               asp-route-sortDir="@Model.SortDir"
+               class="kg-session-chip @(isTodayFilter ? "active" : string.Empty)">
+                <i class="bi bi-calendar2-day"></i>
+                Hoy
+            </a>
+            <a asp-action="Index"
+               asp-route-status="Pending"
+               asp-route-sortBy="@Model.SortBy"
+               asp-route-sortDir="@Model.SortDir"
+               class="kg-session-chip @(Model.Status == SessionStatus.Pending ? "active" : string.Empty)">
+                <i class="bi bi-hourglass-split"></i>
+                Sin confirmar
+            </a>
+            <a asp-action="Index"
+               asp-route-paymentStatus="Pending"
+               asp-route-sortBy="@Model.SortBy"
+               asp-route-sortDir="@Model.SortDir"
+               class="kg-session-chip @(Model.PaymentStatus == PaymentStatus.Pending ? "active" : string.Empty)">
+                <i class="bi bi-cash-stack"></i>
+                Cobro pendiente
+            </a>
+            <a asp-action="Index"
+               class="kg-session-chip kg-session-chip-ghost @(hasFilters ? string.Empty : "disabled")"
+               aria-disabled="@(!hasFilters)">
+                <i class="bi bi-arrow-counterclockwise"></i>
+                Limpiar
+            </a>
+        </div>
     </div>
 
     <form method="get" class="px-3 pt-3 pb-1">
@@ -69,7 +109,7 @@
         </div>
     </form>
 
-    <div class="px-3 pb-2" style="display:flex;justify-content:flex-end">
+    <div class="px-3 pb-2 kg-session-sort-wrap">
         @{
             var nextDir = Model.SortDir == "asc" ? "desc" : "asc";
             var icon = Model.SortDir == "asc" ? "bi-sort-up" : "bi-sort-down";
@@ -84,7 +124,7 @@
            asp-route-sortDir="@nextDir"
            asp-route-page="1"
            asp-route-pageSize="@Model.PageSize"
-           class="btn-kg-outline" style="font-size:.78rem">
+           class="btn-kg-outline kg-session-sort-btn">
             <i class="bi @icon"></i> Dirección: @(Model.SortDir == "asc" ? "Ascendente" : "Descendente")
         </a>
     </div>
@@ -170,15 +210,15 @@
                 </tbody>
             </table>
         </div>
-        <div style="padding:12px 18px;border-top:1px solid var(--kg-border);font-size:.76rem;color:var(--kg-text-muted)">
+        <div class="kg-session-summary-footer">
             Mostrando @Model.Items.Count() de @Model.TotalCount sesiones — pagadas: @Model.Items.Count(s => s.PaymentStatus == PaymentStatus.Paid) | pendientes: @Model.Items.Count(s => s.PaymentStatus == PaymentStatus.Pending)
         </div>
 
         @if (Model.TotalPages > 1)
         {
-            <div style="padding:12px 18px;border-top:1px solid var(--kg-border);display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
-                <span style="font-size:.78rem;color:var(--kg-text-muted)">Página @Model.Page de @Model.TotalPages</span>
-                <div style="display:flex;gap:6px">
+            <div class="kg-session-pagination-wrap">
+                <span class="kg-session-pagination-text">Página @Model.Page de @Model.TotalPages</span>
+                <div class="kg-session-pagination-actions">
                     <a asp-action="Index" asp-route-page="@(Model.Page - 1)" asp-route-pageSize="@Model.PageSize" asp-route-search="@Model.Search" asp-route-status="@Model.Status" asp-route-paymentStatus="@Model.PaymentStatus" asp-route-dateFrom="@Model.DateFrom?.ToString("yyyy-MM-dd")" asp-route-dateTo="@Model.DateTo?.ToString("yyyy-MM-dd")" asp-route-sortBy="@Model.SortBy" asp-route-sortDir="@Model.SortDir" class="btn-kg-outline @(Model.Page <= 1 ? "disabled" : "")">Anterior</a>
                     <a asp-action="Index" asp-route-page="@(Model.Page + 1)" asp-route-pageSize="@Model.PageSize" asp-route-search="@Model.Search" asp-route-status="@Model.Status" asp-route-paymentStatus="@Model.PaymentStatus" asp-route-dateFrom="@Model.DateFrom?.ToString("yyyy-MM-dd")" asp-route-dateTo="@Model.DateTo?.ToString("yyyy-MM-dd")" asp-route-sortBy="@Model.SortBy" asp-route-sortDir="@Model.SortDir" class="btn-kg-outline @(Model.Page >= Model.TotalPages ? "disabled" : "")">Siguiente</a>
                 </div>

@@ -1484,6 +1484,116 @@ body.kg-theme-dark .kg-logout-btn:hover {
     color: var(--kg-text-muted);
 }
 
+.kg-session-toolbar {
+    border-bottom: 1px dashed var(--kg-border);
+    margin-bottom: 2px;
+}
+
+.kg-session-quick-filters {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding-bottom: 12px;
+}
+
+.kg-session-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    text-decoration: none;
+    border: 1px solid #cfe0f1;
+    color: #215680;
+    background: #edf5fd;
+    border-radius: 999px;
+    font-size: .75rem;
+    font-weight: 700;
+    letter-spacing: .02em;
+    padding: 8px 12px;
+    transition: all .2s ease;
+}
+
+.kg-session-chip:hover {
+    border-color: #9ebfe0;
+    background: #dfefff;
+    color: #174668;
+    transform: translateY(-1px);
+}
+
+.kg-session-chip.active {
+    border-color: #1f7bbf;
+    background: #1f7bbf;
+    color: #fff;
+}
+
+.kg-session-chip-ghost {
+    border-style: dashed;
+    background: transparent;
+    color: var(--kg-text-muted);
+}
+
+.kg-session-chip.disabled {
+    opacity: .6;
+    pointer-events: none;
+}
+
+.kg-session-sort-wrap {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.kg-session-sort-btn {
+    font-size: .78rem;
+}
+
+.kg-session-summary-footer {
+    padding: 12px 18px;
+    border-top: 1px solid var(--kg-border);
+    font-size: .76rem;
+    color: var(--kg-text-muted);
+}
+
+.kg-session-pagination-wrap {
+    padding: 12px 18px;
+    border-top: 1px solid var(--kg-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.kg-session-pagination-text {
+    font-size: .78rem;
+    color: var(--kg-text-muted);
+}
+
+.kg-session-pagination-actions {
+    display: flex;
+    gap: 6px;
+}
+
+body.kg-theme-dark .kg-session-toolbar {
+    border-bottom-color: #29415d;
+}
+
+body.kg-theme-dark .kg-session-chip {
+    border-color: #335377;
+    background: #122a44;
+    color: #8fc4ea;
+}
+
+body.kg-theme-dark .kg-session-chip:hover {
+    border-color: #436b98;
+    background: #183553;
+    color: #b4daf6;
+}
+
+body.kg-theme-dark .kg-session-chip.active {
+    border-color: #3a9fe0;
+    background: #3a9fe0;
+    color: #07223a;
+}
+
 .kg-system-list {
     font-size: .84rem;
     display: flex;
