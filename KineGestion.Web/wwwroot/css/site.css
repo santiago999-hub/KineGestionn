@@ -913,6 +913,90 @@ h1, h2, h3, h4, h5, h6 {
 }
 .kg-quick-action i { font-size: 1.2rem; color: var(--kg-accent); }
 
+.kg-action-priority-label {
+    font-size: .74rem;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--kg-text-muted);
+    margin-bottom: 10px;
+}
+
+.kg-action-priority-strip {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.kg-quick-action-featured {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 18px;
+    border-color: #c7d8eb;
+    background:
+        linear-gradient(180deg, rgba(31, 123, 191, 0.06), rgba(31, 123, 191, 0.02)),
+        var(--kg-card-bg);
+    min-height: 132px;
+}
+
+.kg-quick-action-featured i {
+    width: 42px;
+    height: 42px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    background: #e8f2fb;
+    margin-bottom: 2px;
+}
+
+.kg-quick-action-featured .kg-quick-action-kicker {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 9px;
+    margin-bottom: 8px;
+    border-radius: 999px;
+    background: #e0f2fe;
+    color: #0f5f8c;
+    font-size: .66rem;
+    font-weight: 700;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+}
+
+.kg-quick-action-featured .kg-quick-action-help {
+    margin-top: 3px;
+}
+
+.kg-quick-action-empty {
+    height: 100%;
+    margin-top: 2px;
+    border-style: dashed;
+    border-color: #d7e4f0;
+}
+
+body.kg-theme-dark .kg-quick-action-featured {
+    border-color: #284160;
+    background:
+        linear-gradient(180deg, rgba(58, 159, 224, 0.08), rgba(58, 159, 224, 0.02)),
+        var(--kg-card-bg);
+}
+
+body.kg-theme-dark .kg-quick-action-featured i {
+    background: #172942;
+    color: #7ec8f8;
+}
+
+body.kg-theme-dark .kg-quick-action-featured .kg-quick-action-kicker {
+    background: #10263f;
+    color: #8bc8f4;
+}
+
+@media (max-width: 992px) {
+    .kg-action-priority-strip { grid-template-columns: 1fr; }
+}
+
 /* ══════════════════════════════════════════════════════════
    LOGIN
    ══════════════════════════════════════════════════════════ */

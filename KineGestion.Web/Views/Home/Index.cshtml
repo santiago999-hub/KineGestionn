@@ -177,36 +177,59 @@
                 </h5>
             </div>
             <div class="kg-card-body">
+                <div class="kg-action-priority-label">Prioridad de hoy</div>
+                <div class="kg-action-priority-strip mb-4">
+                    @if (User.IsInRole("Admin"))
+                    {
+                        <a asp-controller="Sessions" asp-action="Index" asp-route-paymentStatus="Pending" asp-route-dateFrom="@DateTime.Today.ToString("yyyy-MM-dd")" asp-route-dateTo="@DateTime.Today.ToString("yyyy-MM-dd")" class="kg-quick-action kg-quick-action-featured">
+                            <i class="bi bi-cash-stack"></i>
+                            <div>
+                                <span class="kg-quick-action-kicker">Urgente</span>
+                                <div>Pagos Pendientes de Hoy</div>
+                                <div class="kg-quick-action-help">Filtrar cobros pendientes del día</div>
+                            </div>
+                        </a>
+                        <a asp-controller="Sessions" asp-action="Index" asp-route-status="Pending" asp-route-dateFrom="@DateTime.Today.ToString("yyyy-MM-dd")" asp-route-dateTo="@DateTime.Today.ToString("yyyy-MM-dd")" class="kg-quick-action kg-quick-action-featured">
+                            <i class="bi bi-hourglass-split"></i>
+                            <div>
+                                <span class="kg-quick-action-kicker">Control</span>
+                                <div>Sin Confirmar de Hoy</div>
+                                <div class="kg-quick-action-help">Revisar sesiones pendientes del día</div>
+                            </div>
+                        </a>
+                        <a asp-controller="Sessions" asp-action="Create" class="kg-quick-action kg-quick-action-featured">
+                            <i class="bi bi-calendar2-plus-fill"></i>
+                            <div>
+                                <span class="kg-quick-action-kicker">Nuevo</span>
+                                <div>Nueva Sesión</div>
+                                <div class="kg-quick-action-help">Registrar sesión clínica</div>
+                            </div>
+                        </a>
+                    }
+                    else if (User.IsInRole("Kinesiologo"))
+                    {
+                        <a asp-controller="Sessions" asp-action="MyAgenda" asp-route-dateFrom="@DateTime.Today.ToString("yyyy-MM-dd")" asp-route-dateTo="@DateTime.Today.ToString("yyyy-MM-dd")" class="kg-quick-action kg-quick-action-featured">
+                            <i class="bi bi-calendar2-week-fill"></i>
+                            <div>
+                                <span class="kg-quick-action-kicker">Hoy</span>
+                                <div>Mi Agenda de Hoy</div>
+                                <div class="kg-quick-action-help">Ver solo tus turnos de hoy</div>
+                            </div>
+                        </a>
+                        <a asp-controller="Sessions" asp-action="Create" class="kg-quick-action kg-quick-action-featured">
+                            <i class="bi bi-calendar2-plus-fill"></i>
+                            <div>
+                                <span class="kg-quick-action-kicker">Nuevo</span>
+                                <div>Nueva Sesión</div>
+                                <div class="kg-quick-action-help">Registrar sesión clínica</div>
+                            </div>
+                        </a>
+                    }
+                </div>
+
                 <div class="row g-3">
                     @if (User.IsInRole("Admin"))
                     {
-                        <div class="col-sm-6">
-                            <a asp-controller="Sessions" asp-action="Index" asp-route-paymentStatus="Pending" asp-route-dateFrom="@DateTime.Today.ToString("yyyy-MM-dd")" asp-route-dateTo="@DateTime.Today.ToString("yyyy-MM-dd")" class="kg-quick-action">
-                                <i class="bi bi-cash-stack"></i>
-                                <div>
-                                    <div>Pagos Pendientes de Hoy</div>
-                                    <div class="kg-quick-action-help">Filtrar cobros pendientes del día</div>
-                                </div>
-                            </a>
-                        </div>
-                        <div class="col-sm-6">
-                            <a asp-controller="Sessions" asp-action="Index" asp-route-status="Pending" asp-route-dateFrom="@DateTime.Today.ToString("yyyy-MM-dd")" asp-route-dateTo="@DateTime.Today.ToString("yyyy-MM-dd")" class="kg-quick-action">
-                                <i class="bi bi-hourglass-split"></i>
-                                <div>
-                                    <div>Sin Confirmar de Hoy</div>
-                                    <div class="kg-quick-action-help">Revisar sesiones pendientes del día</div>
-                                </div>
-                            </a>
-                        </div>
-                        <div class="col-sm-6">
-                            <a asp-controller="Sessions" asp-action="Create" class="kg-quick-action">
-                                <i class="bi bi-calendar2-plus-fill"></i>
-                                <div>
-                                    <div>Nueva Sesión</div>
-                                    <div class="kg-quick-action-help">Registrar sesión clínica</div>
-                                </div>
-                            </a>
-                        </div>
                         <div class="col-sm-6">
                             <a asp-controller="Patients" asp-action="Create" class="kg-quick-action">
                                 <i class="bi bi-person-plus-fill"></i>
@@ -237,23 +260,12 @@
                     }
                     else if (User.IsInRole("Kinesiologo"))
                     {
-                        <div class="col-sm-6">
-                            <a asp-controller="Sessions" asp-action="MyAgenda" asp-route-dateFrom="@DateTime.Today.ToString("yyyy-MM-dd")" asp-route-dateTo="@DateTime.Today.ToString("yyyy-MM-dd")" class="kg-quick-action">
-                                <i class="bi bi-calendar2-week-fill"></i>
-                                <div>
-                                    <div>Mi Agenda de Hoy</div>
-                                    <div class="kg-quick-action-help">Ver solo tus turnos de hoy</div>
-                                </div>
-                            </a>
-                        </div>
-                        <div class="col-sm-6">
-                            <a asp-controller="Sessions" asp-action="Create" class="kg-quick-action">
-                                <i class="bi bi-calendar2-plus-fill"></i>
-                                <div>
-                                    <div>Nueva Sesión</div>
-                                    <div class="kg-quick-action-help">Registrar sesión clínica</div>
-                                </div>
-                            </a>
+                        <div class="col-12">
+                            <div class="kg-empty kg-quick-action-empty">
+                                <div class="kg-empty-icon"><i class="bi bi-clipboard2-check"></i></div>
+                                <h5>Accesos operativos listos</h5>
+                                <p>Usá la prioridad de hoy para abrir la agenda o registrar una nueva sesión sin pasos extra.</p>
+                            </div>
                         </div>
                     }
                 </div>
