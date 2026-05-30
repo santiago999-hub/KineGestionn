@@ -67,6 +67,17 @@
                 <p>Ingresá con tus credenciales institucionales.</p>
             </div>
 
+            <div class="kg-login-support">
+                <div class="kg-login-support-item">
+                    <i class="bi bi-shield-check"></i>
+                    <span>Sesión protegida y auditada</span>
+                </div>
+                <div class="kg-login-support-item">
+                    <i class="bi bi-speedometer2"></i>
+                    <span>Acceso rápido al panel y la agenda</span>
+                </div>
+            </div>
+
             <form asp-action="Login" method="post" data-loading-submit="true">
                 @Html.AntiForgeryToken()
                 <input type="hidden" asp-for="ReturnUrl" />
@@ -91,6 +102,11 @@
                 <button type="submit" class="btn-kg-primary w-100 justify-content-center py-2">
                     <i class="bi bi-box-arrow-in-right"></i> Ingresar al sistema
                 </button>
+
+                <a asp-controller="Home" asp-action="QuienesSomos" class="kg-login-secondary-link">
+                    <i class="bi bi-info-circle"></i>
+                    Conocer la plataforma antes de entrar
+                </a>
             </form>
 
             <p class="kg-login-card-foot">

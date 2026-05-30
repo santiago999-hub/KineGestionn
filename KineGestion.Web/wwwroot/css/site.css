@@ -947,6 +947,54 @@ h1, h2, h3, h4, h5, h6 {
     font-size: .82rem;
 }
 
+.kg-login-support {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin: 0 0 18px;
+}
+
+@media (max-width: 560px) {
+    .kg-login-support { grid-template-columns: 1fr; }
+}
+
+.kg-login-support-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: #f6f9fc;
+    border: 1px solid #dbe6f0;
+    color: var(--kg-text);
+    font-size: .8rem;
+    line-height: 1.45;
+}
+
+.kg-login-support-item i {
+    color: var(--kg-accent);
+    font-size: 1rem;
+    margin-top: 1px;
+    flex-shrink: 0;
+}
+
+.kg-login-secondary-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 14px;
+    color: var(--kg-accent-dark);
+    font-size: .82rem;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.kg-login-secondary-link:hover {
+    color: #12486f;
+    text-decoration: underline;
+}
+
 .kg-login-validation {
     font-size: .84rem;
 }
