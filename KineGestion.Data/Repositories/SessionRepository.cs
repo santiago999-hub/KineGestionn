@@ -133,8 +133,14 @@ namespace KineGestion.Data.Repositories
             {
                 var term = search.Trim();
                 baseQuery = baseQuery.Where(s =>
-                    (s.Patient != null && (s.Patient.Nombre + " " + s.Patient.Apellido).Contains(term)) ||
-                    (s.Professional != null && (s.Professional.Nombre + " " + s.Professional.Apellido).Contains(term)) ||
+                    (s.Patient != null && (
+                        s.Patient.Nombre.Contains(term) ||
+                        s.Patient.Apellido.Contains(term) ||
+                        s.Patient.DNI.Contains(term))) ||
+                    (s.Professional != null && (
+                        s.Professional.Nombre.Contains(term) ||
+                        s.Professional.Apellido.Contains(term) ||
+                        s.Professional.Matricula.Contains(term))) ||
                     (s.Treatment != null && s.Treatment.Descripcion.Contains(term)));
             }
 
@@ -241,7 +247,10 @@ namespace KineGestion.Data.Repositories
             {
                 var term = search.Trim();
                 baseQuery = baseQuery.Where(s =>
-                    (s.Patient != null && (s.Patient.Nombre + " " + s.Patient.Apellido).Contains(term)) ||
+                    (s.Patient != null && (
+                        s.Patient.Nombre.Contains(term) ||
+                        s.Patient.Apellido.Contains(term) ||
+                        s.Patient.DNI.Contains(term))) ||
                     (s.Treatment != null && s.Treatment.Descripcion.Contains(term)));
             }
 

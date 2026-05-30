@@ -107,7 +107,10 @@ namespace KineGestion.Data.Repositories
                 var term = search.Trim();
                 baseQuery = baseQuery.Where(t =>
                     t.Descripcion.Contains(term) ||
-                    (t.Patient != null && (t.Patient.Nombre + " " + t.Patient.Apellido).Contains(term)));
+                    (t.Patient != null && (
+                        t.Patient.Nombre.Contains(term) ||
+                        t.Patient.Apellido.Contains(term) ||
+                        t.Patient.DNI.Contains(term))));
             }
 
             int totalCount = await baseQuery.CountAsync();
