@@ -16,6 +16,7 @@ namespace KineGestion.Tests
 
         public OfficeServiceTests()
         {
+            QueryCache.ClearAll();
             _repositoryMock = new Mock<IOfficeRepository>();
             _sessionRepositoryMock = new Mock<ISessionRepository>();
             _service = new OfficeService(_repositoryMock.Object, _sessionRepositoryMock.Object);
@@ -64,6 +65,50 @@ namespace KineGestion.Tests
 
             Assert.Equal(office.Name, result.Name);
             _repositoryMock.Verify(r => r.AddAsync(office), Times.Once);
+        }
+
+        [Fact]
+        public async Task GetActiveAsync_ShouldCacheResultBetweenCalls()
+        {
+            var expected = new[] { BuildOffice() };
+
+            _repositoryMock
+                .Setup(r => r.GetActiveAsync())
+                .ReturnsAsync(expected);
+
+            var first = await _service.GetActiveAsync();
+            var second = await _service.GetActiveAsync();
+
+            Assert.Single(first);
+            Assert.Single(second);
+            _repositoryMock.Verify(r => r.GetActiveAsync(), Times.Once);
+        }
+
+        [Fact]
+        public async Task UpdateAsync_ShouldInvalidateCachedActiveList()
+        {
+            var office = BuildOffice();
+            office.Id = 5;
+
+            _repositoryMock
+                .Setup(r => r.ExistsByNameAsync(office.Name, office.Id))
+                .ReturnsAsync(false);
+
+            _repositoryMock
+                .SetupSequence(r => r.GetActiveAsync())
+                .ReturnsAsync(new[] { BuildOffice() })
+                .ReturnsAsync(new[] { office });
+
+            _repositoryMock
+                .Setup(r => r.UpdateAsync(office))
+                .ReturnsAsync(office);
+
+            await _service.GetActiveAsync();
+            await _service.UpdateAsync(office);
+            await _service.GetActiveAsync();
+
+            _repositoryMock.Verify(r => r.GetActiveAsync(), Times.Exactly(2));
+            _repositoryMock.Verify(r => r.UpdateAsync(office), Times.Once);
         }
 
         [Fact]

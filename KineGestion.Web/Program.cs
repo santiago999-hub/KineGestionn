@@ -4,6 +4,9 @@ using KineGestion.Data.Context;
 using KineGestion.Data.Repositories;
 using KineGestion.Web.Middleware;
 using KineGestion.Web.Services;
+using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using System.Globalization;
@@ -23,10 +26,21 @@ var builder = WebApplication.CreateBuilder(args);
 // (load balancer + N nodos) esto causaría que las cookies cifradas por un nodo no sean
 // legibles por otro. Solución: persistir el key ring en un almacén compartido (Azure Blob
 // Storage, Redis, SQL Server) via builder.Services.AddDataProtection().PersistKeysTo*().
-// Para el contexto de esta aplicación (instancia única) el comportamiento por defecto es
-// suficiente y no representa una vulnerabilidad.
+// Se usa un key ring en disco configurable para que un volumen compartido pueda montarse
+// sin tocar el código al pasar de una instancia a varias.
 var sqlMaxRetryCount = Math.Max(0, builder.Configuration.GetValue<int?>("SqlResilience:MaxRetryCount") ?? 5);
 var sqlMaxRetryDelaySeconds = Math.Max(1, builder.Configuration.GetValue<int?>("SqlResilience:MaxRetryDelaySeconds") ?? 10);
+
+var keyRingPath = builder.Configuration["DataProtection:KeyRingPath"] ?? "App_Data/DataProtectionKeys";
+var resolvedKeyRingPath = Path.IsPathRooted(keyRingPath)
+    ? keyRingPath
+    : Path.GetFullPath(Path.Combine(builder.Environment.ContentRootPath, keyRingPath));
+
+Directory.CreateDirectory(resolvedKeyRingPath);
+
+builder.Services.AddDataProtection()
+    .SetApplicationName("KineGestion.Web")
+    .PersistKeysToFileSystem(new DirectoryInfo(resolvedKeyRingPath));
 
 builder.Services.AddDbContextPool<AppDbContext>(options =>
     options.UseSqlServer(
@@ -38,6 +52,12 @@ builder.Services.AddDbContextPool<AppDbContext>(options =>
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddSingleton<ICurrentUserProvider, HttpContextCurrentUserProvider>();
+builder.Services.AddMemoryCache();
+builder.Services.AddSingleton<RequestMetricsStore>();
+builder.Services.AddSingleton<IReminderDispatchQueue, ReminderDispatchQueue>();
+builder.Services.AddHostedService<ReminderDispatchBackgroundService>();
+builder.Services.AddHealthChecks()
+    .AddCheck<DatabaseHealthCheck>("database", tags: new[] { "ready" });
 
 // ─── DEPENDENCY INJECTION (Clean Architecture) ────────────────────────────────
 // Orden de registro: Repositorios primero, luego Servicios.
@@ -118,6 +138,7 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
+app.UseMiddleware<RequestMetricsMiddleware>();
 app.UseMiddleware<GlobalExceptionMiddleware>();
 
 if (!app.Environment.IsDevelopment())
@@ -129,6 +150,19 @@ app.UseStaticFiles();
 app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.MapHealthChecks("/health/live", new HealthCheckOptions
+{
+    Predicate = _ => false
+});
+
+app.MapHealthChecks("/health/ready", new HealthCheckOptions
+{
+    Predicate = registration => registration.Tags.Contains("ready")
+});
+
+app.MapGet("/ops/metrics", (RequestMetricsStore metrics) => Results.Json(metrics.GetSnapshot()))
+    .RequireAuthorization(new AuthorizeAttribute { Roles = "Admin" });
 
 app.MapControllerRoute(
     name: "default",

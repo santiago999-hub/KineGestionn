@@ -18,17 +18,20 @@ namespace KineGestion.Web.Controllers
     {
         private readonly ISessionService _sessionService;
         private readonly IDataProtector _protector;
+        private readonly IReminderDispatchQueue _reminderDispatchQueue;
         private readonly IReminderDeliveryService _reminderDeliveryService;
         private readonly IAuditLogService _auditLogService;
 
         public RemindersController(
             ISessionService sessionService,
             IDataProtectionProvider dataProtectionProvider,
+            IReminderDispatchQueue reminderDispatchQueue,
             IReminderDeliveryService reminderDeliveryService,
             IAuditLogService auditLogService)
         {
             _sessionService = sessionService;
             _protector = dataProtectionProvider.CreateProtector("KineGestion.ReminderLink.v1");
+            _reminderDispatchQueue = reminderDispatchQueue;
             _reminderDeliveryService = reminderDeliveryService;
             _auditLogService = auditLogService;
         }
@@ -96,7 +99,7 @@ namespace KineGestion.Web.Controllers
             var candidates = await _sessionService.GetReminderCandidatesAsync(start, end);
             var byId = candidates.ToDictionary(c => c.SessionId);
 
-            var successCount = 0;
+            var queuedCount = 0;
             var errorMessages = new List<string>();
 
             foreach (var id in selectedIds)
@@ -107,7 +110,7 @@ namespace KineGestion.Web.Controllers
                     continue;
                 }
 
-                var request = new ReminderDeliveryRequest
+                var workItem = new ReminderDispatchWorkItem
                 {
                     SessionId = candidate.SessionId,
                     FechaHora = candidate.FechaHora,
@@ -117,46 +120,17 @@ namespace KineGestion.Web.Controllers
                     ProfesionalNombre = candidate.ProfesionalNombre,
                     TratamientoDescripcion = candidate.TratamientoDescripcion,
                     ConfirmUrl = BuildActionUrl(candidate.SessionId, "confirm"),
-                    CancelUrl = BuildActionUrl(candidate.SessionId, "cancel")
+                    CancelUrl = BuildActionUrl(candidate.SessionId, "cancel"),
+                    ChangedBy = User?.Identity?.Name,
+                    EnqueuedAtUtc = DateTime.UtcNow
                 };
 
-                var dispatchResult = await _reminderDeliveryService.SendAsync(request);
-
-                var actor = User?.Identity?.Name;
-                await _auditLogService.AddAsync(new AuditLog
-                {
-                    EntityName = "ReminderDispatch",
-                    EntityId = candidate.SessionId.ToString(CultureInfo.InvariantCulture),
-                    Action = "Create",
-                    ChangedBy = string.IsNullOrWhiteSpace(actor) ? "system" : actor,
-                    ChangedAt = DateTime.UtcNow,
-                    NewValuesJson = JsonSerializer.Serialize(new
-                    {
-                        candidate.SessionId,
-                        candidate.FechaHora,
-                        candidate.PacienteNombre,
-                        candidate.PacienteEmail,
-                        candidate.PacienteTelefono,
-                        EmailSent = dispatchResult.EmailSent,
-                        WhatsAppSent = dispatchResult.WhatsAppSent,
-                        Errors = dispatchResult.Errors
-                    })
-                });
-
-                if (dispatchResult.AnyChannelSent)
-                {
-                    successCount++;
-                    continue;
-                }
-
-                if (dispatchResult.Errors.Count > 0)
-                    errorMessages.AddRange(dispatchResult.Errors.Take(2));
-                else
-                    errorMessages.Add($"Sesión {id}: no se pudo enviar por ningún canal.");
+                await _reminderDispatchQueue.QueueAsync(workItem);
+                queuedCount++;
             }
 
-            if (successCount > 0)
-                TempData["Success"] = $"Recordatorios enviados: {successCount} de {selectedIds.Length}.";
+            if (queuedCount > 0)
+                TempData["Success"] = $"Recordatorios encolados: {queuedCount} de {selectedIds.Length}. Se procesarán en segundo plano.";
 
             if (errorMessages.Count > 0)
                 TempData["Error"] = string.Join(" | ", errorMessages.Take(5));

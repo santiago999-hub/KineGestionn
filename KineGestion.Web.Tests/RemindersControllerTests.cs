@@ -28,6 +28,7 @@ namespace KineGestion.Web.Tests
         {
             var sessionService = new Mock<ISessionService>();
             var reminderDeliveryService = new Mock<IReminderDeliveryService>();
+            var reminderDispatchQueue = new Mock<IReminderDispatchQueue>();
             var auditLogService = new Mock<IAuditLogService>();
 
             sessionService
@@ -59,7 +60,7 @@ namespace KineGestion.Web.Tests
                     }.AsEnumerable(),
                     1));
 
-            var controller = BuildController(sessionService.Object, reminderDeliveryService.Object, auditLogService.Object);
+            var controller = BuildController(sessionService.Object, reminderDispatchQueue.Object, reminderDeliveryService.Object, auditLogService.Object);
 
             var result = await controller.Index(999);
 
@@ -84,9 +85,10 @@ namespace KineGestion.Web.Tests
         {
             var sessionService = new Mock<ISessionService>();
             var reminderDeliveryService = new Mock<IReminderDeliveryService>();
+            var reminderDispatchQueue = new Mock<IReminderDispatchQueue>();
             var auditLogService = new Mock<IAuditLogService>();
 
-            var controller = BuildController(sessionService.Object, reminderDeliveryService.Object, auditLogService.Object);
+            var controller = BuildController(sessionService.Object, reminderDispatchQueue.Object, reminderDeliveryService.Object, auditLogService.Object);
 
             var result = await controller.DispatchSelected(24, Array.Empty<int>());
 
@@ -94,15 +96,16 @@ namespace KineGestion.Web.Tests
             Assert.Equal("Index", redirect.ActionName);
             Assert.Equal("Seleccioná al menos una sesión para enviar recordatorios.", controller.TempData["Error"]);
 
-            reminderDeliveryService.Verify(s => s.SendAsync(It.IsAny<ReminderDeliveryRequest>(), default), Times.Never);
+            reminderDispatchQueue.Verify(s => s.QueueAsync(It.IsAny<ReminderDispatchWorkItem>(), default), Times.Never);
             auditLogService.Verify(a => a.AddAsync(It.IsAny<AuditLog>()), Times.Never);
         }
 
         [Fact]
-        public async Task DispatchSelected_ShouldSendAndRegisterAudit_ForSelectedSessions()
+        public async Task DispatchSelected_ShouldQueueSelectedSessions_ForBackgroundDelivery()
         {
             var sessionService = new Mock<ISessionService>();
             var reminderDeliveryService = new Mock<IReminderDeliveryService>();
+            var reminderDispatchQueue = new Mock<IReminderDispatchQueue>();
             var auditLogService = new Mock<IAuditLogService>();
 
             sessionService
@@ -123,22 +126,23 @@ namespace KineGestion.Web.Tests
                 .Setup(d => d.SendAsync(It.IsAny<ReminderDeliveryRequest>(), default))
                 .ReturnsAsync(new ReminderDeliveryResult { EmailSent = true });
 
-            auditLogService
-                .Setup(a => a.AddAsync(It.IsAny<AuditLog>()))
-                .ReturnsAsync((AuditLog l) => l);
+            reminderDispatchQueue
+                .Setup(q => q.QueueAsync(It.IsAny<ReminderDispatchWorkItem>(), default))
+                .Returns(new ValueTask());
 
-            var controller = BuildController(sessionService.Object, reminderDeliveryService.Object, auditLogService.Object, "admin@kinegestion.com");
+            var controller = BuildController(sessionService.Object, reminderDispatchQueue.Object, reminderDeliveryService.Object, auditLogService.Object, "admin@kinegestion.com");
 
             var result = await controller.DispatchSelected(24, new[] { 7, 999 });
 
             var redirect = Assert.IsType<RedirectToActionResult>(result);
             Assert.Equal("Index", redirect.ActionName);
 
-            Assert.Equal("Recordatorios enviados: 1 de 2.", controller.TempData["Success"]);
+            Assert.Equal("Recordatorios encolados: 1 de 2. Se procesarán en segundo plano.", controller.TempData["Success"]);
             Assert.Contains("Sesión 999", controller.TempData["Error"]?.ToString());
 
-            reminderDeliveryService.Verify(d => d.SendAsync(It.Is<ReminderDeliveryRequest>(r => r.SessionId == 7), default), Times.Once);
-            auditLogService.Verify(a => a.AddAsync(It.Is<AuditLog>(l => l.EntityName == "ReminderDispatch" && l.EntityId == "7" && l.Action == "Create")), Times.Once);
+            reminderDispatchQueue.Verify(q => q.QueueAsync(It.Is<ReminderDispatchWorkItem>(w => w.SessionId == 7 && w.ChangedBy == "admin@kinegestion.com"), default), Times.Once);
+            reminderDeliveryService.Verify(d => d.SendAsync(It.IsAny<ReminderDeliveryRequest>(), default), Times.Never);
+            auditLogService.Verify(a => a.AddAsync(It.IsAny<AuditLog>()), Times.Never);
         }
 
         [Fact]
@@ -146,11 +150,12 @@ namespace KineGestion.Web.Tests
         {
             var sessionService = new Mock<ISessionService>();
             var reminderDeliveryService = new Mock<IReminderDeliveryService>();
+            var reminderDispatchQueue = new Mock<IReminderDispatchQueue>();
             var auditLogService = new Mock<IAuditLogService>();
 
             sessionService.Setup(s => s.ConfirmByReminderAsync(5)).Returns(Task.CompletedTask);
 
-            var controller = BuildController(sessionService.Object, reminderDeliveryService.Object, auditLogService.Object);
+            var controller = BuildController(sessionService.Object, reminderDispatchQueue.Object, reminderDeliveryService.Object, auditLogService.Object);
             var token = BuildProtectedToken(5, "confirm", DateTime.UtcNow.AddHours(2));
 
             var result = await controller.Respond(5, "confirm", token);
@@ -168,9 +173,10 @@ namespace KineGestion.Web.Tests
         {
             var sessionService = new Mock<ISessionService>();
             var reminderDeliveryService = new Mock<IReminderDeliveryService>();
+            var reminderDispatchQueue = new Mock<IReminderDispatchQueue>();
             var auditLogService = new Mock<IAuditLogService>();
 
-            var controller = BuildController(sessionService.Object, reminderDeliveryService.Object, auditLogService.Object);
+            var controller = BuildController(sessionService.Object, reminderDispatchQueue.Object, reminderDeliveryService.Object, auditLogService.Object);
 
             var result = await controller.Respond(5, "confirm", "token-invalido");
 
@@ -188,6 +194,7 @@ namespace KineGestion.Web.Tests
         {
             var sessionService = new Mock<ISessionService>();
             var reminderDeliveryService = new Mock<IReminderDeliveryService>();
+            var reminderDispatchQueue = new Mock<IReminderDispatchQueue>();
             var auditLogService = new Mock<IAuditLogService>();
 
             sessionService
@@ -215,7 +222,7 @@ namespace KineGestion.Web.Tests
                     CanWhatsApp = true
                 });
 
-            var controller = BuildController(sessionService.Object, reminderDeliveryService.Object, auditLogService.Object);
+            var controller = BuildController(sessionService.Object, reminderDispatchQueue.Object, reminderDeliveryService.Object, auditLogService.Object);
 
             var result = await controller.SendTest(24, 14, "qa@kine.com", "5491199998888", true);
 
@@ -237,13 +244,14 @@ namespace KineGestion.Web.Tests
         {
             var sessionService = new Mock<ISessionService>();
             var reminderDeliveryService = new Mock<IReminderDeliveryService>();
+            var reminderDispatchQueue = new Mock<IReminderDispatchQueue>();
             var auditLogService = new Mock<IAuditLogService>();
 
             sessionService
                 .Setup(s => s.GetReminderCandidatesAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>()))
                 .ReturnsAsync(Array.Empty<SessionReminderCandidateDto>());
 
-            var controller = BuildController(sessionService.Object, reminderDeliveryService.Object, auditLogService.Object);
+            var controller = BuildController(sessionService.Object, reminderDispatchQueue.Object, reminderDeliveryService.Object, auditLogService.Object);
 
             var result = await controller.SendTest(24, null, null, null, true);
 
@@ -255,6 +263,7 @@ namespace KineGestion.Web.Tests
 
         private static RemindersController BuildController(
             ISessionService sessionService,
+            IReminderDispatchQueue reminderDispatchQueue,
             IReminderDeliveryService reminderDeliveryService,
             IAuditLogService auditLogService,
             string? userName = null)
@@ -262,6 +271,7 @@ namespace KineGestion.Web.Tests
             var controller = new RemindersController(
                 sessionService,
                 new FakeDataProtectionProvider(),
+                reminderDispatchQueue,
                 reminderDeliveryService,
                 auditLogService);
 

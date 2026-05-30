@@ -35,6 +35,13 @@ appsettings.*.json
 *.log
 logs/
 
+# Profiling artifacts
+*.nettrace
+*.etlx
+
+# Local DataProtection keys
+KineGestion.Web/App_Data/
+
 # OS
 .DS_Store
 Thumbs.db

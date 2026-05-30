@@ -7,13 +7,17 @@ using KineGestion.Web.Models.ViewModels;
 using System.Linq;
 using KineGestion.Core;
 using System;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace KineGestion.Web.Controllers;
 
 [Authorize(Roles = "Admin,Kinesiologo")]
 public class HomeController : Controller
 {
+    private const string DashboardCacheKey = "HomeController.Index.Dashboard";
+
     private readonly ILogger<HomeController> _logger;
+    private readonly IMemoryCache _memoryCache;
     private readonly IPatientService _patientService;
     private readonly IProfessionalService _professionalService;
     private readonly ITreatmentService _treatmentService;
@@ -21,12 +25,14 @@ public class HomeController : Controller
 
     public HomeController(
         ILogger<HomeController> logger,
+        IMemoryCache memoryCache,
         IPatientService patientService,
         IProfessionalService professionalService,
         ITreatmentService treatmentService,
         ISessionService sessionService)
     {
         _logger = logger;
+        _memoryCache = memoryCache;
         _patientService = patientService;
         _professionalService = professionalService;
         _treatmentService = treatmentService;
@@ -35,6 +41,11 @@ public class HomeController : Controller
 
     public async Task<IActionResult> Index()
     {
+        if (_memoryCache.TryGetValue(DashboardCacheKey, out HomeDashboardViewModel? cachedModel) && cachedModel is not null)
+            return View(cachedModel);
+
+        var hasErrors = false;
+
         var countPatients = await SafeCountAsync(() => _patientService.CountActiveAsync(), nameof(_patientService.CountActiveAsync));
         var countProfessionals = await SafeCountAsync(() => _professionalService.CountActiveAsync(), nameof(_professionalService.CountActiveAsync));
         var countTreatments = await SafeCountAsync(() => _treatmentService.CountAsync(), nameof(_treatmentService.CountAsync));
@@ -71,6 +82,15 @@ public class HomeController : Controller
             CancellationRateLast30Days = cancellationRateLast30
         };
 
+        if (!hasErrors)
+        {
+            _memoryCache.Set(DashboardCacheKey, model, new MemoryCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(30),
+                SlidingExpiration = TimeSpan.FromSeconds(15)
+            });
+        }
+
         return View(model);
 
         async Task<int> SafeCountAsync(Func<Task<int>> action, string source)
@@ -81,6 +101,7 @@ public class HomeController : Controller
             }
             catch (Exception ex)
             {
+                hasErrors = true;
                 _logger.LogError(ex, "Error cargando métrica del dashboard desde {Source}", source);
                 return 0;
             }

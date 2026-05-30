@@ -25,7 +25,10 @@ namespace KineGestion.Core.Services
             => await _repository.GetAllAsync();
 
         public async Task<IEnumerable<Office>> GetActiveAsync()
-            => await _repository.GetActiveAsync();
+            => await QueryCache.GetOrCreateAsync(
+                "offices:active:list",
+                () => _repository.GetActiveAsync(),
+                TimeSpan.FromSeconds(20));
 
         public async Task<(IEnumerable<Office> Offices, int TotalCount)> GetPagedAsync(int page, int pageSize, string? search)
             => await _repository.GetPagedAsync(page, pageSize, search);
@@ -34,14 +37,18 @@ namespace KineGestion.Core.Services
         {
             office.Name = NormalizeAndValidateRequired(office.Name, nameof(Office.Name), "El nombre del consultorio es obligatorio.");
             await ValidateNameUniquenessAsync(office.Name);
-            return await _repository.AddAsync(office);
+            var created = await _repository.AddAsync(office);
+            QueryCache.InvalidatePrefix("offices:");
+            return created;
         }
 
         public async Task<Office> UpdateAsync(Office office)
         {
             office.Name = NormalizeAndValidateRequired(office.Name, nameof(Office.Name), "El nombre del consultorio es obligatorio.");
             await ValidateNameUniquenessAsync(office.Name, excludeId: office.Id);
-            return await _repository.UpdateAsync(office);
+            var updated = await _repository.UpdateAsync(office);
+            QueryCache.InvalidatePrefix("offices:");
+            return updated;
         }
 
         public async Task DeleteAsync(int id)
@@ -53,6 +60,7 @@ namespace KineGestion.Core.Services
                     string.Empty);
 
             await _repository.DeleteAsync(id);
+            QueryCache.InvalidatePrefix("offices:");
         }
 
         private async Task ValidateNameUniquenessAsync(string name, int? excludeId = null)

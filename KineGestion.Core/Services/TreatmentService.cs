@@ -36,30 +36,49 @@ namespace KineGestion.Core.Services
 #pragma warning restore CS0618
 
         public async Task<(IEnumerable<TreatmentListDto> Items, int TotalCount)> GetPagedListAsync(int page, int pageSize, string? search)
-            => await _repository.GetPagedListAsync(page, pageSize, search);
+            => await QueryCache.GetOrCreateAsync(
+                $"treatments:paged:{page}:{pageSize}:{NormalizeSearch(search)}",
+                () => _repository.GetPagedListAsync(page, pageSize, search),
+                TimeSpan.FromSeconds(10));
 
         public async Task<IEnumerable<TreatmentSelectDto>> GetForSelectAsync()
-            => await _repository.GetForSelectAsync();
+            => await QueryCache.GetOrCreateAsync(
+                "treatments:select:active",
+                () => _repository.GetForSelectAsync(),
+                TimeSpan.FromSeconds(30));
 
         public async Task<IEnumerable<TreatmentSelectDto>> GetByPatientForSelectAsync(int patientId)
-            => await _repository.GetByPatientForSelectAsync(patientId);
+            => await QueryCache.GetOrCreateAsync(
+                $"treatments:select:patient:{patientId}",
+                () => _repository.GetByPatientForSelectAsync(patientId),
+                TimeSpan.FromSeconds(20));
 
         public async Task<int> CountAsync()
-            => await _repository.CountAsync();
+            => await QueryCache.GetOrCreateAsync(
+                "treatments:count",
+                () => _repository.CountAsync(),
+                TimeSpan.FromSeconds(15));
 
         public async Task<int> CountByPatientIdAsync(int patientId)
-            => await _repository.CountByPatientIdAsync(patientId);
+            => await QueryCache.GetOrCreateAsync(
+                $"treatments:count:patient:{patientId}",
+                () => _repository.CountByPatientIdAsync(patientId),
+                TimeSpan.FromSeconds(15));
 
         public async Task<Treatment> CreateAsync(Treatment treatment)
         {
             ValidateTreatment(treatment);
-            return await _repository.AddAsync(treatment);
+            var created = await _repository.AddAsync(treatment);
+            QueryCache.InvalidatePrefix("treatments:");
+            return created;
         }
 
         public async Task<Treatment> UpdateAsync(Treatment treatment)
         {
             ValidateTreatment(treatment);
-            return await _repository.UpdateAsync(treatment);
+            var updated = await _repository.UpdateAsync(treatment);
+            QueryCache.InvalidatePrefix("treatments:");
+            return updated;
         }
 
         public async Task DeleteAsync(int id)
@@ -71,6 +90,7 @@ namespace KineGestion.Core.Services
                     string.Empty);
 
             await _repository.DeleteAsync(id);
+            QueryCache.InvalidatePrefix("treatments:");
         }
 
         private static void ValidateTreatment(Treatment treatment)
@@ -85,5 +105,8 @@ namespace KineGestion.Core.Services
                     "La fecha de inicio del tratamiento es obligatoria.",
                     nameof(Treatment.FechaInicio));
         }
+
+        private static string NormalizeSearch(string? search)
+            => string.IsNullOrWhiteSpace(search) ? "_" : search.Trim().ToLowerInvariant();
     }
 }

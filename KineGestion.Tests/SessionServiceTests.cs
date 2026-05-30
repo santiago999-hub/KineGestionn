@@ -17,9 +17,30 @@ namespace KineGestion.Tests
 
         public SessionServiceTests()
         {
+            QueryCache.ClearAll();
             _sessionRepositoryMock = new Mock<ISessionRepository>();
             _treatmentRepositoryMock = new Mock<ITreatmentRepository>();
             _service = new SessionService(_sessionRepositoryMock.Object, _treatmentRepositoryMock.Object);
+        }
+
+        [Fact]
+        public async Task GetPagedListForAdminAsync_ShouldCacheResultBetweenCalls()
+        {
+            var expected = (Items: (IEnumerable<KineGestion.Core.DTOs.SessionListDto>)new[]
+            {
+                new KineGestion.Core.DTOs.SessionListDto(1, DateTime.UtcNow, Core.SessionStatus.Pending, Core.PaymentStatus.Pending, 1, "Paciente", "Profesional", "Tratamiento", "Consultorio", false)
+            }, TotalCount: 1);
+
+            _sessionRepositoryMock
+                .Setup(r => r.GetPagedListForAdminAsync(1, 10, null, null, null, null, null, null, null))
+                .ReturnsAsync(expected);
+
+            var first = await _service.GetPagedListForAdminAsync(1, 10, null, null, null, null, null, null, null);
+            var second = await _service.GetPagedListForAdminAsync(1, 10, null, null, null, null, null, null, null);
+
+            Assert.Equal(1, first.TotalCount);
+            Assert.Equal(1, second.TotalCount);
+            _sessionRepositoryMock.Verify(r => r.GetPagedListForAdminAsync(1, 10, null, null, null, null, null, null, null), Times.Once);
         }
 
         [Fact]

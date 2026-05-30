@@ -64,7 +64,10 @@ namespace KineGestion.Core.Services
             SessionStatus? status, PaymentStatus? paymentStatus,
             DateTime? dateFrom, DateTime? dateTo,
             string? sortBy, string? sortDir)
-            => await _repository.GetPagedListForAdminAsync(page, pageSize, search, status, paymentStatus, dateFrom, dateTo, sortBy, sortDir);
+            => await QueryCache.GetOrCreateAsync(
+                $"sessions:admin:paged:{page}:{pageSize}:{NormalizeSearch(search)}:{status?.ToString() ?? "_"}:{paymentStatus?.ToString() ?? "_"}:{NormalizeDate(dateFrom)}:{NormalizeDate(dateTo)}:{NormalizeSort(sortBy)}:{NormalizeSort(sortDir)}",
+                () => _repository.GetPagedListForAdminAsync(page, pageSize, search, status, paymentStatus, dateFrom, dateTo, sortBy, sortDir),
+                TimeSpan.FromSeconds(8));
 
         [Obsolete("Carga entidades completas con 3 JOINs. Usar GetPagedListByProfessionalAsync.")]
         public async Task<(IEnumerable<Session> Sessions, int TotalCount)> GetPagedByProfessionalAsync(
@@ -84,7 +87,10 @@ namespace KineGestion.Core.Services
         public async Task<(IEnumerable<SessionListDto> Items, int TotalCount)> GetPagedListByProfessionalAsync(
             int professionalId, int page, int pageSize, string? search,
             SessionStatus? status, PaymentStatus? paymentStatus, DateTime? dateFrom, DateTime? dateTo)
-            => await _repository.GetPagedListByProfessionalAsync(professionalId, page, pageSize, search, status, paymentStatus, dateFrom, dateTo);
+            => await QueryCache.GetOrCreateAsync(
+                $"sessions:professional:{professionalId}:paged:{page}:{pageSize}:{NormalizeSearch(search)}:{status?.ToString() ?? "_"}:{paymentStatus?.ToString() ?? "_"}:{NormalizeDate(dateFrom)}:{NormalizeDate(dateTo)}",
+                () => _repository.GetPagedListByProfessionalAsync(professionalId, page, pageSize, search, status, paymentStatus, dateFrom, dateTo),
+                TimeSpan.FromSeconds(8));
 
         /// <summary>OBSOLETO: carga todas las sesiones sin filtro. Ver interfaz para detalles.</summary>
         [Obsolete("Peligro de Memory Bomb. Usar GetPagedListForAdminAsync o GetPagedListByProfessionalAsync.")]
@@ -98,7 +104,10 @@ namespace KineGestion.Core.Services
             => await _repository.GetByProfessionalIdAsync(professionalId);
 
         public async Task<int> CountAsync()
-            => await _repository.CountAsync();
+            => await QueryCache.GetOrCreateAsync(
+                "sessions:count:all",
+                () => _repository.CountAsync(),
+                TimeSpan.FromSeconds(10));
 
         public async Task<int> CountByTreatmentIdAsync(int treatmentId)
             => await _repository.CountByTreatmentIdAsync(treatmentId);
@@ -113,25 +122,46 @@ namespace KineGestion.Core.Services
             => await _repository.CountByOfficeIdAsync(officeId);
 
             public async Task<int> CountTodayAsync(DateTime utcToday)
-                => await _repository.CountTodayAsync(utcToday);
+                => await QueryCache.GetOrCreateAsync(
+                    $"sessions:count:today:{utcToday:yyyyMMdd}",
+                    () => _repository.CountTodayAsync(utcToday),
+                    TimeSpan.FromSeconds(10));
 
             public async Task<int> CountByPaymentStatusAsync(PaymentStatus paymentStatus)
-                => await _repository.CountByPaymentStatusAsync(paymentStatus);
+                => await QueryCache.GetOrCreateAsync(
+                    $"sessions:count:payment:{paymentStatus}",
+                    () => _repository.CountByPaymentStatusAsync(paymentStatus),
+                    TimeSpan.FromSeconds(10));
 
             public async Task<int> CountByStatusAsync(SessionStatus status)
-                => await _repository.CountByStatusAsync(status);
+                => await QueryCache.GetOrCreateAsync(
+                    $"sessions:count:status:{status}",
+                    () => _repository.CountByStatusAsync(status),
+                    TimeSpan.FromSeconds(10));
 
             public async Task<int> CountByStatusOnDateAsync(SessionStatus status, DateTime utcDay)
-                => await _repository.CountByStatusOnDateAsync(status, utcDay);
+                => await QueryCache.GetOrCreateAsync(
+                    $"sessions:count:status:{status}:day:{utcDay:yyyyMMdd}",
+                    () => _repository.CountByStatusOnDateAsync(status, utcDay),
+                    TimeSpan.FromSeconds(10));
 
             public async Task<int> CountInRangeAsync(DateTime fromInclusiveUtc, DateTime toExclusiveUtc)
-                => await _repository.CountInRangeAsync(fromInclusiveUtc, toExclusiveUtc);
+                => await QueryCache.GetOrCreateAsync(
+                    $"sessions:count:range:{fromInclusiveUtc:yyyyMMddHHmmss}:{toExclusiveUtc:yyyyMMddHHmmss}",
+                    () => _repository.CountInRangeAsync(fromInclusiveUtc, toExclusiveUtc),
+                    TimeSpan.FromSeconds(10));
 
             public async Task<int> CountByStatusInRangeAsync(SessionStatus status, DateTime fromInclusiveUtc, DateTime toExclusiveUtc)
-                => await _repository.CountByStatusInRangeAsync(status, fromInclusiveUtc, toExclusiveUtc);
+                => await QueryCache.GetOrCreateAsync(
+                    $"sessions:count:status:{status}:range:{fromInclusiveUtc:yyyyMMddHHmmss}:{toExclusiveUtc:yyyyMMddHHmmss}",
+                    () => _repository.CountByStatusInRangeAsync(status, fromInclusiveUtc, toExclusiveUtc),
+                    TimeSpan.FromSeconds(10));
 
             public async Task<int> CountByPaymentStatusInRangeAsync(PaymentStatus paymentStatus, DateTime fromInclusiveUtc, DateTime toExclusiveUtc)
-                => await _repository.CountByPaymentStatusInRangeAsync(paymentStatus, fromInclusiveUtc, toExclusiveUtc);
+                => await QueryCache.GetOrCreateAsync(
+                    $"sessions:count:payment:{paymentStatus}:range:{fromInclusiveUtc:yyyyMMddHHmmss}:{toExclusiveUtc:yyyyMMddHHmmss}",
+                    () => _repository.CountByPaymentStatusInRangeAsync(paymentStatus, fromInclusiveUtc, toExclusiveUtc),
+                    TimeSpan.FromSeconds(10));
 
             public async Task<IEnumerable<SessionReminderCandidateDto>> GetReminderCandidatesAsync(DateTime fromInclusiveUtc, DateTime toExclusiveUtc)
                 => await _repository.GetReminderCandidatesAsync(fromInclusiveUtc, toExclusiveUtc);
@@ -147,6 +177,7 @@ namespace KineGestion.Core.Services
 
                 AppendSystemNote(session, "CONFIRMADA_PACIENTE");
                 await _repository.UpdateAsync(session);
+                QueryCache.InvalidatePrefix("sessions:");
             }
 
             public async Task CancelByReminderAsync(int sessionId)
@@ -161,6 +192,7 @@ namespace KineGestion.Core.Services
                 session.Status = SessionStatus.Canceled;
                 AppendSystemNote(session, "CANCELADA_PACIENTE");
                 await _repository.UpdateAsync(session);
+                QueryCache.InvalidatePrefix("sessions:");
             }
 
             public async Task SetPaymentStatusAsync(int sessionId, PaymentStatus paymentStatus)
@@ -175,6 +207,7 @@ namespace KineGestion.Core.Services
                 session.PaymentStatus = paymentStatus;
                 AppendSystemNote(session, paymentStatus == PaymentStatus.Paid ? "COBRO_REGISTRADO" : "COBRO_REABIERTO");
                 await _repository.UpdateAsync(session);
+                QueryCache.InvalidatePrefix("sessions:");
             }
 
         public async Task<Session> CreateAsync(Session session)
@@ -192,7 +225,9 @@ namespace KineGestion.Core.Services
             }
 
             session.NroSesionEnTratamiento = sesionesExistentes + 1;
-            return await _repository.AddAsync(session);
+            var created = await _repository.AddAsync(session);
+            QueryCache.InvalidatePrefix("sessions:");
+            return created;
         }
 
         public async Task<Session> UpdateAsync(Session session)
@@ -236,11 +271,16 @@ namespace KineGestion.Core.Services
                 session.EvolutionLockedAt = original.EvolutionLockedAt;
             }
 
-            return await _repository.UpdateAsync(session);
+            var updated = await _repository.UpdateAsync(session);
+            QueryCache.InvalidatePrefix("sessions:");
+            return updated;
         }
 
         public async Task DeleteAsync(int id)
-            => await _repository.DeleteAsync(id);
+        {
+            await _repository.DeleteAsync(id);
+            QueryCache.InvalidatePrefix("sessions:");
+        }
 
         private async Task ValidateProfessionalAvailabilityAsync(int professionalId, DateTime fechaHora, int? excludeSessionId = null)
         {
@@ -266,5 +306,14 @@ namespace KineGestion.Core.Services
                 ? note
                 : session.InternalNotes + Environment.NewLine + note;
         }
+
+        private static string NormalizeSearch(string? search)
+            => string.IsNullOrWhiteSpace(search) ? "_" : search.Trim().ToLowerInvariant();
+
+        private static string NormalizeSort(string? value)
+            => string.IsNullOrWhiteSpace(value) ? "_" : value.Trim().ToLowerInvariant();
+
+        private static string NormalizeDate(DateTime? value)
+            => value.HasValue ? value.Value.ToString("yyyyMMddHHmmss") : "_";
     }
 }

@@ -30,13 +30,22 @@ namespace KineGestion.Core.Services
             => await _repository.GetActivosAsync();
 
         public async Task<IEnumerable<ProfessionalSelectDto>> GetForSelectAsync()
-            => await _repository.GetForSelectAsync();
+            => await QueryCache.GetOrCreateAsync(
+                "professionals:select:active",
+                () => _repository.GetForSelectAsync(),
+                TimeSpan.FromSeconds(30));
 
         public async Task<(IEnumerable<Professional> Professionals, int TotalCount)> GetPagedAsync(int page, int pageSize, string? search)
-            => await _repository.GetPagedAsync(page, pageSize, search);
+            => await QueryCache.GetOrCreateAsync(
+                $"professionals:paged:{page}:{pageSize}:{NormalizeSearch(search)}",
+                () => _repository.GetPagedAsync(page, pageSize, search),
+                TimeSpan.FromSeconds(10));
 
         public async Task<int> CountActiveAsync()
-            => await _repository.CountActiveAsync();
+            => await QueryCache.GetOrCreateAsync(
+                "professionals:active:count",
+                () => _repository.CountActiveAsync(),
+                TimeSpan.FromSeconds(15));
 
         public async Task ValidateMatriculaUniquenessAsync(string matricula, int? excludeId = null)
         {
@@ -52,14 +61,18 @@ namespace KineGestion.Core.Services
             professional.Matricula = NormalizeAndValidateRequired(professional.Matricula, nameof(Professional.Matricula), "La matrícula es obligatoria.");
             await ValidateMatriculaUniquenessAsync(professional.Matricula);
             professional.IsActivo = true;
-            return await _repository.AddAsync(professional);
+            var created = await _repository.AddAsync(professional);
+            QueryCache.InvalidatePrefix("professionals:");
+            return created;
         }
 
         public async Task<Professional> UpdateAsync(Professional professional)
         {
             professional.Matricula = NormalizeAndValidateRequired(professional.Matricula, nameof(Professional.Matricula), "La matrícula es obligatoria.");
             await ValidateMatriculaUniquenessAsync(professional.Matricula, excludeId: professional.Id);
-            return await _repository.UpdateAsync(professional);
+            var updated = await _repository.UpdateAsync(professional);
+            QueryCache.InvalidatePrefix("professionals:");
+            return updated;
         }
 
         public async Task DeleteAsync(int id)
@@ -71,6 +84,7 @@ namespace KineGestion.Core.Services
                     string.Empty);
 
             await _repository.DeleteAsync(id);
+            QueryCache.InvalidatePrefix("professionals:");
         }
 
         private static string NormalizeAndValidateRequired(string? value, string propertyName, string errorMessage)
@@ -81,5 +95,8 @@ namespace KineGestion.Core.Services
 
             return normalized;
         }
+
+        private static string NormalizeSearch(string? search)
+            => string.IsNullOrWhiteSpace(search) ? "_" : search.Trim().ToLowerInvariant();
     }
 }

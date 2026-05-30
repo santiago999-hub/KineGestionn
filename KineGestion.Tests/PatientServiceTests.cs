@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using KineGestion.Core.DTOs;
 using KineGestion.Core.Entities;
 using KineGestion.Core.Exceptions;
 using KineGestion.Core.Interfaces;
@@ -19,6 +20,7 @@ namespace KineGestion.Tests
 
         public PatientServiceTests()
         {
+            QueryCache.ClearAll();
             _repositoryMock = new Mock<IPatientRepository>();
             _treatmentRepositoryMock = new Mock<ITreatmentRepository>();
             _sessionRepositoryMock = new Mock<ISessionRepository>();
@@ -101,6 +103,71 @@ namespace KineGestion.Tests
             var result = await _service.CreateAsync(patient);
 
             Assert.Equal(patient.DNI, result.DNI);
+            _repositoryMock.Verify(r => r.AddAsync(patient), Times.Once);
+        }
+
+        [Fact]
+        public async Task GetForSelectAsync_ShouldCacheResultBetweenCalls()
+        {
+            var expected = new List<PatientSelectDto>
+            {
+                new(1, "Ana", "Perez", "30111222")
+            };
+
+            _repositoryMock
+                .Setup(r => r.GetForSelectAsync())
+                .ReturnsAsync(expected);
+
+            var first = await _service.GetForSelectAsync();
+            var second = await _service.GetForSelectAsync();
+
+            Assert.Single(first);
+            Assert.Single(second);
+            _repositoryMock.Verify(r => r.GetForSelectAsync(), Times.Once);
+        }
+
+        [Fact]
+        public async Task GetPagedAsync_ShouldCacheResultBetweenCalls()
+        {
+            var expected = (Patients: (IEnumerable<Patient>)new[] { BuildPatient() }, TotalCount: 1);
+
+            _repositoryMock
+                .Setup(r => r.GetPagedAsync(1, 10, null))
+                .ReturnsAsync(expected);
+
+            var first = await _service.GetPagedAsync(1, 10, null);
+            var second = await _service.GetPagedAsync(1, 10, null);
+
+            Assert.Equal(1, first.TotalCount);
+            Assert.Equal(1, second.TotalCount);
+            _repositoryMock.Verify(r => r.GetPagedAsync(1, 10, null), Times.Once);
+        }
+
+        [Fact]
+        public async Task CreateAsync_ShouldInvalidateCachedSelects()
+        {
+            var patient = BuildPatient();
+
+            _repositoryMock
+                .Setup(r => r.GetForSelectAsync())
+                .ReturnsAsync(new List<PatientSelectDto>
+                {
+                    new(1, "Ana", "Perez", "30111222")
+                });
+
+            _repositoryMock
+                .Setup(r => r.ExistsByDniAsync(patient.DNI, null))
+                .ReturnsAsync(false);
+
+            _repositoryMock
+                .Setup(r => r.AddAsync(patient))
+                .ReturnsAsync(patient);
+
+            await _service.GetForSelectAsync();
+            await _service.CreateAsync(patient);
+            await _service.GetForSelectAsync();
+
+            _repositoryMock.Verify(r => r.GetForSelectAsync(), Times.Exactly(2));
             _repositoryMock.Verify(r => r.AddAsync(patient), Times.Once);
         }
 

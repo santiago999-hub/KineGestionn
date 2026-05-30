@@ -37,20 +37,32 @@ namespace KineGestion.Core.Services
             => await _repository.GetAllAsync();
 
         public async Task<IEnumerable<PatientSelectDto>> GetForSelectAsync()
-            => await _repository.GetForSelectAsync();
+            => await QueryCache.GetOrCreateAsync(
+                "patients:select:active",
+                () => _repository.GetForSelectAsync(),
+                TimeSpan.FromSeconds(30));
 
         /// <summary>
         /// LÓGICA DE NEGOCIO: filtra pacientes activos.
         /// Esta decisión vive en el Service, no en el Controller ni en el Repository.
         /// </summary>
         public async Task<IEnumerable<Patient>> GetActivePatientsAsync()
-            => await _repository.GetActivosAsync();
+            => await QueryCache.GetOrCreateAsync(
+                "patients:active:list",
+                () => _repository.GetActivosAsync(),
+                TimeSpan.FromSeconds(20));
 
         public async Task<(IEnumerable<Patient> Patients, int TotalCount)> GetPagedAsync(int page, int pageSize, string? search)
-            => await _repository.GetPagedAsync(page, pageSize, search);
+            => await QueryCache.GetOrCreateAsync(
+                $"patients:paged:{page}:{pageSize}:{NormalizeSearch(search)}",
+                () => _repository.GetPagedAsync(page, pageSize, search),
+                TimeSpan.FromSeconds(10));
 
         public async Task<int> CountActiveAsync()
-            => await _repository.CountActiveAsync();
+            => await QueryCache.GetOrCreateAsync(
+                "patients:active:count",
+                () => _repository.CountActiveAsync(),
+                TimeSpan.FromSeconds(15));
 
         /// <summary>
         /// LÓGICA DE NEGOCIO: un DNI no puede estar registrado dos veces.
@@ -71,7 +83,9 @@ namespace KineGestion.Core.Services
                 ValidateFechaNacimiento(patient.FechaNacimiento);
                 patient.DNI = NormalizeAndValidateRequired(patient.DNI, nameof(Patient.DNI), "El DNI es obligatorio.");
                 await ValidateDniUniquenessAsync(patient.DNI);
-            return await _repository.AddAsync(patient);
+            var created = await _repository.AddAsync(patient);
+            QueryCache.InvalidatePrefix("patients:");
+            return created;
         }
 
         /// <summary>Valida unicidad de DNI excluyendo al propio paciente (caso edición).</summary>
@@ -80,7 +94,9 @@ namespace KineGestion.Core.Services
                 ValidateFechaNacimiento(patient.FechaNacimiento);
                 patient.DNI = NormalizeAndValidateRequired(patient.DNI, nameof(Patient.DNI), "El DNI es obligatorio.");
                 await ValidateDniUniquenessAsync(patient.DNI, excludeId: patient.Id);
-            return await _repository.UpdateAsync(patient);
+            var updated = await _repository.UpdateAsync(patient);
+            QueryCache.InvalidatePrefix("patients:");
+            return updated;
         }
 
         public async Task DeleteAsync(int id)
@@ -98,6 +114,7 @@ namespace KineGestion.Core.Services
                     string.Empty);
 
             await _repository.DeleteAsync(id);
+            QueryCache.InvalidatePrefix("patients:");
         }
 
             /// <summary>
@@ -120,6 +137,9 @@ namespace KineGestion.Core.Services
 
                 return normalized;
             }
+
+            private static string NormalizeSearch(string? search)
+                => string.IsNullOrWhiteSpace(search) ? "_" : search.Trim().ToLowerInvariant();
     }
 }
 

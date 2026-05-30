@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using KineGestion.Core.DTOs;
 using KineGestion.Core.Entities;
 using KineGestion.Core.Exceptions;
 using KineGestion.Core.Interfaces;
@@ -18,6 +19,7 @@ namespace KineGestion.Tests
 
         public TreatmentServiceTests()
         {
+            QueryCache.ClearAll();
             _repositoryMock = new Mock<ITreatmentRepository>();
             _sessionRepositoryMock = new Mock<ISessionRepository>();
             _service = new TreatmentService(_repositoryMock.Object, _sessionRepositoryMock.Object);
@@ -74,6 +76,61 @@ namespace KineGestion.Tests
 
             Assert.Single(result);
             _repositoryMock.Verify(r => r.GetByPatientIdAsync(4), Times.Once);
+        }
+
+        [Fact]
+        public async Task GetByPatientForSelectAsync_ShouldCacheResultBetweenCalls()
+        {
+            var expected = new List<KineGestion.Core.DTOs.TreatmentSelectDto>
+            {
+                new(1, "Plan")
+            };
+
+            _repositoryMock
+                .Setup(r => r.GetByPatientForSelectAsync(4))
+                .ReturnsAsync(expected);
+
+            var first = await _service.GetByPatientForSelectAsync(4);
+            var second = await _service.GetByPatientForSelectAsync(4);
+
+            Assert.Single(first);
+            Assert.Single(second);
+            _repositoryMock.Verify(r => r.GetByPatientForSelectAsync(4), Times.Once);
+        }
+
+        [Fact]
+        public async Task CountByPatientIdAsync_ShouldCacheResultBetweenCalls()
+        {
+            _repositoryMock
+                .Setup(r => r.CountByPatientIdAsync(4))
+                .ReturnsAsync(2);
+
+            var first = await _service.CountByPatientIdAsync(4);
+            var second = await _service.CountByPatientIdAsync(4);
+
+            Assert.Equal(2, first);
+            Assert.Equal(2, second);
+            _repositoryMock.Verify(r => r.CountByPatientIdAsync(4), Times.Once);
+        }
+
+        [Fact]
+        public async Task GetPagedListAsync_ShouldCacheResultBetweenCalls()
+        {
+            var expected = (Items: (IEnumerable<TreatmentListDto>)new[]
+            {
+                new TreatmentListDto(1, "Plan", 10, DateTime.Today, 2, "Ana Perez", 1)
+            }, TotalCount: 1);
+
+            _repositoryMock
+                .Setup(r => r.GetPagedListAsync(1, 10, null))
+                .ReturnsAsync(expected);
+
+            var first = await _service.GetPagedListAsync(1, 10, null);
+            var second = await _service.GetPagedListAsync(1, 10, null);
+
+            Assert.Equal(1, first.TotalCount);
+            Assert.Equal(1, second.TotalCount);
+            _repositoryMock.Verify(r => r.GetPagedListAsync(1, 10, null), Times.Once);
         }
 
         [Fact]

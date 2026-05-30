@@ -17,6 +17,7 @@ namespace KineGestion.Tests
 
         public ProfessionalServiceTests()
         {
+            QueryCache.ClearAll();
             _repositoryMock = new Mock<IProfessionalRepository>();
             _sessionRepositoryMock = new Mock<ISessionRepository>();
             _service = new ProfessionalService(_repositoryMock.Object, _sessionRepositoryMock.Object);
@@ -38,6 +39,63 @@ namespace KineGestion.Tests
 
             Assert.Single(result);
             _repositoryMock.Verify(r => r.GetActivosAsync(), Times.Once);
+        }
+
+        [Fact]
+        public async Task CountActiveAsync_ShouldCacheResultBetweenCalls()
+        {
+            _repositoryMock
+                .Setup(r => r.CountActiveAsync())
+                .ReturnsAsync(4);
+
+            var first = await _service.CountActiveAsync();
+            var second = await _service.CountActiveAsync();
+
+            Assert.Equal(4, first);
+            Assert.Equal(4, second);
+            _repositoryMock.Verify(r => r.CountActiveAsync(), Times.Once);
+        }
+
+        [Fact]
+        public async Task GetPagedAsync_ShouldCacheResultBetweenCalls()
+        {
+            var expected = (Professionals: (IEnumerable<Professional>)new[] { BuildProfessional() }, TotalCount: 1);
+
+            _repositoryMock
+                .Setup(r => r.GetPagedAsync(1, 10, null))
+                .ReturnsAsync(expected);
+
+            var first = await _service.GetPagedAsync(1, 10, null);
+            var second = await _service.GetPagedAsync(1, 10, null);
+
+            Assert.Equal(1, first.TotalCount);
+            Assert.Equal(1, second.TotalCount);
+            _repositoryMock.Verify(r => r.GetPagedAsync(1, 10, null), Times.Once);
+        }
+
+        [Fact]
+        public async Task CreateAsync_ShouldInvalidateCachedCounts()
+        {
+            var professional = BuildProfessional();
+
+            _repositoryMock
+                .SetupSequence(r => r.CountActiveAsync())
+                .ReturnsAsync(4)
+                .ReturnsAsync(5);
+
+            _repositoryMock
+                .Setup(r => r.ExistsByMatriculaAsync(professional.Matricula, null))
+                .ReturnsAsync(false);
+
+            _repositoryMock
+                .Setup(r => r.AddAsync(It.IsAny<Professional>()))
+                .ReturnsAsync((Professional value) => value);
+
+            await _service.CountActiveAsync();
+            await _service.CreateAsync(professional);
+            await _service.CountActiveAsync();
+
+            _repositoryMock.Verify(r => r.CountActiveAsync(), Times.Exactly(2));
         }
 
         [Fact]
