@@ -11,6 +11,20 @@
     </div>
 </div>
 
+<div class="kg-card mb-3">
+    <div class="kg-card-body">
+        <form asp-action="Index" method="get" class="row g-2 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label">Ventana próxima (horas)</label>
+                <input type="number" min="1" max="168" name="hoursAhead" class="form-control" value="@Model.HoursAhead" />
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">Actualizar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <div class="kg-card">
     <div class="kg-card-header d-flex justify-content-between align-items-center">
         <h5 class="kg-card-header-title mb-0"><i class="bi bi-send-check"></i> Campaña lista para enviar</h5>
@@ -25,41 +39,80 @@
         }
         else
         {
-            <div class="table-responsive">
-                <table class="table table-hover align-middle">
-                    <thead>
-                        <tr>
-                            <th>Fecha/Hora</th>
-                            <th>Paciente</th>
-                            <th>Contacto</th>
-                            <th>Profesional</th>
-                            <th>Tratamiento</th>
-                            <th>Acciones 1-click</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var item in Model.Items)
-                        {
+            <form asp-action="DispatchSelected" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="hoursAhead" value="@Model.HoursAhead" />
+
+                <div class="d-flex justify-content-end mb-3">
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-send"></i> Enviar seleccionados
+                    </button>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead>
                             <tr>
-                                <td>@item.FechaHora.ToString("dd/MM/yyyy HH:mm")</td>
-                                <td>@item.PacienteNombre</td>
-                                <td>
-                                    <div>@(string.IsNullOrWhiteSpace(item.PacienteEmail) ? "Sin email" : item.PacienteEmail)</div>
-                                    <small class="text-muted">@(string.IsNullOrWhiteSpace(item.PacienteTelefono) ? "Sin telefono" : item.PacienteTelefono)</small>
-                                </td>
-                                <td>@item.ProfesionalNombre</td>
-                                <td>@(string.IsNullOrWhiteSpace(item.TratamientoDescripcion) ? "-" : item.TratamientoDescripcion)</td>
-                                <td>
-                                    <div class="d-flex flex-column gap-2">
-                                        <a href="@item.ConfirmUrl" target="_blank" class="btn btn-sm btn-outline-success">Link confirmar</a>
-                                        <a href="@item.CancelUrl" target="_blank" class="btn btn-sm btn-outline-danger">Link cancelar</a>
-                                    </div>
-                                </td>
+                                <th style="width:48px;"><input type="checkbox" id="selectAll" /></th>
+                                <th>Fecha/Hora</th>
+                                <th>Paciente</th>
+                                <th>Contacto</th>
+                                <th>Canales</th>
+                                <th>Profesional</th>
+                                <th>Tratamiento</th>
+                                <th>Acciones 1-click</th>
                             </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in Model.Items)
+                            {
+                                <tr>
+                                    <td><input type="checkbox" name="selectedSessionIds" value="@item.SessionId" class="session-check" /></td>
+                                    <td>@item.FechaHora.ToString("dd/MM/yyyy HH:mm")</td>
+                                    <td>@item.PacienteNombre</td>
+                                    <td>
+                                        <div>@(string.IsNullOrWhiteSpace(item.PacienteEmail) ? "Sin email" : item.PacienteEmail)</div>
+                                        <small class="text-muted">@(string.IsNullOrWhiteSpace(item.PacienteTelefono) ? "Sin telefono" : item.PacienteTelefono)</small>
+                                    </td>
+                                    <td>
+                                        @if (item.CanEmail)
+                                        {
+                                            <span class="badge text-bg-info">Email</span>
+                                        }
+                                        @if (item.CanWhatsApp)
+                                        {
+                                            <span class="badge text-bg-success">WhatsApp</span>
+                                        }
+                                        @if (!item.CanEmail && !item.CanWhatsApp)
+                                        {
+                                            <span class="badge text-bg-secondary">Sin canal</span>
+                                        }
+                                    </td>
+                                    <td>@item.ProfesionalNombre</td>
+                                    <td>@(string.IsNullOrWhiteSpace(item.TratamientoDescripcion) ? "-" : item.TratamientoDescripcion)</td>
+                                    <td>
+                                        <div class="d-flex flex-column gap-2">
+                                            <a href="@item.ConfirmUrl" target="_blank" class="btn btn-sm btn-outline-success">Link confirmar</a>
+                                            <a href="@item.CancelUrl" target="_blank" class="btn btn-sm btn-outline-danger">Link cancelar</a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </form>
         }
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        const selectAll = document.getElementById('selectAll');
+        if (selectAll) {
+            selectAll.addEventListener('change', function () {
+                document.querySelectorAll('.session-check').forEach(cb => cb.checked = this.checked);
+            });
+        }
+    </script>
+}

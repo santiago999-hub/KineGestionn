@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using KineGestion.Core.Interfaces;
 using KineGestion.Web.Models.ViewModels;
+using KineGestion.Web.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Mvc;
@@ -15,11 +16,16 @@ namespace KineGestion.Web.Controllers
     {
         private readonly ISessionService _sessionService;
         private readonly IDataProtector _protector;
+        private readonly IReminderDeliveryService _reminderDeliveryService;
 
-        public RemindersController(ISessionService sessionService, IDataProtectionProvider dataProtectionProvider)
+        public RemindersController(
+            ISessionService sessionService,
+            IDataProtectionProvider dataProtectionProvider,
+            IReminderDeliveryService reminderDeliveryService)
         {
             _sessionService = sessionService;
             _protector = dataProtectionProvider.CreateProtector("KineGestion.ReminderLink.v1");
+            _reminderDeliveryService = reminderDeliveryService;
         }
 
         public async Task<IActionResult> Index(int hoursAhead = 24)
@@ -34,6 +40,7 @@ namespace KineGestion.Web.Controllers
 
             var model = new ReminderCampaignViewModel
             {
+                HoursAhead = hoursAhead,
                 WindowStartUtc = start,
                 WindowEndUtc = end,
                 Items = candidates.Select(c => new ReminderItemViewModel
@@ -51,6 +58,71 @@ namespace KineGestion.Web.Controllers
             };
 
             return View(model);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DispatchSelected(int hoursAhead, int[] selectedSessionIds)
+        {
+            if (hoursAhead < 1) hoursAhead = 1;
+            if (hoursAhead > 168) hoursAhead = 168;
+
+            var selectedIds = (selectedSessionIds ?? Array.Empty<int>()).Distinct().ToArray();
+            if (selectedIds.Length == 0)
+            {
+                TempData["Error"] = "Seleccioná al menos una sesión para enviar recordatorios.";
+                return RedirectToAction(nameof(Index), new { hoursAhead });
+            }
+
+            var start = DateTime.UtcNow;
+            var end = start.AddHours(hoursAhead);
+            var candidates = await _sessionService.GetReminderCandidatesAsync(start, end);
+            var byId = candidates.ToDictionary(c => c.SessionId);
+
+            var successCount = 0;
+            var errorMessages = new List<string>();
+
+            foreach (var id in selectedIds)
+            {
+                if (!byId.TryGetValue(id, out var candidate))
+                {
+                    errorMessages.Add($"Sesión {id}: no está en la ventana de envío actual.");
+                    continue;
+                }
+
+                var request = new ReminderDeliveryRequest
+                {
+                    SessionId = candidate.SessionId,
+                    FechaHora = candidate.FechaHora,
+                    PacienteNombre = candidate.PacienteNombre,
+                    PacienteEmail = candidate.PacienteEmail,
+                    PacienteTelefono = candidate.PacienteTelefono,
+                    ProfesionalNombre = candidate.ProfesionalNombre,
+                    TratamientoDescripcion = candidate.TratamientoDescripcion,
+                    ConfirmUrl = BuildActionUrl(candidate.SessionId, "confirm"),
+                    CancelUrl = BuildActionUrl(candidate.SessionId, "cancel")
+                };
+
+                var dispatchResult = await _reminderDeliveryService.SendAsync(request);
+                if (dispatchResult.AnyChannelSent)
+                {
+                    successCount++;
+                    continue;
+                }
+
+                if (dispatchResult.Errors.Count > 0)
+                    errorMessages.AddRange(dispatchResult.Errors.Take(2));
+                else
+                    errorMessages.Add($"Sesión {id}: no se pudo enviar por ningún canal.");
+            }
+
+            if (successCount > 0)
+                TempData["Success"] = $"Recordatorios enviados: {successCount} de {selectedIds.Length}.";
+
+            if (errorMessages.Count > 0)
+                TempData["Error"] = string.Join(" | ", errorMessages.Take(5));
+
+            return RedirectToAction(nameof(Index), new { hoursAhead });
         }
 
         [AllowAnonymous]
