@@ -1,7 +1,9 @@
 using System;
 using System.Globalization;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
+using KineGestion.Core.Entities;
 using KineGestion.Core.Interfaces;
 using KineGestion.Web.Models.ViewModels;
 using KineGestion.Web.Services;
@@ -17,15 +19,18 @@ namespace KineGestion.Web.Controllers
         private readonly ISessionService _sessionService;
         private readonly IDataProtector _protector;
         private readonly IReminderDeliveryService _reminderDeliveryService;
+        private readonly IAuditLogService _auditLogService;
 
         public RemindersController(
             ISessionService sessionService,
             IDataProtectionProvider dataProtectionProvider,
-            IReminderDeliveryService reminderDeliveryService)
+            IReminderDeliveryService reminderDeliveryService,
+            IAuditLogService auditLogService)
         {
             _sessionService = sessionService;
             _protector = dataProtectionProvider.CreateProtector("KineGestion.ReminderLink.v1");
             _reminderDeliveryService = reminderDeliveryService;
+            _auditLogService = auditLogService;
         }
 
         public async Task<IActionResult> Index(int hoursAhead = 24)
@@ -56,6 +61,18 @@ namespace KineGestion.Web.Controllers
                     CancelUrl = BuildActionUrl(c.SessionId, "cancel")
                 }).ToList()
             };
+
+            var history = await _auditLogService.GetPagedAsync(
+                entityName: "ReminderDispatch",
+                entityId: null,
+                changedBy: null,
+                action: "Create",
+                dateFrom: null,
+                dateTo: null,
+                page: 1,
+                pageSize: 20);
+
+            model.History = history.Items.Select(MapHistoryItem).ToList();
 
             return View(model);
         }
@@ -104,6 +121,28 @@ namespace KineGestion.Web.Controllers
                 };
 
                 var dispatchResult = await _reminderDeliveryService.SendAsync(request);
+
+                var actor = User?.Identity?.Name;
+                await _auditLogService.AddAsync(new AuditLog
+                {
+                    EntityName = "ReminderDispatch",
+                    EntityId = candidate.SessionId.ToString(CultureInfo.InvariantCulture),
+                    Action = "Create",
+                    ChangedBy = string.IsNullOrWhiteSpace(actor) ? "system" : actor,
+                    ChangedAt = DateTime.UtcNow,
+                    NewValuesJson = JsonSerializer.Serialize(new
+                    {
+                        candidate.SessionId,
+                        candidate.FechaHora,
+                        candidate.PacienteNombre,
+                        candidate.PacienteEmail,
+                        candidate.PacienteTelefono,
+                        EmailSent = dispatchResult.EmailSent,
+                        WhatsAppSent = dispatchResult.WhatsAppSent,
+                        Errors = dispatchResult.Errors
+                    })
+                });
+
                 if (dispatchResult.AnyChannelSent)
                 {
                     successCount++;
@@ -123,6 +162,58 @@ namespace KineGestion.Web.Controllers
                 TempData["Error"] = string.Join(" | ", errorMessages.Take(5));
 
             return RedirectToAction(nameof(Index), new { hoursAhead });
+        }
+
+        private static ReminderDispatchHistoryItemViewModel MapHistoryItem(AuditLog log)
+        {
+            var item = new ReminderDispatchHistoryItemViewModel
+            {
+                ChangedAt = log.ChangedAt,
+                ChangedBy = log.ChangedBy,
+                SessionId = int.TryParse(log.EntityId, out var sessionId) ? sessionId : 0,
+                ChannelSummary = "-",
+                Status = "Error",
+                ErrorSummary = null
+            };
+
+            try
+            {
+                if (!string.IsNullOrWhiteSpace(log.NewValuesJson))
+                {
+                    using var doc = JsonDocument.Parse(log.NewValuesJson);
+                    var root = doc.RootElement;
+                    var emailSent = root.TryGetProperty("EmailSent", out var emailProp) && emailProp.GetBoolean();
+                    var whatsappSent = root.TryGetProperty("WhatsAppSent", out var waProp) && waProp.GetBoolean();
+
+                    item.ChannelSummary = BuildChannelSummary(emailSent, whatsappSent);
+                    item.Status = (emailSent || whatsappSent) ? "Enviado" : "Error";
+
+                    if (root.TryGetProperty("Errors", out var errorsProp) && errorsProp.ValueKind == JsonValueKind.Array)
+                    {
+                        var errors = errorsProp
+                            .EnumerateArray()
+                            .Select(e => e.GetString())
+                            .Where(s => !string.IsNullOrWhiteSpace(s))
+                            .Take(2)
+                            .ToList();
+                        item.ErrorSummary = errors.Count == 0 ? null : string.Join(" | ", errors);
+                    }
+                }
+            }
+            catch
+            {
+                item.ErrorSummary = "No se pudo interpretar el detalle del evento.";
+            }
+
+            return item;
+        }
+
+        private static string BuildChannelSummary(bool emailSent, bool whatsappSent)
+        {
+            if (emailSent && whatsappSent) return "Email + WhatsApp";
+            if (emailSent) return "Email";
+            if (whatsappSent) return "WhatsApp";
+            return "Sin envío";
         }
 
         [AllowAnonymous]

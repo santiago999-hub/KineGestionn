@@ -52,6 +52,13 @@ namespace KineGestion.Data.Repositories
             return await query.ToListAsync();
         }
 
+        public async Task<AuditLog> AddAsync(AuditLog auditLog)
+        {
+            _context.AuditLogs.Add(auditLog);
+            await _context.SaveChangesAsync();
+            return auditLog;
+        }
+
         private IQueryable<AuditLog> BuildQuery(
             string? entityName,
             string? entityId,

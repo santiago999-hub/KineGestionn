@@ -24,5 +24,7 @@ namespace KineGestion.Core.Interfaces
             string? action,
             DateTime? dateFrom,
             DateTime? dateTo);
+
+        Task<AuditLog> AddAsync(AuditLog auditLog);
     }
 }

@@ -9,6 +9,7 @@ namespace KineGestion.Web.Models.ViewModels
         public DateTime WindowStartUtc { get; set; }
         public DateTime WindowEndUtc { get; set; }
         public List<ReminderItemViewModel> Items { get; set; } = new();
+        public List<ReminderDispatchHistoryItemViewModel> History { get; set; } = new();
     }
 
     public class ReminderItemViewModel
@@ -31,5 +32,15 @@ namespace KineGestion.Web.Models.ViewModels
         public bool Success { get; set; }
         public string Title { get; set; } = string.Empty;
         public string Message { get; set; } = string.Empty;
+    }
+
+    public class ReminderDispatchHistoryItemViewModel
+    {
+        public DateTime ChangedAt { get; set; }
+        public string ChangedBy { get; set; } = string.Empty;
+        public int SessionId { get; set; }
+        public string ChannelSummary { get; set; } = string.Empty;
+        public string Status { get; set; } = string.Empty;
+        public string? ErrorSummary { get; set; }
     }
 }

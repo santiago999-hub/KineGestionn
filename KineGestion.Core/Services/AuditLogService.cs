@@ -34,5 +34,8 @@ namespace KineGestion.Core.Services
             DateTime? dateFrom,
             DateTime? dateTo)
             => _repository.GetAllAsync(entityName, entityId, changedBy, action, dateFrom, dateTo);
+
+        public Task<AuditLog> AddAsync(AuditLog auditLog)
+            => _repository.AddAsync(auditLog);
     }
 }
