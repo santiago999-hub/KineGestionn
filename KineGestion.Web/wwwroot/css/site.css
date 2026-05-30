@@ -1701,6 +1701,42 @@ body.kg-theme-dark .kg-active-filters-clear:hover {
     font-weight: 600;
 }
 
+.kg-office-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.kg-office-list li {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: .84rem;
+    color: var(--kg-text);
+}
+
+.kg-office-list li i {
+    color: var(--kg-accent);
+    font-size: .95rem;
+}
+
+.kg-office-empty-note {
+    border: 1px dashed var(--kg-border);
+    background: #f8fbff;
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: .8rem;
+    color: var(--kg-text-muted);
+}
+
+body.kg-theme-dark .kg-office-empty-note {
+    background: #12263d;
+    border-color: #31516f;
+}
+
 .kg-stat-card,
 .kg-card,
 .kg-alert-success,

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using KineGestion.Core.DTOs;
 using KineGestion.Core.Entities;
 
 namespace KineGestion.Core.Interfaces
@@ -12,6 +13,7 @@ namespace KineGestion.Core.Interfaces
         Task<IEnumerable<Office>> GetAllAsync();
         Task<IEnumerable<Office>> GetActiveAsync();
         Task<(IEnumerable<Office> Offices, int TotalCount)> GetPagedAsync(int page, int pageSize, string? search);
+        Task<OfficeClinicalProfileDto?> GetClinicalProfileAsync(int officeId);
         Task<bool> ExistsByNameAsync(string name, int? excludeId = null);
         Task<Office> AddAsync(Office office);
         Task<Office> UpdateAsync(Office office);

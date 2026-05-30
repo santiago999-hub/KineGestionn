@@ -108,7 +108,18 @@ namespace KineGestion.Web.Controllers
             if (office is null)
                 return NotFound();
 
-            return View(OfficeViewModel.FromEntity(office));
+            var profile = await _officeService.GetClinicalProfileAsync(id);
+
+            var model = new OfficeDetailsViewModel
+            {
+                Office = OfficeViewModel.FromEntity(office),
+                Professionals = profile?.Professionals ?? new System.Collections.Generic.List<string>(),
+                Treatments = profile?.Treatments ?? new System.Collections.Generic.List<string>(),
+                Equipments = profile?.Equipments ?? new System.Collections.Generic.List<string>(),
+                ObrasSociales = profile?.ObrasSociales ?? new System.Collections.Generic.List<string>()
+            };
+
+            return View(model);
         }
 
         // GET: /Offices/Delete/5

@@ -1,4 +1,4 @@
-@model KineGestion.Web.Models.ViewModels.OfficeViewModel
+@model KineGestion.Web.Models.ViewModels.OfficeDetailsViewModel
 
 @{
     ViewData["Title"] = "Detalle de Consultorio";
@@ -21,11 +21,11 @@
                 <i class="bi bi-building-fill"></i>
             </div>
             <div>
-                <h4 style="margin:0">@Model.Name</h4>
-                <p style="margin:0;font-size:.78rem;color:var(--kg-text-muted)">Consultorio #@Model.Id</p>
+                <h4 style="margin:0">@Model.Office.Name</h4>
+                <p style="margin:0;font-size:.78rem;color:var(--kg-text-muted)">Consultorio #@Model.Office.Id</p>
             </div>
         </div>
-        @if (Model.IsActive)
+        @if (Model.Office.IsActive)
         {
             <span class="kg-badge kg-badge-success"><i class="bi bi-check-circle-fill"></i> Activo</span>
         }
@@ -38,12 +38,12 @@
         <div class="kg-detail-grid">
             <div class="kg-detail-item">
                 <dt>Nombre</dt>
-                <dd>@Model.Name</dd>
+                <dd>@Model.Office.Name</dd>
             </div>
             <div class="kg-detail-item">
                 <dt>Estado</dt>
                 <dd>
-                    @if (Model.IsActive)
+                    @if (Model.Office.IsActive)
                     {
                         <span class="kg-badge kg-badge-success"><i class="bi bi-check-circle-fill"></i> Activo</span>
                     }
@@ -54,12 +54,120 @@
                 </dd>
             </div>
         </div>
+
+        <div class="row g-3 mt-2">
+            <div class="col-lg-6">
+                <div class="kg-card h-100">
+                    <div class="kg-card-header">
+                        <h5 class="kg-card-header-title">
+                            <i class="bi bi-people-fill"></i> Profesionales del centro
+                        </h5>
+                    </div>
+                    <div class="kg-card-body">
+                        @if (Model.Professionals.Any())
+                        {
+                            <ul class="kg-office-list mb-0">
+                                @foreach (var item in Model.Professionals)
+                                {
+                                    <li><i class="bi bi-person-check"></i> @item</li>
+                                }
+                            </ul>
+                        }
+                        else
+                        {
+                            <div class="kg-office-empty-note">Aun no hay profesionales asociados por atencion en este consultorio.</div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-6">
+                <div class="kg-card h-100">
+                    <div class="kg-card-header">
+                        <h5 class="kg-card-header-title">
+                            <i class="bi bi-heart-pulse-fill"></i> Obras sociales habilitadas
+                        </h5>
+                    </div>
+                    <div class="kg-card-body">
+                        @if (Model.ObrasSociales.Any())
+                        {
+                            <ul class="kg-office-list mb-0">
+                                @foreach (var item in Model.ObrasSociales)
+                                {
+                                    <li><i class="bi bi-shield-check"></i> @item</li>
+                                }
+                            </ul>
+                        }
+                        else
+                        {
+                            <div class="kg-office-empty-note">Aun no se registran obras sociales en sesiones de este consultorio.</div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-6">
+                <div class="kg-card h-100">
+                    <div class="kg-card-header">
+                        <h5 class="kg-card-header-title">
+                            <i class="bi bi-journal-medical"></i> Tratamientos disponibles
+                        </h5>
+                    </div>
+                    <div class="kg-card-body">
+                        @if (Model.Treatments.Any())
+                        {
+                            <ul class="kg-office-list mb-3">
+                                @foreach (var item in Model.Treatments)
+                                {
+                                    <li><i class="bi bi-dot"></i> @item</li>
+                                }
+                            </ul>
+                        }
+                        else
+                        {
+                            <div class="kg-office-empty-note mb-3">Aun no hay tratamientos con sesiones registradas en este consultorio.</div>
+                        }
+                        <button type="button" class="btn-kg-outline" disabled>
+                            <i class="bi bi-plus-circle"></i> Agregar tratamiento (proximamente)
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-6">
+                <div class="kg-card h-100">
+                    <div class="kg-card-header">
+                        <h5 class="kg-card-header-title">
+                            <i class="bi bi-tools"></i> Equipamiento del centro
+                        </h5>
+                    </div>
+                    <div class="kg-card-body">
+                        @if (Model.Equipments.Any())
+                        {
+                            <ul class="kg-office-list mb-3">
+                                @foreach (var item in Model.Equipments)
+                                {
+                                    <li><i class="bi bi-check2-square"></i> @item</li>
+                                }
+                            </ul>
+                        }
+                        else
+                        {
+                            <div class="kg-office-empty-note mb-3">No hay equipamiento cargado para este consultorio.</div>
+                        }
+                        <button type="button" class="btn-kg-outline" disabled>
+                            <i class="bi bi-plus-circle"></i> Agregar equipo y especificaciones (proximamente)
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
     <div class="kg-form-footer">
-        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn-kg-primary">
+        <a asp-action="Edit" asp-route-id="@Model.Office.Id" class="btn-kg-primary">
             <i class="bi bi-pencil-fill"></i> Editar
         </a>
-        <a asp-action="Delete" asp-route-id="@Model.Id" class="btn btn-outline-danger">
+        <a asp-action="Delete" asp-route-id="@Model.Office.Id" class="btn btn-outline-danger">
             <i class="bi bi-trash"></i> Eliminar
         </a>
     </div>

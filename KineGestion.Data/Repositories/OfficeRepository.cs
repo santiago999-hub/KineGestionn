@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using KineGestion.Core.DTOs;
 using KineGestion.Core.Entities;
 using KineGestion.Core.Interfaces;
 using KineGestion.Data.Context;
@@ -55,6 +56,61 @@ namespace KineGestion.Data.Repositories
                 .ToListAsync(); // sin Include: la vista Index solo usa Name e IsActive
 
             return (offices, totalCount);
+        }
+
+        public async Task<OfficeClinicalProfileDto?> GetClinicalProfileAsync(int officeId)
+        {
+            var office = await _context.Offices
+                .AsNoTracking()
+                .Include(o => o.Equipments)
+                .FirstOrDefaultAsync(o => o.Id == officeId);
+
+            if (office is null)
+                return null;
+
+            var sessionBaseQuery = _context.Sessions
+                .AsNoTracking()
+                .Where(s => s.OfficeId == officeId);
+
+            var professionals = await sessionBaseQuery
+                .Select(s => s.Professional != null
+                    ? (s.Professional.Apellido + ", " + s.Professional.Nombre)
+                    : string.Empty)
+                .Where(name => !string.IsNullOrWhiteSpace(name))
+                .Distinct()
+                .OrderBy(name => name)
+                .ToListAsync();
+
+            var treatments = await sessionBaseQuery
+                .Select(s => s.Treatment != null ? s.Treatment.Descripcion : string.Empty)
+                .Where(desc => !string.IsNullOrWhiteSpace(desc))
+                .Distinct()
+                .OrderBy(desc => desc)
+                .ToListAsync();
+
+            var obrasSociales = await sessionBaseQuery
+                .Select(s => s.Patient != null ? s.Patient.ObraSocial : string.Empty)
+                .Where(os => !string.IsNullOrWhiteSpace(os))
+                .Select(os => os!)
+                .Distinct()
+                .OrderBy(os => os)
+                .ToListAsync();
+
+            var equipments = office.Equipments
+                .Where(e => !string.IsNullOrWhiteSpace(e.Name))
+                .Select(e => e.Name.Trim())
+                .Distinct()
+                .OrderBy(name => name)
+                .ToList();
+
+            return new OfficeClinicalProfileDto
+            {
+                OfficeId = officeId,
+                Professionals = professionals,
+                Treatments = treatments,
+                Equipments = equipments,
+                ObrasSociales = obrasSociales
+            };
         }
 
         public async Task<bool> ExistsByNameAsync(string name, int? excludeId = null)

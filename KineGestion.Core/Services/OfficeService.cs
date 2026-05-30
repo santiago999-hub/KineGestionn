@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using KineGestion.Core.DTOs;
 using KineGestion.Core.Entities;
 using KineGestion.Core.Exceptions;
 using KineGestion.Core.Interfaces;
@@ -32,6 +33,12 @@ namespace KineGestion.Core.Services
 
         public async Task<(IEnumerable<Office> Offices, int TotalCount)> GetPagedAsync(int page, int pageSize, string? search)
             => await _repository.GetPagedAsync(page, pageSize, search);
+
+        public async Task<OfficeClinicalProfileDto?> GetClinicalProfileAsync(int officeId)
+            => await QueryCache.GetOrCreateAsync(
+                $"offices:clinical-profile:{officeId}",
+                () => _repository.GetClinicalProfileAsync(officeId),
+                TimeSpan.FromSeconds(15));
 
         public async Task<Office> CreateAsync(Office office)
         {
