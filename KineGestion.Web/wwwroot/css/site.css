@@ -725,6 +725,7 @@ h1, h2, h3, h4, h5, h6 {
 
 /* Action button group in tables */
 .kg-action-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+.kg-action-btns-end { justify-content: flex-end; }
 .kg-action-btn {
     display: inline-flex;
     align-items: center;
@@ -1482,6 +1483,22 @@ body.kg-theme-dark .kg-logout-btn:hover {
     font-size: .72rem;
     font-weight: 400;
     color: var(--kg-text-muted);
+}
+
+.kg-cell-primary {
+    font-weight: 600;
+}
+
+.kg-cell-meta {
+    font-size: .75rem;
+    color: var(--kg-text-muted);
+}
+
+.kg-cell-ellipsis-160 {
+    max-width: 160px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .kg-session-toolbar {

@@ -3,6 +3,9 @@
 
 @{
     ViewData["Title"] = "Mi Agenda";
+    var today = DateTime.Today.ToString("yyyy-MM-dd");
+    var isTodayFilter = Model.DateFrom?.Date == DateTime.Today && Model.DateTo?.Date == DateTime.Today;
+    var hasFilters = !string.IsNullOrWhiteSpace(Model.Search) || Model.Status.HasValue || Model.PaymentStatus.HasValue || Model.DateFrom.HasValue || Model.DateTo.HasValue;
 }
 
 <div class="kg-page-header">
@@ -18,6 +21,37 @@
             <i class="bi bi-calendar2-heart-fill"></i> Mis Sesiones
         </h5>
         <span class="kg-badge kg-badge-muted">@Model.TotalCount registros</span>
+    </div>
+
+    <div class="kg-session-toolbar px-3 pt-3">
+        <div class="kg-action-priority-label mb-2">Atajos operativos</div>
+        <div class="kg-session-quick-filters">
+            <a asp-action="MyAgenda"
+               asp-route-dateFrom="@today"
+               asp-route-dateTo="@today"
+               class="kg-session-chip @(isTodayFilter ? "active" : string.Empty)">
+                <i class="bi bi-calendar2-day"></i>
+                Agenda de hoy
+            </a>
+            <a asp-action="MyAgenda"
+               asp-route-status="Pending"
+               class="kg-session-chip @(Model.Status == SessionStatus.Pending ? "active" : string.Empty)">
+                <i class="bi bi-hourglass-split"></i>
+                Pendientes
+            </a>
+            <a asp-action="MyAgenda"
+               asp-route-paymentStatus="Pending"
+               class="kg-session-chip @(Model.PaymentStatus == PaymentStatus.Pending ? "active" : string.Empty)">
+                <i class="bi bi-cash-stack"></i>
+                Cobro pendiente
+            </a>
+            <a asp-action="MyAgenda"
+               class="kg-session-chip kg-session-chip-ghost @(hasFilters ? string.Empty : "disabled")"
+               aria-disabled="@(!hasFilters)">
+                <i class="bi bi-arrow-counterclockwise"></i>
+                Limpiar
+            </a>
+        </div>
     </div>
 
     <form method="get" class="px-3 pt-3 pb-1">
@@ -87,11 +121,11 @@
                     {
                         <tr>
                             <td>
-                                <div style="font-weight:600">@s.FechaHora.ToString("dd/MM/yyyy")</div>
-                                <div style="font-size:.75rem;color:var(--kg-text-muted)">@s.FechaHora.ToString("HH:mm") hs</div>
+                                <div class="kg-cell-primary">@s.FechaHora.ToString("dd/MM/yyyy")</div>
+                                <div class="kg-cell-meta">@s.FechaHora.ToString("HH:mm") hs</div>
                             </td>
                             <td>@s.PacienteNombre</td>
-                            <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="@s.TratamientoDescripcion">
+                            <td class="kg-cell-ellipsis-160" title="@s.TratamientoDescripcion">
                                 @s.TratamientoDescripcion
                             </td>
                             <td>@(string.IsNullOrWhiteSpace(s.OfficeNombre) ? "Sin asignar" : s.OfficeNombre)</td>
@@ -125,7 +159,7 @@
                                 }
                             </td>
                             <td>
-                                <div class="kg-action-btns" style="justify-content:flex-end">
+                                <div class="kg-action-btns kg-action-btns-end">
                                     <a asp-action="Details" asp-route-id="@s.Id" class="kg-action-btn view" title="Ver detalle con evolución"><i class="bi bi-eye-fill"></i></a>
                                     @if (!s.EvolutionBloqueada)
                                     {
@@ -138,15 +172,15 @@
                 </tbody>
             </table>
         </div>
-        <div style="padding:12px 18px;border-top:1px solid var(--kg-border);font-size:.76rem;color:var(--kg-text-muted)">
+        <div class="kg-session-summary-footer">
             Mostrando @Model.Items.Count() de @Model.TotalCount sesiones
         </div>
 
         @if (Model.TotalPages > 1)
         {
-            <div style="padding:12px 18px;border-top:1px solid var(--kg-border);display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
-                <span style="font-size:.78rem;color:var(--kg-text-muted)">Página @Model.Page de @Model.TotalPages</span>
-                <div style="display:flex;gap:6px">
+            <div class="kg-session-pagination-wrap">
+                <span class="kg-session-pagination-text">Página @Model.Page de @Model.TotalPages</span>
+                <div class="kg-session-pagination-actions">
                     <a asp-action="MyAgenda" asp-route-page="@(Model.Page - 1)" asp-route-pageSize="@Model.PageSize" asp-route-search="@Model.Search" asp-route-status="@Model.Status" asp-route-paymentStatus="@Model.PaymentStatus" asp-route-dateFrom="@Model.DateFrom?.ToString("yyyy-MM-dd")" asp-route-dateTo="@Model.DateTo?.ToString("yyyy-MM-dd")" class="btn-kg-outline @(Model.Page <= 1 ? "disabled" : "")">Anterior</a>
                     <a asp-action="MyAgenda" asp-route-page="@(Model.Page + 1)" asp-route-pageSize="@Model.PageSize" asp-route-search="@Model.Search" asp-route-status="@Model.Status" asp-route-paymentStatus="@Model.PaymentStatus" asp-route-dateFrom="@Model.DateFrom?.ToString("yyyy-MM-dd")" asp-route-dateTo="@Model.DateTo?.ToString("yyyy-MM-dd")" class="btn-kg-outline @(Model.Page >= Model.TotalPages ? "disabled" : "")">Siguiente</a>
                 </div>
