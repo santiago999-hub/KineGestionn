@@ -409,6 +409,114 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* ══════════════════════════════════════════════════════════
+   DASHBOARD HERO
+   ══════════════════════════════════════════════════════════ */
+.kg-dashboard-hero {
+    display: grid;
+    grid-template-columns: 1.3fr .7fr;
+    gap: 20px;
+    align-items: stretch;
+    padding: 26px;
+    border-radius: calc(var(--kg-radius) + 2px);
+    background:
+        radial-gradient(circle at top right, rgba(90, 176, 255, 0.14), transparent 38%),
+        linear-gradient(135deg, #102744 0%, #17345d 48%, #1f7bbf 100%);
+    color: #fff;
+    box-shadow: 0 18px 38px rgba(11, 31, 52, 0.22);
+    overflow: hidden;
+}
+
+.kg-dashboard-hero-copy h2 {
+    font-size: clamp(1.55rem, 2.8vw, 2.15rem);
+    font-weight: 700;
+    margin: 10px 0 8px;
+    color: #fff;
+}
+
+.kg-dashboard-hero-copy p {
+    margin: 0;
+    max-width: 720px;
+    color: rgba(255,255,255,.78);
+    line-height: 1.7;
+    font-size: .96rem;
+}
+
+.kg-dashboard-hero-kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: rgba(255,255,255,.10);
+    border: 1px solid rgba(255,255,255,.16);
+    font-size: .74rem;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: #dbefff;
+}
+
+.kg-dashboard-hero-kicker i { color: #8ad2ff; }
+
+.kg-dashboard-hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 18px;
+}
+
+.kg-dashboard-hero-actions .btn-kg-outline {
+    border-color: rgba(255,255,255,.22);
+    color: rgba(255,255,255,.9);
+    background: rgba(255,255,255,.06);
+}
+
+.kg-dashboard-hero-actions .btn-kg-outline:hover {
+    color: #fff;
+    border-color: rgba(255,255,255,.32);
+    background: rgba(255,255,255,.12);
+}
+
+.kg-dashboard-hero-meta {
+    display: grid;
+    gap: 12px;
+    align-content: center;
+}
+
+.kg-dashboard-hero-chip {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    border-radius: 16px;
+    background: rgba(255,255,255,.10);
+    border: 1px solid rgba(255,255,255,.12);
+    backdrop-filter: blur(6px);
+}
+
+.kg-dashboard-hero-chip i {
+    width: 36px;
+    height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    background: rgba(255,255,255,.14);
+    color: #8ad2ff;
+    flex-shrink: 0;
+}
+
+.kg-dashboard-hero-chip span {
+    font-size: .84rem;
+    font-weight: 600;
+    color: rgba(255,255,255,.88);
+}
+
+@media (max-width: 992px) {
+    .kg-dashboard-hero { grid-template-columns: 1fr; }
+}
+
+/* ══════════════════════════════════════════════════════════
    STAT CARDS (Dashboard)
    ══════════════════════════════════════════════════════════ */
 .kg-stat-card {

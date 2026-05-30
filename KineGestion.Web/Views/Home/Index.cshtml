@@ -4,6 +4,45 @@
     ViewData["Title"] = "Dashboard";
 }
 
+<div class="kg-dashboard-hero mb-4">
+    <div class="kg-dashboard-hero-copy">
+        <div class="kg-dashboard-hero-kicker">
+            <i class="bi bi-speedometer2"></i>
+            Panel operativo
+        </div>
+        <h2>Tu centro de control para el día de trabajo</h2>
+        <p>
+            Acá tenés el estado general del sistema, los indicadores que importan y los accesos rápidos
+            para resolver la operación clínica sin navegar de más.
+        </p>
+        <div class="kg-dashboard-hero-actions">
+            <a asp-controller="Sessions" asp-action="Index" asp-route-dateFrom="@DateTime.Today.ToString("yyyy-MM-dd")" asp-route-dateTo="@DateTime.Today.ToString("yyyy-MM-dd")" class="btn-kg-primary">
+                <i class="bi bi-calendar2-week-fill"></i>
+                Ver agenda de hoy
+            </a>
+            <a asp-controller="Home" asp-action="QuienesSomos" class="btn-kg-outline">
+                <i class="bi bi-info-circle"></i>
+                Conocer la plataforma
+            </a>
+        </div>
+    </div>
+
+    <div class="kg-dashboard-hero-meta">
+        <div class="kg-dashboard-hero-chip">
+            <i class="bi bi-calendar3"></i>
+            <span>@DateTime.Today.ToString("dd/MM/yyyy")</span>
+        </div>
+        <div class="kg-dashboard-hero-chip">
+            <i class="bi bi-activity"></i>
+            <span>Sesión protegida y auditada</span>
+        </div>
+        <div class="kg-dashboard-hero-chip">
+            <i class="bi bi-shield-check"></i>
+            <span>@User.Identity?.Name</span>
+        </div>
+    </div>
+</div>
+
 <!-- Page Header -->
 <div class="kg-page-header">
     <div>
