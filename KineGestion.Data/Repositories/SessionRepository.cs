@@ -127,36 +127,36 @@ namespace KineGestion.Data.Repositories
             string? sortBy,
             string? sortDir)
         {
-            var query = _context.Sessions.AsNoTracking().AsQueryable();
+            var baseQuery = _context.Sessions.AsNoTracking().AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(search))
             {
                 var term = search.Trim();
-                query = query.Where(s =>
+                baseQuery = baseQuery.Where(s =>
                     (s.Patient != null && (s.Patient.Nombre + " " + s.Patient.Apellido).Contains(term)) ||
                     (s.Professional != null && (s.Professional.Nombre + " " + s.Professional.Apellido).Contains(term)) ||
                     (s.Treatment != null && s.Treatment.Descripcion.Contains(term)));
             }
 
-            if (status.HasValue)       query = query.Where(s => s.Status == status.Value);
-            if (paymentStatus.HasValue) query = query.Where(s => s.PaymentStatus == paymentStatus.Value);
-            if (dateFrom.HasValue) query = query.Where(s => s.FechaHora >= dateFrom.Value.Date);
-            if (dateTo.HasValue) query = query.Where(s => s.FechaHora < dateTo.Value.Date.AddDays(1));
+            if (status.HasValue)       baseQuery = baseQuery.Where(s => s.Status == status.Value);
+            if (paymentStatus.HasValue) baseQuery = baseQuery.Where(s => s.PaymentStatus == paymentStatus.Value);
+            if (dateFrom.HasValue) baseQuery = baseQuery.Where(s => s.FechaHora >= dateFrom.Value.Date);
+            if (dateTo.HasValue) baseQuery = baseQuery.Where(s => s.FechaHora < dateTo.Value.Date.AddDays(1));
+
+            int totalCount = await baseQuery.CountAsync();
 
             var sortField = string.IsNullOrWhiteSpace(sortBy) ? "fecha" : sortBy.Trim().ToLowerInvariant();
             var descending = !string.Equals(sortDir, "asc", StringComparison.OrdinalIgnoreCase);
 
-            query = (sortField, descending) switch
+            var sortedQuery = (sortField, descending) switch
             {
-                ("estado", true)  => query.OrderByDescending(s => s.Status).ThenByDescending(s => s.FechaHora),
-                ("estado", false) => query.OrderBy(s => s.Status).ThenByDescending(s => s.FechaHora),
-                (_, true)  => query.OrderByDescending(s => s.FechaHora),
-                _ => query.OrderBy(s => s.FechaHora)
+                ("estado", true)  => baseQuery.OrderByDescending(s => s.Status).ThenByDescending(s => s.FechaHora),
+                ("estado", false) => baseQuery.OrderBy(s => s.Status).ThenByDescending(s => s.FechaHora),
+                (_, true)  => baseQuery.OrderByDescending(s => s.FechaHora),
+                _ => baseQuery.OrderBy(s => s.FechaHora)
             };
 
-            int totalCount = await query.CountAsync();
-
-            var items = await query
+            var items = await sortedQuery
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .Select(s => new SessionListDto(
@@ -232,7 +232,7 @@ namespace KineGestion.Data.Repositories
             DateTime? dateFrom,
             DateTime? dateTo)
         {
-            var query = _context.Sessions
+            var baseQuery = _context.Sessions
                 .AsNoTracking()
                 .Where(s => s.ProfessionalId == professionalId)
                 .AsQueryable();
@@ -240,19 +240,19 @@ namespace KineGestion.Data.Repositories
             if (!string.IsNullOrWhiteSpace(search))
             {
                 var term = search.Trim();
-                query = query.Where(s =>
+                baseQuery = baseQuery.Where(s =>
                     (s.Patient != null && (s.Patient.Nombre + " " + s.Patient.Apellido).Contains(term)) ||
                     (s.Treatment != null && s.Treatment.Descripcion.Contains(term)));
             }
 
-            if (status.HasValue)       query = query.Where(s => s.Status == status.Value);
-            if (paymentStatus.HasValue) query = query.Where(s => s.PaymentStatus == paymentStatus.Value);
-            if (dateFrom.HasValue) query = query.Where(s => s.FechaHora >= dateFrom.Value.Date);
-            if (dateTo.HasValue) query = query.Where(s => s.FechaHora < dateTo.Value.Date.AddDays(1));
+            if (status.HasValue)       baseQuery = baseQuery.Where(s => s.Status == status.Value);
+            if (paymentStatus.HasValue) baseQuery = baseQuery.Where(s => s.PaymentStatus == paymentStatus.Value);
+            if (dateFrom.HasValue) baseQuery = baseQuery.Where(s => s.FechaHora >= dateFrom.Value.Date);
+            if (dateTo.HasValue) baseQuery = baseQuery.Where(s => s.FechaHora < dateTo.Value.Date.AddDays(1));
 
-            int totalCount = await query.CountAsync();
+            int totalCount = await baseQuery.CountAsync();
 
-            var items = await query
+            var items = await baseQuery
                 .OrderByDescending(s => s.FechaHora)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)

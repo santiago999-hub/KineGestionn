@@ -100,21 +100,20 @@ namespace KineGestion.Data.Repositories
         /// </summary>
         public async Task<(IEnumerable<TreatmentListDto> Items, int TotalCount)> GetPagedListAsync(int page, int pageSize, string? search)
         {
-            var query = _context.Treatments.AsNoTracking().AsQueryable();
+            var baseQuery = _context.Treatments.AsNoTracking().AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(search))
             {
                 var term = search.Trim();
-                query = query.Where(t =>
+                baseQuery = baseQuery.Where(t =>
                     t.Descripcion.Contains(term) ||
                     (t.Patient != null && (t.Patient.Nombre + " " + t.Patient.Apellido).Contains(term)));
             }
 
-            query = query.OrderBy(t => t.FechaInicio);
+            int totalCount = await baseQuery.CountAsync();
 
-            int totalCount = await query.CountAsync();
-
-            var items = await query
+            var items = await baseQuery
+                .OrderBy(t => t.FechaInicio)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .Select(t => new TreatmentListDto(
