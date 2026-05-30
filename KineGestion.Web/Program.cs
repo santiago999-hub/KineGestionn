@@ -56,6 +56,7 @@ builder.Services.AddMemoryCache();
 builder.Services.AddSingleton<RequestMetricsStore>();
 builder.Services.AddSingleton<IReminderDispatchQueue, ReminderDispatchQueue>();
 builder.Services.AddHostedService<ReminderDispatchBackgroundService>();
+builder.Services.AddHostedService<CacheWarmupBackgroundService>();
 builder.Services.AddHealthChecks()
     .AddCheck<DatabaseHealthCheck>("database", tags: new[] { "ready" });
 
