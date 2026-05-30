@@ -106,14 +106,14 @@
             <table class="kg-table">
                 <thead>
                     <tr>
-                        <th>Fecha</th>
-                        <th>Paciente</th>
-                        <th>Tratamiento</th>
-                        <th>Consultorio</th>
-                        <th>Nro</th>
-                        <th>Evolución</th>
-                        <th>Estado</th>
-                        <th style="text-align:right">Acciones</th>
+                        <th scope="col">Fecha</th>
+                        <th scope="col">Paciente</th>
+                        <th scope="col">Tratamiento</th>
+                        <th scope="col">Consultorio</th>
+                        <th scope="col">Nro</th>
+                        <th scope="col">Evolución</th>
+                        <th scope="col">Estado</th>
+                        <th scope="col" class="kg-table-actions-header">Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -160,10 +160,10 @@
                             </td>
                             <td>
                                 <div class="kg-action-btns kg-action-btns-end">
-                                    <a asp-action="Details" asp-route-id="@s.Id" class="kg-action-btn view" title="Ver detalle con evolución"><i class="bi bi-eye-fill"></i></a>
+                                    <a asp-action="Details" asp-route-id="@s.Id" class="kg-action-btn view" title="Ver detalle con evolución" aria-label="Ver detalle de sesión de @s.PacienteNombre"><i class="bi bi-eye-fill"></i></a>
                                     @if (!s.EvolutionBloqueada)
                                     {
-                                        <a asp-action="Edit" asp-route-id="@s.Id" class="kg-action-btn edit" title="Editar / Cargar evolución"><i class="bi bi-pencil-fill"></i></a>
+                                        <a asp-action="Edit" asp-route-id="@s.Id" class="kg-action-btn edit" title="Editar / Cargar evolución" aria-label="Editar sesión de @s.PacienteNombre"><i class="bi bi-pencil-fill"></i></a>
                                     }
                                 </div>
                             </td>

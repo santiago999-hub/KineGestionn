@@ -322,7 +322,13 @@ h1, h2, h3, h4, h5, h6 {
 .kg-language-select:focus-visible,
 .kg-nav-item:focus-visible,
 .btn-kg-primary:focus-visible,
-.btn-kg-secondary:focus-visible {
+.btn-kg-secondary:focus-visible,
+.btn-kg-outline:focus-visible,
+.btn-kg-warning:focus-visible,
+.btn-kg-danger:focus-visible,
+.kg-action-btn:focus-visible,
+.kg-quick-action:focus-visible,
+.kg-session-chip:focus-visible {
     outline: 3px solid rgba(31, 123, 191, 0.35);
     outline-offset: 2px;
 }
@@ -1447,7 +1453,13 @@ body.kg-theme-dark .kg-logout-btn:focus-visible,
 body.kg-theme-dark .kg-language-select:focus-visible,
 body.kg-theme-dark .kg-nav-item:focus-visible,
 body.kg-theme-dark .btn-kg-primary:focus-visible,
-body.kg-theme-dark .btn-kg-secondary:focus-visible {
+body.kg-theme-dark .btn-kg-secondary:focus-visible,
+body.kg-theme-dark .btn-kg-outline:focus-visible,
+body.kg-theme-dark .btn-kg-warning:focus-visible,
+body.kg-theme-dark .btn-kg-danger:focus-visible,
+body.kg-theme-dark .kg-action-btn:focus-visible,
+body.kg-theme-dark .kg-quick-action:focus-visible,
+body.kg-theme-dark .kg-session-chip:focus-visible {
     outline-color: rgba(90, 176, 255, 0.5);
 }
 
@@ -1499,6 +1511,17 @@ body.kg-theme-dark .kg-logout-btn:hover {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+.kg-cell-ellipsis-180 {
+    max-width: 180px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.kg-table-actions-header {
+    text-align: right;
 }
 
 .kg-session-toolbar {

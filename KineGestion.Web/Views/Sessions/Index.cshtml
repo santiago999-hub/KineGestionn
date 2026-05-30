@@ -146,15 +146,15 @@
             <table class="kg-table">
                 <thead>
                     <tr>
-                        <th>Fecha y hora</th>
-                        <th>Paciente</th>
-                        <th>Profesional</th>
-                        <th>Consultorio</th>
-                        <th>Tratamiento</th>
-                        <th>Nro</th>
-                        <th>Estado</th>
-                        <th>Pago</th>
-                        <th style="text-align:right">Acciones</th>
+                        <th scope="col">Fecha y hora</th>
+                        <th scope="col">Paciente</th>
+                        <th scope="col">Profesional</th>
+                        <th scope="col">Consultorio</th>
+                        <th scope="col">Tratamiento</th>
+                        <th scope="col">Nro</th>
+                        <th scope="col">Estado</th>
+                        <th scope="col">Pago</th>
+                        <th scope="col" class="kg-table-actions-header">Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -162,13 +162,13 @@
                     {
                         <tr>
                             <td>
-                                <div style="font-weight:600">@s.FechaHora.ToString("dd/MM/yyyy")</div>
-                                <div style="font-size:.75rem;color:var(--kg-text-muted)">@s.FechaHora.ToString("HH:mm") hs</div>
+                                <div class="kg-cell-primary">@s.FechaHora.ToString("dd/MM/yyyy")</div>
+                                <div class="kg-cell-meta">@s.FechaHora.ToString("HH:mm") hs</div>
                             </td>
                             <td>@s.PacienteNombre</td>
                             <td>@s.ProfesionalNombre</td>
                             <td>@(string.IsNullOrWhiteSpace(s.OfficeNombre) ? "Sin asignar" : s.OfficeNombre)</td>
-                            <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="@s.TratamientoDescripcion">
+                            <td class="kg-cell-ellipsis-180" title="@s.TratamientoDescripcion">
                                 @s.TratamientoDescripcion
                             </td>
                             <td>
@@ -199,10 +199,10 @@
                                 }
                             </td>
                             <td>
-                                <div class="kg-action-btns" style="justify-content:flex-end">
-                                    <a asp-action="Details" asp-route-id="@s.Id" class="kg-action-btn view" title="Ver detalle"><i class="bi bi-eye-fill"></i></a>
-                                    <a asp-action="Edit" asp-route-id="@s.Id" class="kg-action-btn edit" title="Editar"><i class="bi bi-pencil-fill"></i></a>
-                                    <a asp-action="Delete" asp-route-id="@s.Id" class="kg-action-btn del" title="Eliminar"><i class="bi bi-trash-fill"></i></a>
+                                <div class="kg-action-btns kg-action-btns-end">
+                                    <a asp-action="Details" asp-route-id="@s.Id" class="kg-action-btn view" title="Ver detalle" aria-label="Ver detalle de sesión de @s.PacienteNombre"><i class="bi bi-eye-fill"></i></a>
+                                    <a asp-action="Edit" asp-route-id="@s.Id" class="kg-action-btn edit" title="Editar" aria-label="Editar sesión de @s.PacienteNombre"><i class="bi bi-pencil-fill"></i></a>
+                                    <a asp-action="Delete" asp-route-id="@s.Id" class="kg-action-btn del" title="Eliminar" aria-label="Eliminar sesión de @s.PacienteNombre"><i class="bi bi-trash-fill"></i></a>
                                 </div>
                             </td>
                         </tr>
