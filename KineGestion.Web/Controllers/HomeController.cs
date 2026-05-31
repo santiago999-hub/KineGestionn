@@ -50,48 +50,20 @@ public class HomeController : Controller
         var rangeFrom = DateTime.UtcNow.Date.AddDays(-30);
         var rangeTo = DateTime.UtcNow.Date.AddDays(1);
 
-        var countPatientsTask = SafeCountAsync(() => _patientService.CountActiveAsync(), nameof(_patientService.CountActiveAsync));
-        var countProfessionalsTask = SafeCountAsync(() => _professionalService.CountActiveAsync(), nameof(_professionalService.CountActiveAsync));
-        var countTreatmentsTask = SafeCountAsync(() => _treatmentService.CountAsync(), nameof(_treatmentService.CountAsync));
-        var countSessionsTask = SafeCountAsync(() => _sessionService.CountAsync(), nameof(_sessionService.CountAsync));
-        var countTodayTask = SafeCountAsync(() => _sessionService.CountTodayAsync(today), nameof(_sessionService.CountTodayAsync));
-        var countCompletedTodayTask = SafeCountAsync(() => _sessionService.CountByStatusOnDateAsync(SessionStatus.Completed, today), nameof(_sessionService.CountByStatusOnDateAsync));
-        var countCanceledTodayTask = SafeCountAsync(() => _sessionService.CountByStatusOnDateAsync(SessionStatus.Canceled, today), nameof(_sessionService.CountByStatusOnDateAsync));
-        var countPendingPagoTask = SafeCountAsync(() => _sessionService.CountByStatusAndPaymentStatusAsync(SessionStatus.Completed, PaymentStatus.Pending), nameof(_sessionService.CountByStatusAndPaymentStatusAsync));
-        var countPendingStatusTask = SafeCountAsync(() => _sessionService.CountByStatusAsync(SessionStatus.Pending), nameof(_sessionService.CountByStatusAsync));
-        var completedLast30Task = SafeCountAsync(() => _sessionService.CountByStatusInRangeAsync(SessionStatus.Completed, rangeFrom, rangeTo), nameof(_sessionService.CountByStatusInRangeAsync));
-        var paidCompletedLast30Task = SafeCountAsync(() => _sessionService.CountByStatusAndPaymentStatusInRangeAsync(SessionStatus.Completed, PaymentStatus.Paid, rangeFrom, rangeTo), nameof(_sessionService.CountByStatusAndPaymentStatusInRangeAsync));
-        var totalLast30Task = SafeCountAsync(() => _sessionService.CountInRangeAsync(rangeFrom, rangeTo), nameof(_sessionService.CountInRangeAsync));
-        var canceledLast30Task = SafeCountAsync(() => _sessionService.CountByStatusInRangeAsync(SessionStatus.Canceled, rangeFrom, rangeTo), nameof(_sessionService.CountByStatusInRangeAsync));
-
-        await Task.WhenAll(
-            countPatientsTask,
-            countProfessionalsTask,
-            countTreatmentsTask,
-            countSessionsTask,
-            countTodayTask,
-            countCompletedTodayTask,
-            countCanceledTodayTask,
-            countPendingPagoTask,
-            countPendingStatusTask,
-            completedLast30Task,
-            paidCompletedLast30Task,
-            totalLast30Task,
-            canceledLast30Task);
-
-        var countPatients = countPatientsTask.Result;
-        var countProfessionals = countProfessionalsTask.Result;
-        var countTreatments = countTreatmentsTask.Result;
-        var countSessions = countSessionsTask.Result;
-        var countToday = countTodayTask.Result;
-        var countCompletedToday = countCompletedTodayTask.Result;
-        var countCanceledToday = countCanceledTodayTask.Result;
-        var countPendingPago = countPendingPagoTask.Result;
-        var countPendingStatus = countPendingStatusTask.Result;
-        var completedLast30 = completedLast30Task.Result;
-        var paidCompletedLast30 = paidCompletedLast30Task.Result;
-        var totalLast30 = totalLast30Task.Result;
-        var canceledLast30 = canceledLast30Task.Result;
+        // Evitamos paralelismo en las consultas del dashboard para no compartir un DbContext scoped en múltiples operaciones concurrentes.
+        var countPatients = await SafeCountAsync(() => _patientService.CountActiveAsync(), nameof(_patientService.CountActiveAsync));
+        var countProfessionals = await SafeCountAsync(() => _professionalService.CountActiveAsync(), nameof(_professionalService.CountActiveAsync));
+        var countTreatments = await SafeCountAsync(() => _treatmentService.CountAsync(), nameof(_treatmentService.CountAsync));
+        var countSessions = await SafeCountAsync(() => _sessionService.CountAsync(), nameof(_sessionService.CountAsync));
+        var countToday = await SafeCountAsync(() => _sessionService.CountTodayAsync(today), nameof(_sessionService.CountTodayAsync));
+        var countCompletedToday = await SafeCountAsync(() => _sessionService.CountByStatusOnDateAsync(SessionStatus.Completed, today), nameof(_sessionService.CountByStatusOnDateAsync));
+        var countCanceledToday = await SafeCountAsync(() => _sessionService.CountByStatusOnDateAsync(SessionStatus.Canceled, today), nameof(_sessionService.CountByStatusOnDateAsync));
+        var countPendingPago = await SafeCountAsync(() => _sessionService.CountByStatusAndPaymentStatusAsync(SessionStatus.Completed, PaymentStatus.Pending), nameof(_sessionService.CountByStatusAndPaymentStatusAsync));
+        var countPendingStatus = await SafeCountAsync(() => _sessionService.CountByStatusAsync(SessionStatus.Pending), nameof(_sessionService.CountByStatusAsync));
+        var completedLast30 = await SafeCountAsync(() => _sessionService.CountByStatusInRangeAsync(SessionStatus.Completed, rangeFrom, rangeTo), nameof(_sessionService.CountByStatusInRangeAsync));
+        var paidCompletedLast30 = await SafeCountAsync(() => _sessionService.CountByStatusAndPaymentStatusInRangeAsync(SessionStatus.Completed, PaymentStatus.Paid, rangeFrom, rangeTo), nameof(_sessionService.CountByStatusAndPaymentStatusInRangeAsync));
+        var totalLast30 = await SafeCountAsync(() => _sessionService.CountInRangeAsync(rangeFrom, rangeTo), nameof(_sessionService.CountInRangeAsync));
+        var canceledLast30 = await SafeCountAsync(() => _sessionService.CountByStatusInRangeAsync(SessionStatus.Canceled, rangeFrom, rangeTo), nameof(_sessionService.CountByStatusInRangeAsync));
 
         var completionRateToday = countToday == 0 ? 0m : Math.Round((decimal)countCompletedToday * 100m / countToday, 2);
         var collectionRateLast30 = completedLast30 == 0 ? 0m : Math.Round((decimal)paidCompletedLast30 * 100m / completedLast30, 2);
