@@ -138,3 +138,11 @@ Este plan esta pensado para ejecutar sobre lo que ya existe en KineGestion (Home
 1. Ejecutar Sprint A completo (P0) y medir 2 semanas.
 2. Con esos resultados, avanzar Sprint B con motivos + recaptura.
 3. Revisar metas cada viernes con corte semanal fijo.
+
+## Pendiente abierto: optimizacion de tiempos
+Para la siguiente iteracion, queda como pendiente explicito afinar tiempos de respuesta con foco en primera carga y estabilidad de p95.
+
+1. Mantener benchmark autenticado diario sobre `/` y `/Sessions`.
+2. Revisar variabilidad de p95 en frio vs caliente y registrar outliers.
+3. Priorizar mejoras de consulta/indices donde p95 supere +20% del baseline estable.
+4. Revalidar impacto luego de cada ajuste con la misma metodologia de medicion.

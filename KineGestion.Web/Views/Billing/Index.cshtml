@@ -127,10 +127,29 @@
 
 <div class="kg-card">
     <div class="kg-card-body">
+        <form asp-action="MarkPaidBatch" method="post" id="batchMarkPaidForm">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="dateFrom" value="@Model.DateFrom.ToString("yyyy-MM-dd")" />
+            <input type="hidden" name="dateTo" value="@Model.DateTo.ToString("yyyy-MM-dd")" />
+            <input type="hidden" name="search" value="@Model.Search" />
+            <input type="hidden" name="onlyCompletedPending" value="@Model.OnlyCompletedPending" />
+            <input type="hidden" name="page" value="@Model.Page" />
+            <input type="hidden" name="pageSize" value="@Model.PageSize" />
+
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <small class="text-muted">Seleccioná sesiones pendientes y marcá pago en lote.</small>
+                <button type="submit" class="btn btn-sm btn-success" id="markSelectedPaidBtn" disabled>
+                    <i class="bi bi-check2-all"></i> Marcar seleccionadas como pagadas
+                </button>
+            </div>
+
         <div class="table-responsive">
             <table class="table table-hover align-middle">
                 <thead>
                     <tr>
+                        <th style="width: 40px;">
+                            <input type="checkbox" id="selectAllPending" class="form-check-input" title="Seleccionar pendientes" />
+                        </th>
                         <th>Fecha/Hora</th>
                         <th>Paciente</th>
                         <th>Profesional</th>
@@ -143,6 +162,17 @@
                     @foreach (var item in Model.Items)
                     {
                         <tr>
+                            <td>
+                                @if (item.PaymentStatus == PaymentStatus.Pending)
+                                {
+                                    <input
+                                        type="checkbox"
+                                        class="form-check-input js-pending-session"
+                                        name="sessionIds"
+                                        value="@item.Id"
+                                        aria-label="Seleccionar sesión @item.Id" />
+                                }
+                            </td>
                             <td>@item.FechaHora.ToString("dd/MM/yyyy HH:mm")</td>
                             <td>@item.PacienteNombre</td>
                             <td>@item.ProfesionalNombre</td>
@@ -192,5 +222,33 @@
                 </tbody>
             </table>
         </div>
+        </form>
     </div>
 </div>
+
+<script>
+    (() => {
+        const selectAll = document.getElementById('selectAllPending');
+        const markSelectedButton = document.getElementById('markSelectedPaidBtn');
+        const checkboxes = Array.from(document.querySelectorAll('.js-pending-session'));
+
+        if (!selectAll || !markSelectedButton || checkboxes.length === 0) {
+            return;
+        }
+
+        const refreshBatchState = () => {
+            const selectedCount = checkboxes.filter(cb => cb.checked).length;
+            markSelectedButton.disabled = selectedCount === 0;
+            selectAll.checked = selectedCount > 0 && selectedCount === checkboxes.length;
+            selectAll.indeterminate = selectedCount > 0 && selectedCount < checkboxes.length;
+        };
+
+        selectAll.addEventListener('change', () => {
+            checkboxes.forEach(cb => cb.checked = selectAll.checked);
+            refreshBatchState();
+        });
+
+        checkboxes.forEach(cb => cb.addEventListener('change', refreshBatchState));
+        refreshBatchState();
+    })();
+</script>

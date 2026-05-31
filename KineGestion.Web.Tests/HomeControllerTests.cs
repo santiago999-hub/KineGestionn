@@ -2,7 +2,6 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using KineGestion.Core;
-using KineGestion.Core.DTOs;
 using KineGestion.Core.Interfaces;
 using KineGestion.Web.Controllers;
 using KineGestion.Web.Models.ViewModels;
@@ -31,43 +30,13 @@ namespace KineGestion.Web.Tests
             sessionService.Setup(s => s.CountAsync()).ReturnsAsync(60);
             sessionService.Setup(s => s.CountTodayAsync(It.IsAny<DateTime>())).ReturnsAsync(7);
             sessionService.Setup(s => s.CountByStatusOnDateAsync(SessionStatus.Completed, It.IsAny<DateTime>())).ReturnsAsync(3);
+            sessionService.Setup(s => s.CountByStatusOnDateAsync(SessionStatus.Canceled, It.IsAny<DateTime>())).ReturnsAsync(2);
+            sessionService.Setup(s => s.CountByStatusAndPaymentStatusAsync(SessionStatus.Completed, PaymentStatus.Pending)).ReturnsAsync(9);
             sessionService.Setup(s => s.CountByStatusAsync(SessionStatus.Pending)).ReturnsAsync(5);
-            sessionService
-                .Setup(s => s.GetPagedListForAdminAsync(
-                    1,
-                    1,
-                    null,
-                    SessionStatus.Completed,
-                    PaymentStatus.Pending,
-                    null,
-                    null,
-                    "fecha",
-                    "desc"))
-                .ReturnsAsync((Enumerable.Empty<SessionListDto>(), 9));
-            sessionService
-                .Setup(s => s.GetPagedListForAdminAsync(
-                    1,
-                    1,
-                    null,
-                    SessionStatus.Completed,
-                    null,
-                    It.IsAny<DateTime?>(),
-                    It.IsAny<DateTime?>(),
-                    "fecha",
-                    "desc"))
-                .ReturnsAsync((Enumerable.Empty<SessionListDto>(), 20));
-            sessionService
-                .Setup(s => s.GetPagedListForAdminAsync(
-                    1,
-                    1,
-                    null,
-                    SessionStatus.Completed,
-                    PaymentStatus.Paid,
-                    It.IsAny<DateTime?>(),
-                    It.IsAny<DateTime?>(),
-                    "fecha",
-                    "desc"))
-                .ReturnsAsync((Enumerable.Empty<SessionListDto>(), 15));
+            sessionService.Setup(s => s.CountByStatusInRangeAsync(SessionStatus.Completed, It.IsAny<DateTime>(), It.IsAny<DateTime>())).ReturnsAsync(20);
+            sessionService.Setup(s => s.CountByStatusAndPaymentStatusInRangeAsync(SessionStatus.Completed, PaymentStatus.Paid, It.IsAny<DateTime>(), It.IsAny<DateTime>())).ReturnsAsync(15);
+            sessionService.Setup(s => s.CountInRangeAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>())).ReturnsAsync(20);
+            sessionService.Setup(s => s.CountByStatusInRangeAsync(SessionStatus.Canceled, It.IsAny<DateTime>(), It.IsAny<DateTime>())).ReturnsAsync(2);
 
             var controller = new HomeController(
                 logger.Object,
@@ -88,6 +57,7 @@ namespace KineGestion.Web.Tests
             Assert.Equal(60, model.SesionesCount);
             Assert.Equal(7, model.SesionesHoyCount);
             Assert.Equal(3, model.SesionesCompletadasHoyCount);
+            Assert.Equal(2, model.SesionesCanceladasHoyCount);
             Assert.Equal(9, model.SesionesPendientesPagoCount);
             Assert.Equal(5, model.SesionesPendientesConfirmacionCount);
         }
@@ -108,43 +78,13 @@ namespace KineGestion.Web.Tests
             sessionService.Setup(s => s.CountAsync()).ThrowsAsync(new InvalidOperationException("boom"));
             sessionService.Setup(s => s.CountTodayAsync(It.IsAny<DateTime>())).ReturnsAsync(7);
             sessionService.Setup(s => s.CountByStatusOnDateAsync(SessionStatus.Completed, It.IsAny<DateTime>())).ReturnsAsync(3);
+            sessionService.Setup(s => s.CountByStatusOnDateAsync(SessionStatus.Canceled, It.IsAny<DateTime>())).ReturnsAsync(2);
+            sessionService.Setup(s => s.CountByStatusAndPaymentStatusAsync(SessionStatus.Completed, PaymentStatus.Pending)).ReturnsAsync(9);
             sessionService.Setup(s => s.CountByStatusAsync(SessionStatus.Pending)).ReturnsAsync(5);
-            sessionService
-                .Setup(s => s.GetPagedListForAdminAsync(
-                    1,
-                    1,
-                    null,
-                    SessionStatus.Completed,
-                    PaymentStatus.Pending,
-                    null,
-                    null,
-                    "fecha",
-                    "desc"))
-                .ReturnsAsync((Enumerable.Empty<SessionListDto>(), 9));
-            sessionService
-                .Setup(s => s.GetPagedListForAdminAsync(
-                    1,
-                    1,
-                    null,
-                    SessionStatus.Completed,
-                    null,
-                    It.IsAny<DateTime?>(),
-                    It.IsAny<DateTime?>(),
-                    "fecha",
-                    "desc"))
-                .ReturnsAsync((Enumerable.Empty<SessionListDto>(), 20));
-            sessionService
-                .Setup(s => s.GetPagedListForAdminAsync(
-                    1,
-                    1,
-                    null,
-                    SessionStatus.Completed,
-                    PaymentStatus.Paid,
-                    It.IsAny<DateTime?>(),
-                    It.IsAny<DateTime?>(),
-                    "fecha",
-                    "desc"))
-                .ReturnsAsync((Enumerable.Empty<SessionListDto>(), 15));
+            sessionService.Setup(s => s.CountByStatusInRangeAsync(SessionStatus.Completed, It.IsAny<DateTime>(), It.IsAny<DateTime>())).ReturnsAsync(20);
+            sessionService.Setup(s => s.CountByStatusAndPaymentStatusInRangeAsync(SessionStatus.Completed, PaymentStatus.Paid, It.IsAny<DateTime>(), It.IsAny<DateTime>())).ReturnsAsync(15);
+            sessionService.Setup(s => s.CountInRangeAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>())).ReturnsAsync(20);
+            sessionService.Setup(s => s.CountByStatusInRangeAsync(SessionStatus.Canceled, It.IsAny<DateTime>(), It.IsAny<DateTime>())).ReturnsAsync(2);
 
             var controller = new HomeController(
                 logger.Object,
@@ -165,6 +105,7 @@ namespace KineGestion.Web.Tests
             Assert.Equal(0, model.SesionesCount);
             Assert.Equal(7, model.SesionesHoyCount);
             Assert.Equal(3, model.SesionesCompletadasHoyCount);
+            Assert.Equal(2, model.SesionesCanceladasHoyCount);
             Assert.Equal(9, model.SesionesPendientesPagoCount);
             Assert.Equal(5, model.SesionesPendientesConfirmacionCount);
         }
@@ -185,45 +126,13 @@ namespace KineGestion.Web.Tests
             sessionService.Setup(s => s.CountAsync()).ReturnsAsync(60);
             sessionService.Setup(s => s.CountTodayAsync(It.IsAny<DateTime>())).ReturnsAsync(7);
             sessionService.Setup(s => s.CountByStatusOnDateAsync(SessionStatus.Completed, It.IsAny<DateTime>())).ReturnsAsync(3);
+            sessionService.Setup(s => s.CountByStatusOnDateAsync(SessionStatus.Canceled, It.IsAny<DateTime>())).ReturnsAsync(2);
+            sessionService.Setup(s => s.CountByStatusAndPaymentStatusAsync(SessionStatus.Completed, PaymentStatus.Pending)).ReturnsAsync(9);
             sessionService.Setup(s => s.CountByStatusAsync(SessionStatus.Pending)).ReturnsAsync(5);
+            sessionService.Setup(s => s.CountByStatusInRangeAsync(SessionStatus.Completed, It.IsAny<DateTime>(), It.IsAny<DateTime>())).ReturnsAsync(20);
+            sessionService.Setup(s => s.CountByStatusAndPaymentStatusInRangeAsync(SessionStatus.Completed, PaymentStatus.Paid, It.IsAny<DateTime>(), It.IsAny<DateTime>())).ReturnsAsync(15);
             sessionService.Setup(s => s.CountInRangeAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>())).ReturnsAsync(20);
             sessionService.Setup(s => s.CountByStatusInRangeAsync(SessionStatus.Canceled, It.IsAny<DateTime>(), It.IsAny<DateTime>())).ReturnsAsync(2);
-            sessionService
-                .Setup(s => s.GetPagedListForAdminAsync(
-                    1,
-                    1,
-                    null,
-                    SessionStatus.Completed,
-                    PaymentStatus.Pending,
-                    null,
-                    null,
-                    "fecha",
-                    "desc"))
-                .ReturnsAsync((Enumerable.Empty<SessionListDto>(), 9));
-            sessionService
-                .Setup(s => s.GetPagedListForAdminAsync(
-                    1,
-                    1,
-                    null,
-                    SessionStatus.Completed,
-                    null,
-                    It.IsAny<DateTime?>(),
-                    It.IsAny<DateTime?>(),
-                    "fecha",
-                    "desc"))
-                .ReturnsAsync((Enumerable.Empty<SessionListDto>(), 20));
-            sessionService
-                .Setup(s => s.GetPagedListForAdminAsync(
-                    1,
-                    1,
-                    null,
-                    SessionStatus.Completed,
-                    PaymentStatus.Paid,
-                    It.IsAny<DateTime?>(),
-                    It.IsAny<DateTime?>(),
-                    "fecha",
-                    "desc"))
-                .ReturnsAsync((Enumerable.Empty<SessionListDto>(), 15));
 
             var controller = new HomeController(
                 logger.Object,

@@ -21,10 +21,16 @@ Verificar rapidamente salud post-release en endpoints criticos y en SQL.
 
 Script: KineGestion.Web/ops/Measure-P95.ps1
 
+Para endpoints protegidos (recomendado en este proyecto):
+
+Script: KineGestion.Web/ops/Measure-P95-Authenticated.ps1
+
 Ejemplo:
 
 ```powershell
 ./KineGestion.Web/ops/Measure-P95.ps1 -BaseUrl "https://tu-dominio.com" -Iterations 30 -PauseMs 100
+
+./KineGestion.Web/ops/Measure-P95-Authenticated.ps1 -BaseUrl "http://localhost:5138" -Iterations 30 -Routes "/","/Sessions"
 ```
 
 Interpretacion rapida:

@@ -56,10 +56,11 @@ public class HomeController : Controller
         var countSessionsTask = SafeCountAsync(() => _sessionService.CountAsync(), nameof(_sessionService.CountAsync));
         var countTodayTask = SafeCountAsync(() => _sessionService.CountTodayAsync(today), nameof(_sessionService.CountTodayAsync));
         var countCompletedTodayTask = SafeCountAsync(() => _sessionService.CountByStatusOnDateAsync(SessionStatus.Completed, today), nameof(_sessionService.CountByStatusOnDateAsync));
-        var countPendingPagoTask = SafeCountAsync(() => CountFilteredTotalAsync(null, null, SessionStatus.Completed, PaymentStatus.Pending, null), "CountCompletedPending");
+        var countCanceledTodayTask = SafeCountAsync(() => _sessionService.CountByStatusOnDateAsync(SessionStatus.Canceled, today), nameof(_sessionService.CountByStatusOnDateAsync));
+        var countPendingPagoTask = SafeCountAsync(() => _sessionService.CountByStatusAndPaymentStatusAsync(SessionStatus.Completed, PaymentStatus.Pending), nameof(_sessionService.CountByStatusAndPaymentStatusAsync));
         var countPendingStatusTask = SafeCountAsync(() => _sessionService.CountByStatusAsync(SessionStatus.Pending), nameof(_sessionService.CountByStatusAsync));
-        var completedLast30Task = SafeCountAsync(() => CountFilteredTotalAsync(rangeFrom, rangeTo, SessionStatus.Completed, null, null), "CountCompletedLast30");
-        var paidCompletedLast30Task = SafeCountAsync(() => CountFilteredTotalAsync(rangeFrom, rangeTo, SessionStatus.Completed, PaymentStatus.Paid, null), "CountPaidCompletedLast30");
+        var completedLast30Task = SafeCountAsync(() => _sessionService.CountByStatusInRangeAsync(SessionStatus.Completed, rangeFrom, rangeTo), nameof(_sessionService.CountByStatusInRangeAsync));
+        var paidCompletedLast30Task = SafeCountAsync(() => _sessionService.CountByStatusAndPaymentStatusInRangeAsync(SessionStatus.Completed, PaymentStatus.Paid, rangeFrom, rangeTo), nameof(_sessionService.CountByStatusAndPaymentStatusInRangeAsync));
         var totalLast30Task = SafeCountAsync(() => _sessionService.CountInRangeAsync(rangeFrom, rangeTo), nameof(_sessionService.CountInRangeAsync));
         var canceledLast30Task = SafeCountAsync(() => _sessionService.CountByStatusInRangeAsync(SessionStatus.Canceled, rangeFrom, rangeTo), nameof(_sessionService.CountByStatusInRangeAsync));
 
@@ -70,6 +71,7 @@ public class HomeController : Controller
             countSessionsTask,
             countTodayTask,
             countCompletedTodayTask,
+            countCanceledTodayTask,
             countPendingPagoTask,
             countPendingStatusTask,
             completedLast30Task,
@@ -83,6 +85,7 @@ public class HomeController : Controller
         var countSessions = countSessionsTask.Result;
         var countToday = countTodayTask.Result;
         var countCompletedToday = countCompletedTodayTask.Result;
+        var countCanceledToday = countCanceledTodayTask.Result;
         var countPendingPago = countPendingPagoTask.Result;
         var countPendingStatus = countPendingStatusTask.Result;
         var completedLast30 = completedLast30Task.Result;
@@ -102,6 +105,7 @@ public class HomeController : Controller
             SesionesCount = countSessions,
             SesionesHoyCount = countToday,
             SesionesCompletadasHoyCount = countCompletedToday,
+            SesionesCanceladasHoyCount = countCanceledToday,
             SesionesPendientesPagoCount = countPendingPago,
             SesionesPendientesConfirmacionCount = countPendingStatus,
             CompletionRateToday = completionRateToday,
@@ -132,22 +136,6 @@ public class HomeController : Controller
                 _logger.LogError(ex, "Error cargando métrica del dashboard desde {Source}", source);
                 return 0;
             }
-        }
-
-        async Task<int> CountFilteredTotalAsync(DateTime? dateFrom, DateTime? dateTo, SessionStatus? status, PaymentStatus? paymentStatus, string? search)
-        {
-            var (_, totalCount) = await _sessionService.GetPagedListForAdminAsync(
-                page: 1,
-                pageSize: 1,
-                search: search,
-                status: status,
-                paymentStatus: paymentStatus,
-                dateFrom: dateFrom,
-                dateTo: dateTo,
-                sortBy: "fecha",
-                sortDir: "desc");
-
-            return totalCount;
         }
     }
 

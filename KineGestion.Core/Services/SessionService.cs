@@ -139,6 +139,12 @@ namespace KineGestion.Core.Services
                     () => _repository.CountByStatusAsync(status),
                     TimeSpan.FromSeconds(10));
 
+            public async Task<int> CountByStatusAndPaymentStatusAsync(SessionStatus status, PaymentStatus paymentStatus)
+                => await QueryCache.GetOrCreateAsync(
+                    $"sessions:count:status:{status}:payment:{paymentStatus}",
+                    () => _repository.CountByStatusAndPaymentStatusAsync(status, paymentStatus),
+                    TimeSpan.FromSeconds(10));
+
             public async Task<int> CountByStatusOnDateAsync(SessionStatus status, DateTime utcDay)
                 => await QueryCache.GetOrCreateAsync(
                     $"sessions:count:status:{status}:day:{utcDay:yyyyMMdd}",
@@ -161,6 +167,12 @@ namespace KineGestion.Core.Services
                 => await QueryCache.GetOrCreateAsync(
                     $"sessions:count:payment:{paymentStatus}:range:{fromInclusiveUtc:yyyyMMddHHmmss}:{toExclusiveUtc:yyyyMMddHHmmss}",
                     () => _repository.CountByPaymentStatusInRangeAsync(paymentStatus, fromInclusiveUtc, toExclusiveUtc),
+                    TimeSpan.FromSeconds(10));
+
+            public async Task<int> CountByStatusAndPaymentStatusInRangeAsync(SessionStatus status, PaymentStatus paymentStatus, DateTime fromInclusiveUtc, DateTime toExclusiveUtc)
+                => await QueryCache.GetOrCreateAsync(
+                    $"sessions:count:status:{status}:payment:{paymentStatus}:range:{fromInclusiveUtc:yyyyMMddHHmmss}:{toExclusiveUtc:yyyyMMddHHmmss}",
+                    () => _repository.CountByStatusAndPaymentStatusInRangeAsync(status, paymentStatus, fromInclusiveUtc, toExclusiveUtc),
                     TimeSpan.FromSeconds(10));
 
             public async Task<IEnumerable<SessionReminderCandidateDto>> GetReminderCandidatesAsync(DateTime fromInclusiveUtc, DateTime toExclusiveUtc)

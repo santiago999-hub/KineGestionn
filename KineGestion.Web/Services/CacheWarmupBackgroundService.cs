@@ -75,23 +75,29 @@ namespace KineGestion.Web.Services
                 var rangeFrom = nowUtc.Date.AddDays(-30);
                 var rangeTo = nowUtc.Date.AddDays(1);
 
-                var tasks = new Task[]
+                var warmupSteps = new List<(Func<Task> Action, string MetricName)>
                 {
-                    SafeRunAsync(() => patientService.CountActiveAsync(), "patients:count:active"),
-                    SafeRunAsync(() => professionalService.CountActiveAsync(), "professionals:count:active"),
-                    SafeRunAsync(() => treatmentService.CountAsync(), "treatments:count:all"),
-                    SafeRunAsync(() => sessionService.CountAsync(), "sessions:count:all"),
-                    SafeRunAsync(() => sessionService.CountTodayAsync(nowUtc), "sessions:count:today"),
-                    SafeRunAsync(() => sessionService.CountByStatusOnDateAsync(SessionStatus.Completed, nowUtc), "sessions:count:status:completed:today"),
-                    SafeRunAsync(() => sessionService.CountByPaymentStatusAsync(PaymentStatus.Pending), "sessions:count:payment:pending"),
-                    SafeRunAsync(() => sessionService.CountByStatusAsync(SessionStatus.Pending), "sessions:count:status:pending"),
-                    SafeRunAsync(() => sessionService.CountInRangeAsync(rangeFrom, rangeTo), "sessions:count:range:last30"),
-                    SafeRunAsync(() => sessionService.CountByPaymentStatusInRangeAsync(PaymentStatus.Paid, rangeFrom, rangeTo), "sessions:count:payment:paid:last30"),
-                    SafeRunAsync(() => sessionService.CountByStatusInRangeAsync(SessionStatus.Canceled, rangeFrom, rangeTo), "sessions:count:status:canceled:last30"),
-                    SafeRunAsync(() => sessionService.GetPagedListForAdminAsync(1, 10, null, null, null, null, null, "fecha", "desc"), "sessions:admin:paged:first")
+                    (() => SafeRunAsync(() => patientService.CountActiveAsync(), "patients:count:active"), "patients:count:active"),
+                    (() => SafeRunAsync(() => professionalService.CountActiveAsync(), "professionals:count:active"), "professionals:count:active"),
+                    (() => SafeRunAsync(() => treatmentService.CountAsync(), "treatments:count:all"), "treatments:count:all"),
+                    (() => SafeRunAsync(() => sessionService.CountAsync(), "sessions:count:all"), "sessions:count:all"),
+                    (() => SafeRunAsync(() => sessionService.CountTodayAsync(nowUtc), "sessions:count:today"), "sessions:count:today"),
+                    (() => SafeRunAsync(() => sessionService.CountByStatusOnDateAsync(SessionStatus.Completed, nowUtc), "sessions:count:status:completed:today"), "sessions:count:status:completed:today"),
+                    (() => SafeRunAsync(() => sessionService.CountByStatusOnDateAsync(SessionStatus.Canceled, nowUtc), "sessions:count:status:canceled:today"), "sessions:count:status:canceled:today"),
+                    (() => SafeRunAsync(() => sessionService.CountByStatusAndPaymentStatusAsync(SessionStatus.Completed, PaymentStatus.Pending), "sessions:count:status:completed:payment:pending"), "sessions:count:status:completed:payment:pending"),
+                    (() => SafeRunAsync(() => sessionService.CountByStatusAsync(SessionStatus.Pending), "sessions:count:status:pending"), "sessions:count:status:pending"),
+                    (() => SafeRunAsync(() => sessionService.CountInRangeAsync(rangeFrom, rangeTo), "sessions:count:range:last30"), "sessions:count:range:last30"),
+                    (() => SafeRunAsync(() => sessionService.CountByStatusInRangeAsync(SessionStatus.Completed, rangeFrom, rangeTo), "sessions:count:status:completed:last30"), "sessions:count:status:completed:last30"),
+                    (() => SafeRunAsync(() => sessionService.CountByStatusAndPaymentStatusInRangeAsync(SessionStatus.Completed, PaymentStatus.Paid, rangeFrom, rangeTo), "sessions:count:status:completed:payment:paid:last30"), "sessions:count:status:completed:payment:paid:last30"),
+                    (() => SafeRunAsync(() => sessionService.CountByStatusInRangeAsync(SessionStatus.Canceled, rangeFrom, rangeTo), "sessions:count:status:canceled:last30"), "sessions:count:status:canceled:last30"),
+                    (() => SafeRunAsync(() => sessionService.GetPagedListForAdminAsync(1, 10, null, null, null, null, null, "fecha", "desc"), "sessions:admin:paged:first"), "sessions:admin:paged:first")
                 };
 
-                await Task.WhenAll(tasks);
+                foreach (var step in warmupSteps)
+                {
+                    stoppingToken.ThrowIfCancellationRequested();
+                    await step.Action();
+                }
                 stopwatch.Stop();
                 _logger.LogInformation("Warmup de caché completado en {ElapsedMs} ms con {FailureCount} omisiones.", stopwatch.ElapsedMilliseconds, failures);
             }

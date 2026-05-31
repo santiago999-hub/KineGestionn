@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Collections.Generic;
 using KineGestion.Core;
 using KineGestion.Core.Interfaces;
 using KineGestion.Web.Models.ViewModels;
@@ -31,17 +32,16 @@ namespace KineGestion.Web.Controllers
 
             var pendingCount = await _sessionService.CountByPaymentStatusInRangeAsync(PaymentStatus.Pending, from, to);
             var paidCount = await _sessionService.CountByPaymentStatusInRangeAsync(PaymentStatus.Paid, from, to);
-            var completedPendingCount = await CountFilteredTotalAsync(
-                from,
-                to,
-                null,
+            var completedPendingCount = await _sessionService.CountByStatusAndPaymentStatusInRangeAsync(
                 SessionStatus.Completed,
-                PaymentStatus.Pending);
+                PaymentStatus.Pending,
+                from,
+                to);
 
             var today = DateTime.UtcNow.Date;
-            var aging0To2Days = await CountFilteredTotalAsync(today.AddDays(-2), today.AddDays(1), null, SessionStatus.Completed, PaymentStatus.Pending);
-            var aging3To7Days = await CountFilteredTotalAsync(today.AddDays(-7), today.AddDays(-2), null, SessionStatus.Completed, PaymentStatus.Pending);
-            var aging8PlusDays = await CountFilteredTotalAsync(DateTime.MinValue, today.AddDays(-7), null, SessionStatus.Completed, PaymentStatus.Pending);
+            var aging0To2Days = await _sessionService.CountByStatusAndPaymentStatusInRangeAsync(SessionStatus.Completed, PaymentStatus.Pending, today.AddDays(-2), today.AddDays(1));
+            var aging3To7Days = await _sessionService.CountByStatusAndPaymentStatusInRangeAsync(SessionStatus.Completed, PaymentStatus.Pending, today.AddDays(-7), today.AddDays(-2));
+            var aging8PlusDays = await _sessionService.CountByStatusAndPaymentStatusInRangeAsync(SessionStatus.Completed, PaymentStatus.Pending, DateTime.MinValue, today.AddDays(-7));
 
             SessionStatus? statusFilter = onlyCompletedPending ? SessionStatus.Completed : null;
             PaymentStatus? paymentFilter = onlyCompletedPending ? PaymentStatus.Pending : null;
@@ -79,22 +79,6 @@ namespace KineGestion.Web.Controllers
             };
 
             return View(model);
-
-            async Task<int> CountFilteredTotalAsync(DateTime rangeFrom, DateTime rangeTo, string? rangeSearch, SessionStatus? status, PaymentStatus? paymentStatus)
-            {
-                var (_, filteredTotal) = await _sessionService.GetPagedListForAdminAsync(
-                    page: 1,
-                    pageSize: 1,
-                    search: rangeSearch,
-                    status: status,
-                    paymentStatus: paymentStatus,
-                    dateFrom: rangeFrom,
-                    dateTo: rangeTo,
-                    sortBy: "fecha",
-                    sortDir: "desc");
-
-                return filteredTotal;
-            }
         }
 
         [HttpPost]
@@ -112,6 +96,33 @@ namespace KineGestion.Web.Controllers
         {
             await _sessionService.SetPaymentStatusAsync(sessionId, PaymentStatus.Pending);
             TempData["Success"] = "Cobro marcado como pendiente.";
+            return RedirectToAction(nameof(Index), new { dateFrom, dateTo, search, onlyCompletedPending, page, pageSize });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> MarkPaidBatch(List<int>? sessionIds, DateTime? dateFrom, DateTime? dateTo, string? search, bool onlyCompletedPending = true, int page = 1, int pageSize = 10)
+        {
+            var normalizedIds = (sessionIds ?? new List<int>())
+                .Where(id => id > 0)
+                .Distinct()
+                .ToList();
+
+            if (normalizedIds.Count == 0)
+            {
+                TempData["Error"] = "Seleccioná al menos una sesión pendiente para marcar como pagada.";
+                return RedirectToAction(nameof(Index), new { dateFrom, dateTo, search, onlyCompletedPending, page, pageSize });
+            }
+
+            foreach (var sessionId in normalizedIds)
+            {
+                await _sessionService.SetPaymentStatusAsync(sessionId, PaymentStatus.Paid);
+            }
+
+            TempData["Success"] = normalizedIds.Count == 1
+                ? "1 sesión marcada como pagada."
+                : $"{normalizedIds.Count} sesiones marcadas como pagadas.";
+
             return RedirectToAction(nameof(Index), new { dateFrom, dateTo, search, onlyCompletedPending, page, pageSize });
         }
     }

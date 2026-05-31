@@ -372,6 +372,11 @@ namespace KineGestion.Data.Repositories
                 .AsNoTracking()
                 .CountAsync(s => s.Status == status);
 
+        public async Task<int> CountByStatusAndPaymentStatusAsync(SessionStatus status, PaymentStatus paymentStatus)
+            => await _context.Sessions
+                .AsNoTracking()
+                .CountAsync(s => s.Status == status && s.PaymentStatus == paymentStatus);
+
         public async Task<int> CountByStatusOnDateAsync(SessionStatus status, DateTime utcDay)
         {
             var tomorrow = utcDay.Date.AddDays(1);
@@ -394,6 +399,14 @@ namespace KineGestion.Data.Repositories
             => await _context.Sessions
                 .AsNoTracking()
                 .CountAsync(s => s.PaymentStatus == paymentStatus && s.FechaHora >= fromInclusiveUtc && s.FechaHora < toExclusiveUtc);
+
+        public async Task<int> CountByStatusAndPaymentStatusInRangeAsync(SessionStatus status, PaymentStatus paymentStatus, DateTime fromInclusiveUtc, DateTime toExclusiveUtc)
+            => await _context.Sessions
+                .AsNoTracking()
+                .CountAsync(s => s.Status == status
+                    && s.PaymentStatus == paymentStatus
+                    && s.FechaHora >= fromInclusiveUtc
+                    && s.FechaHora < toExclusiveUtc);
 
         public async Task<IEnumerable<SessionReminderCandidateDto>> GetReminderCandidatesAsync(DateTime fromInclusiveUtc, DateTime toExclusiveUtc)
             => await _context.Sessions

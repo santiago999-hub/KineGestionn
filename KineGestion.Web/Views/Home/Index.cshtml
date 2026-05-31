@@ -132,6 +132,15 @@
             </div>
         </a>
     </div>
+    <div class="col-sm-6 col-xl-3">
+        <a asp-controller="Sessions" asp-action="Index" asp-route-status="Canceled" asp-route-dateFrom="@DateTime.Today.ToString("yyyy-MM-dd")" asp-route-dateTo="@DateTime.Today.ToString("yyyy-MM-dd")" class="kg-stat-card kg-stat-link">
+            <div class="kg-stat-icon orange"><i class="bi bi-x-circle-fill"></i></div>
+            <div>
+                <div class="kg-stat-label">Canceladas hoy</div>
+                <div class="kg-stat-value">@Model.SesionesCanceladasHoyCount</div>
+            </div>
+        </a>
+    </div>
 </div>
 
 <div class="row g-3 mb-4">
@@ -195,6 +204,14 @@
                                 <span class="kg-quick-action-kicker">Control</span>
                                 <div>Sin Confirmar de Hoy</div>
                                 <div class="kg-quick-action-help">Revisar sesiones pendientes del día</div>
+                            </div>
+                        </a>
+                        <a asp-controller="Sessions" asp-action="Index" asp-route-status="Canceled" asp-route-dateFrom="@DateTime.Today.ToString("yyyy-MM-dd")" asp-route-dateTo="@DateTime.Today.ToString("yyyy-MM-dd")" class="kg-quick-action kg-quick-action-featured">
+                            <i class="bi bi-arrow-repeat"></i>
+                            <div>
+                                <span class="kg-quick-action-kicker">Seguimiento</span>
+                                <div>Canceladas de Hoy</div>
+                                <div class="kg-quick-action-help">Priorizar recupero y reprogramación</div>
                             </div>
                         </a>
                         <a asp-controller="Sessions" asp-action="Create" class="kg-quick-action kg-quick-action-featured">
