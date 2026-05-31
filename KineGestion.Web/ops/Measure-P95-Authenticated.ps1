@@ -4,7 +4,7 @@ param(
 
     [string]$Email = 'admin@kinegestion.com',
 
-    [string]$Password = 'Admin1234',
+    [string]$AuthSecret = 'Admin1234',
 
     [int]$Iterations = 30,
 
@@ -49,7 +49,7 @@ function Get-Percentile {
     return [Math]::Round($sorted[$index], 2)
 }
 
-function Extract-AntiForgeryToken {
+function Get-AntiForgeryToken {
     param([string]$Html)
 
     $pattern = 'name="__RequestVerificationToken"\s+type="hidden"\s+value="([^"]+)"|name="__RequestVerificationToken"\s+value="([^"]+)"'
@@ -69,18 +69,18 @@ function Invoke-Login {
     param(
         [string]$Base,
         [string]$UserEmail,
-        [string]$UserPassword,
+        [string]$UserSecret,
         [Microsoft.PowerShell.Commands.WebRequestSession]$WebSession
     )
 
     $loginUrl = "$Base/Account/Login"
     $loginPage = Invoke-WebRequest -Uri $loginUrl -Method Get -WebSession $WebSession -MaximumRedirection 5
-    $token = Extract-AntiForgeryToken -Html $loginPage.Content
+    $token = Get-AntiForgeryToken -Html $loginPage.Content
 
     $form = @{
         '__RequestVerificationToken' = $token
         'Email' = $UserEmail
-        'Password' = $UserPassword
+        'Password' = $UserSecret
         'RememberMe' = 'false'
         'ReturnUrl' = ''
     }
@@ -168,7 +168,7 @@ if ($IncludeOpsMetrics -and -not ($Routes -contains '/ops/metrics')) {
 }
 
 $session = New-Object Microsoft.PowerShell.Commands.WebRequestSession
-Invoke-Login -Base $base -UserEmail $Email -UserPassword $Password -WebSession $session
+Invoke-Login -Base $base -UserEmail $Email -UserSecret $AuthSecret -WebSession $session
 
 $results = foreach ($route in $Routes) {
     Measure-Route -Base $base -Route $route -Runs $Iterations -Pause $PauseMs -WebSession $session
