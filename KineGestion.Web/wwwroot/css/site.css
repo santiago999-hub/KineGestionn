@@ -332,6 +332,22 @@ h1, h2, h3, h4, h5, h6 {
     outline: 3px solid rgba(31, 123, 191, 0.35);
     outline-offset: 2px;
 }
+
+.kg-alert-origin-badge {
+    cursor: help;
+}
+
+.kg-alert-origin-badge:focus-visible {
+    outline: 3px solid rgba(31, 123, 191, 0.45);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 4px rgba(31, 123, 191, 0.18);
+}
+
+body.kg-theme-dark .kg-alert-origin-badge:focus-visible {
+    outline-color: rgba(126, 200, 248, 0.7);
+    box-shadow: 0 0 0 4px rgba(126, 200, 248, 0.22);
+}
+
 .kg-topbar-user {
     display: flex; align-items: center; gap: 8px;
     font-size: .82rem;

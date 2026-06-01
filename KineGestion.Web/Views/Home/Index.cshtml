@@ -93,7 +93,20 @@
             <ul class="mb-0 mt-2">
                 @foreach (var item in Model.RecentBillingOperationalAlerts)
                 {
-                    <li>@item.ChangedAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm") - @item.ChangedBy</li>
+                    <li class="d-flex flex-wrap align-items-center gap-2">
+                        <span>
+                            @item.ChangedAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm") -
+                            <span class="fw-semibold @(item.IsSystemTriggered ? "text-secondary" : "text-primary")">
+                                @item.ChangedBy
+                            </span>
+                        </span>
+                        <span class="badge kg-alert-origin-badge @(item.IsSystemTriggered ? "text-bg-secondary" : "text-bg-primary")"
+                            tabindex="0"
+                            title="@((item.IsSystemTriggered ? "Origen automático por sistema" : "Origen manual disparado por usuario"))"
+                            aria-label="@($"Origen de alerta: {item.TriggerSourceLabel}. {(item.IsSystemTriggered ? "Disparo automático por sistema" : "Disparo manual por usuario")}")">
+                            @item.TriggerSourceLabel
+                        </span>
+                    </li>
                 }
             </ul>
         </div>

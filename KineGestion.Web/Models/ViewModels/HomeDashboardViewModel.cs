@@ -4,6 +4,8 @@ namespace KineGestion.Web.Models.ViewModels
     {
         public DateTime ChangedAtUtc { get; set; }
         public string ChangedBy { get; set; } = string.Empty;
+        public bool IsSystemTriggered => string.Equals(ChangedBy, "system", StringComparison.OrdinalIgnoreCase);
+        public string TriggerSourceLabel => IsSystemTriggered ? "System" : "Manual";
     }
 
     public class HomeDashboardViewModel

@@ -232,6 +232,71 @@ namespace KineGestion.Web.Tests
             Assert.True(model.LastBillingOperationalAlertAtUtc.HasValue);
             Assert.Equal("system", model.LastBillingOperationalAlertChangedBy);
             Assert.Single(model.RecentBillingOperationalAlerts);
+            Assert.True(model.RecentBillingOperationalAlerts[0].IsSystemTriggered);
+            Assert.Equal("System", model.RecentBillingOperationalAlerts[0].TriggerSourceLabel);
+        }
+
+        [Fact]
+        public async Task Index_ShouldClassifyRecentBillingOperationalAlertAsManual_WhenChangedByIsUser()
+        {
+            var logger = new Mock<ILogger<HomeController>>();
+            var patientService = new Mock<IPatientService>();
+            var professionalService = new Mock<IProfessionalService>();
+            var treatmentService = new Mock<ITreatmentService>();
+            var sessionService = new Mock<ISessionService>();
+            var auditLogService = new Mock<IAuditLogService>();
+            var billingAlertService = new Mock<IBillingOperationalAlertService>();
+            var memoryCache = new MemoryCache(new MemoryCacheOptions());
+
+            patientService.Setup(s => s.CountActiveAsync()).ReturnsAsync(1);
+            professionalService.Setup(s => s.CountActiveAsync()).ReturnsAsync(1);
+            treatmentService.Setup(s => s.CountAsync()).ReturnsAsync(1);
+            sessionService.Setup(s => s.CountAsync()).ReturnsAsync(1);
+            sessionService.Setup(s => s.CountTodayAsync(It.IsAny<DateTime>())).ReturnsAsync(1);
+            sessionService.Setup(s => s.CountByStatusOnDateAsync(It.IsAny<SessionStatus>(), It.IsAny<DateTime>())).ReturnsAsync(1);
+            sessionService.Setup(s => s.CountByStatusAndPaymentStatusAsync(It.IsAny<SessionStatus>(), It.IsAny<PaymentStatus>())).ReturnsAsync(1);
+            sessionService.Setup(s => s.CountByStatusAsync(It.IsAny<SessionStatus>())).ReturnsAsync(1);
+            sessionService.Setup(s => s.CountByStatusInRangeAsync(It.IsAny<SessionStatus>(), It.IsAny<DateTime>(), It.IsAny<DateTime>())).ReturnsAsync(1);
+            sessionService.Setup(s => s.CountByStatusAndPaymentStatusInRangeAsync(It.IsAny<SessionStatus>(), It.IsAny<PaymentStatus>(), It.IsAny<DateTime>(), It.IsAny<DateTime>())).ReturnsAsync(1);
+            sessionService.Setup(s => s.CountInRangeAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>())).ReturnsAsync(1);
+
+            billingAlertService
+                .Setup(s => s.GetSnapshotAsync(It.IsAny<DateTime>(), default))
+                .ReturnsAsync(new BillingOperationalAlertSnapshot { ThresholdPct = 70m, HasConsecutiveLowWeeks = true });
+
+            auditLogService
+                .Setup(s => s.GetAllAsync("OperationalAlert", null, null, "Create", It.IsAny<DateTime?>(), It.IsAny<DateTime?>()))
+                .ReturnsAsync(new[] { new AuditLog { EntityName = "OperationalAlert", Action = "Create", ChangedAt = DateTime.UtcNow } });
+            auditLogService
+                .Setup(s => s.GetPagedAsync("OperationalAlert", null, null, "Create", null, null, 1, 3))
+                .ReturnsAsync((new[]
+                {
+                    new AuditLog
+                    {
+                        EntityName = "OperationalAlert",
+                        Action = "Create",
+                        ChangedAt = DateTime.UtcNow.AddMinutes(-3),
+                        ChangedBy = "admin@kinegestion.local"
+                    }
+                }.AsEnumerable(), 1));
+
+            var controller = new HomeController(
+                logger.Object,
+                memoryCache,
+                patientService.Object,
+                professionalService.Object,
+                treatmentService.Object,
+                sessionService.Object,
+                auditLogService.Object,
+                billingAlertService.Object);
+
+            var result = await controller.Index();
+
+            var view = Assert.IsType<ViewResult>(result);
+            var model = Assert.IsType<HomeDashboardViewModel>(view.Model);
+            Assert.Single(model.RecentBillingOperationalAlerts);
+            Assert.False(model.RecentBillingOperationalAlerts[0].IsSystemTriggered);
+            Assert.Equal("Manual", model.RecentBillingOperationalAlerts[0].TriggerSourceLabel);
         }
 
         [Fact]
