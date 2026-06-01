@@ -426,6 +426,55 @@ namespace KineGestion.Data.Repositories
                 ))
                 .ToListAsync();
 
+        public async Task<(int UpdatedCount, int SkippedCount)> MarkCompletedPendingAsPaidBatchAsync(IReadOnlyCollection<int> sessionIds, DateTime actionAtUtc)
+        {
+            var normalizedIds = sessionIds
+                .Where(id => id > 0)
+                .Distinct()
+                .ToList();
+
+            if (normalizedIds.Count == 0)
+                return (0, 0);
+
+            var note = $"[{actionAtUtc:yyyy-MM-dd HH:mm 'UTC'}] COBRO_REGISTRADO";
+            var candidates = _context.Sessions
+                .Where(s => normalizedIds.Contains(s.Id)
+                    && s.Status == SessionStatus.Completed
+                    && s.PaymentStatus == PaymentStatus.Pending);
+
+            var updatedCount = await candidates.ExecuteUpdateAsync(setters => setters
+                .SetProperty(s => s.PaymentStatus, PaymentStatus.Paid)
+                .SetProperty(s => s.InternalNotes, s => string.IsNullOrWhiteSpace(s.InternalNotes)
+                    ? note
+                    : s.InternalNotes + Environment.NewLine + note));
+
+            return (updatedCount, normalizedIds.Count - updatedCount);
+        }
+
+        public async Task<(int UpdatedCount, int SkippedCount)> MarkPaidAsPendingBatchAsync(IReadOnlyCollection<int> sessionIds, DateTime actionAtUtc)
+        {
+            var normalizedIds = sessionIds
+                .Where(id => id > 0)
+                .Distinct()
+                .ToList();
+
+            if (normalizedIds.Count == 0)
+                return (0, 0);
+
+            var note = $"[{actionAtUtc:yyyy-MM-dd HH:mm 'UTC'}] COBRO_REABIERTO";
+            var candidates = _context.Sessions
+                .Where(s => normalizedIds.Contains(s.Id)
+                    && s.PaymentStatus == PaymentStatus.Paid);
+
+            var updatedCount = await candidates.ExecuteUpdateAsync(setters => setters
+                .SetProperty(s => s.PaymentStatus, PaymentStatus.Pending)
+                .SetProperty(s => s.InternalNotes, s => string.IsNullOrWhiteSpace(s.InternalNotes)
+                    ? note
+                    : s.InternalNotes + Environment.NewLine + note));
+
+            return (updatedCount, normalizedIds.Count - updatedCount);
+        }
+
         /// <summary>
         /// Inserta una sesión de forma atómica bajo una transacción Serializable.
         /// Se recalcula el conteo dentro de la transacción para evitar phantoms entre el COUNT

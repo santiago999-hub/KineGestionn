@@ -31,6 +31,7 @@ namespace KineGestion.Web.Tests
             var reminderDeliveryService = new Mock<IReminderDeliveryService>();
             var reminderDispatchQueue = new Mock<IReminderDispatchQueue>();
             var auditLogService = new Mock<IAuditLogService>();
+            var billingAlertService = new Mock<IBillingOperationalAlertService>();
 
             sessionService
                 .Setup(s => s.GetReminderCandidatesAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>()))
@@ -61,7 +62,11 @@ namespace KineGestion.Web.Tests
                     }.AsEnumerable(),
                     1));
 
-            var controller = BuildController(sessionService.Object, reminderDispatchQueue.Object, reminderDeliveryService.Object, auditLogService.Object);
+            billingAlertService
+                .Setup(s => s.GetSnapshotAsync(It.IsAny<DateTime>(), default))
+                .ReturnsAsync(new BillingOperationalAlertSnapshot { ThresholdPct = 70m, HasConsecutiveLowWeeks = false });
+
+            var controller = BuildController(sessionService.Object, reminderDispatchQueue.Object, reminderDeliveryService.Object, auditLogService.Object, billingAlertService: billingAlertService.Object);
 
             var result = await controller.Index(999);
 
@@ -82,12 +87,65 @@ namespace KineGestion.Web.Tests
         }
 
         [Fact]
+        public async Task Index_ShouldExposeBillingNotification_WhenTwoConsecutiveWeeksAreBelowThreshold()
+        {
+            var sessionService = new Mock<ISessionService>();
+            var reminderDeliveryService = new Mock<IReminderDeliveryService>();
+            var reminderDispatchQueue = new Mock<IReminderDispatchQueue>();
+            var auditLogService = new Mock<IAuditLogService>();
+            var billingAlertService = new Mock<IBillingOperationalAlertService>();
+
+            sessionService
+                .Setup(s => s.GetReminderCandidatesAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>()))
+                .ReturnsAsync(Array.Empty<SessionReminderCandidateDto>());
+
+            auditLogService
+                .Setup(a => a.GetPagedAsync("ReminderDispatch", null, null, "Create", null, null, 1, 20))
+                .ReturnsAsync((Array.Empty<AuditLog>().AsEnumerable(), 0));
+
+            billingAlertService
+                .Setup(s => s.GetSnapshotAsync(It.IsAny<DateTime>(), default))
+                .ReturnsAsync(new BillingOperationalAlertSnapshot
+                {
+                    ThresholdPct = 70m,
+                    HasConsecutiveLowWeeks = true,
+                    TrendPoints = new List<ReminderBillingTrendPointViewModel>
+                    {
+                        new ReminderBillingTrendPointViewModel { Label = "A", RequestedCount = 10, UpdatedCount = 5, SkippedCount = 5 },
+                        new ReminderBillingTrendPointViewModel { Label = "B", RequestedCount = 8, UpdatedCount = 4, SkippedCount = 4 }
+                    }
+                });
+
+            var controller = BuildController(
+                sessionService.Object,
+                reminderDispatchQueue.Object,
+                reminderDeliveryService.Object,
+                auditLogService.Object,
+                configurationValues: new Dictionary<string, string?>
+                {
+                    ["Billing:BatchEffectivenessWarnThresholdPct"] = "70"
+                },
+                billingAlertService: billingAlertService.Object);
+
+            var result = await controller.Index(24);
+
+            var view = Assert.IsType<ViewResult>(result);
+            var model = Assert.IsType<ReminderCampaignViewModel>(view.Model);
+            Assert.True(model.HasBillingBatchConsecutiveLowWeeks);
+            Assert.Equal(2, model.BillingBatchWeeklyTrendPoints.Count);
+        }
+
+        [Fact]
         public async Task DispatchSelected_ShouldSetError_WhenNothingSelected()
         {
             var sessionService = new Mock<ISessionService>();
             var reminderDeliveryService = new Mock<IReminderDeliveryService>();
             var reminderDispatchQueue = new Mock<IReminderDispatchQueue>();
             var auditLogService = new Mock<IAuditLogService>();
+
+            auditLogService
+                .Setup(a => a.GetAllAsync("BillingBatch", null, null, "Create", It.IsAny<DateTime?>(), It.IsAny<DateTime?>()))
+                .ReturnsAsync(Array.Empty<AuditLog>());
 
             var controller = BuildController(sessionService.Object, reminderDispatchQueue.Object, reminderDeliveryService.Object, auditLogService.Object);
 
@@ -108,6 +166,10 @@ namespace KineGestion.Web.Tests
             var reminderDeliveryService = new Mock<IReminderDeliveryService>();
             var reminderDispatchQueue = new Mock<IReminderDispatchQueue>();
             var auditLogService = new Mock<IAuditLogService>();
+
+            auditLogService
+                .Setup(a => a.GetAllAsync("BillingBatch", null, null, "Create", It.IsAny<DateTime?>(), It.IsAny<DateTime?>()))
+                .ReturnsAsync(Array.Empty<AuditLog>());
 
             sessionService
                 .Setup(s => s.GetReminderCandidatesAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>()))
@@ -154,6 +216,10 @@ namespace KineGestion.Web.Tests
             var reminderDispatchQueue = new Mock<IReminderDispatchQueue>();
             var auditLogService = new Mock<IAuditLogService>();
 
+            auditLogService
+                .Setup(a => a.GetAllAsync("BillingBatch", null, null, "Create", It.IsAny<DateTime?>(), It.IsAny<DateTime?>()))
+                .ReturnsAsync(Array.Empty<AuditLog>());
+
             sessionService
                 .Setup(s => s.GetReminderCandidatesAsync(It.IsAny<DateTime>(), It.Is<DateTime>(to => to <= DateTime.UtcNow.AddHours(4))))
                 .ReturnsAsync(new[]
@@ -189,12 +255,66 @@ namespace KineGestion.Web.Tests
         }
 
         [Fact]
+        public async Task DispatchOperational_ShouldQueueBillingAlert_WhenLowTrendIsDetectedAndNotSentToday()
+        {
+            var sessionService = new Mock<ISessionService>();
+            var reminderDeliveryService = new Mock<IReminderDeliveryService>();
+            var reminderDispatchQueue = new Mock<IReminderDispatchQueue>();
+            var auditLogService = new Mock<IAuditLogService>();
+            var billingAlertService = new Mock<IBillingOperationalAlertService>();
+
+            sessionService
+                .Setup(s => s.GetReminderCandidatesAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>()))
+                .ReturnsAsync(new[]
+                {
+                    new SessionReminderCandidateDto(101, DateTime.UtcNow.AddHours(2), "A", "a@test.com", "549111", "Prof A", "Tx")
+                });
+
+            billingAlertService
+                .Setup(s => s.GetSnapshotAsync(It.IsAny<DateTime>(), default))
+                .ReturnsAsync(new BillingOperationalAlertSnapshot { ThresholdPct = 70m, HasConsecutiveLowWeeks = true });
+
+            billingAlertService
+                .Setup(s => s.QueueAlertIfNeededAsync(It.IsAny<string?>(), It.IsAny<DateTime>(), default))
+                .ReturnsAsync(new BillingOperationalAlertDispatchResult { Queued = true, Message = "Alerta operativa de cobranzas encolada para administración." });
+
+            reminderDispatchQueue
+                .Setup(q => q.QueueAsync(It.IsAny<ReminderDispatchWorkItem>(), default))
+                .Returns(new ValueTask());
+
+            var controller = BuildController(
+                sessionService.Object,
+                reminderDispatchQueue.Object,
+                reminderDeliveryService.Object,
+                auditLogService.Object,
+                "admin@kinegestion.com",
+                new Dictionary<string, string?>
+                {
+                    ["Reminders:OperationalWindowsHours"] = "12,3",
+                    ["Billing:BatchEffectivenessWarnThresholdPct"] = "70",
+                    ["Reminders:OperationalAlerts:AdminEmail"] = "ops@kinegestion.com"
+                },
+                billingAlertService.Object);
+
+            var result = await controller.DispatchOperational(24);
+
+            var redirect = Assert.IsType<RedirectToActionResult>(result);
+            Assert.Equal("Index", redirect.ActionName);
+            billingAlertService.Verify(s => s.QueueAlertIfNeededAsync("admin@kinegestion.com", It.IsAny<DateTime>(), default), Times.Once);
+            Assert.Contains("Alerta operativa de cobranzas encolada", controller.TempData["Success"]?.ToString());
+        }
+
+        [Fact]
         public async Task Respond_ShouldConfirm_WhenTokenIsValid()
         {
             var sessionService = new Mock<ISessionService>();
             var reminderDeliveryService = new Mock<IReminderDeliveryService>();
             var reminderDispatchQueue = new Mock<IReminderDispatchQueue>();
             var auditLogService = new Mock<IAuditLogService>();
+
+            auditLogService
+                .Setup(a => a.GetAllAsync("BillingBatch", null, null, "Create", It.IsAny<DateTime?>(), It.IsAny<DateTime?>()))
+                .ReturnsAsync(Array.Empty<AuditLog>());
 
             sessionService.Setup(s => s.ConfirmByReminderAsync(5)).Returns(Task.CompletedTask);
 
@@ -219,6 +339,10 @@ namespace KineGestion.Web.Tests
             var reminderDispatchQueue = new Mock<IReminderDispatchQueue>();
             var auditLogService = new Mock<IAuditLogService>();
 
+            auditLogService
+                .Setup(a => a.GetAllAsync("BillingBatch", null, null, "Create", It.IsAny<DateTime?>(), It.IsAny<DateTime?>()))
+                .ReturnsAsync(Array.Empty<AuditLog>());
+
             var controller = BuildController(sessionService.Object, reminderDispatchQueue.Object, reminderDeliveryService.Object, auditLogService.Object);
 
             var result = await controller.Respond(5, "confirm", "token-invalido");
@@ -239,6 +363,10 @@ namespace KineGestion.Web.Tests
             var reminderDeliveryService = new Mock<IReminderDeliveryService>();
             var reminderDispatchQueue = new Mock<IReminderDispatchQueue>();
             var auditLogService = new Mock<IAuditLogService>();
+
+            auditLogService
+                .Setup(a => a.GetAllAsync("BillingBatch", null, null, "Create", It.IsAny<DateTime?>(), It.IsAny<DateTime?>()))
+                .ReturnsAsync(Array.Empty<AuditLog>());
 
             sessionService
                 .Setup(s => s.GetReminderCandidatesAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>()))
@@ -290,6 +418,10 @@ namespace KineGestion.Web.Tests
             var reminderDispatchQueue = new Mock<IReminderDispatchQueue>();
             var auditLogService = new Mock<IAuditLogService>();
 
+            auditLogService
+                .Setup(a => a.GetAllAsync("BillingBatch", null, null, "Create", It.IsAny<DateTime?>(), It.IsAny<DateTime?>()))
+                .ReturnsAsync(Array.Empty<AuditLog>());
+
             sessionService
                 .Setup(s => s.GetReminderCandidatesAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>()))
                 .ReturnsAsync(Array.Empty<SessionReminderCandidateDto>());
@@ -310,11 +442,14 @@ namespace KineGestion.Web.Tests
             IReminderDeliveryService reminderDeliveryService,
             IAuditLogService auditLogService,
             string? userName = null,
-            IDictionary<string, string?>? configurationValues = null)
+            IDictionary<string, string?>? configurationValues = null,
+            IBillingOperationalAlertService? billingAlertService = null)
         {
             var configuration = new ConfigurationBuilder()
                 .AddInMemoryCollection(configurationValues ?? new Dictionary<string, string?>())
                 .Build();
+
+            var resolvedBillingAlertService = billingAlertService ?? BuildBillingAlertServiceMock().Object;
 
             var controller = new RemindersController(
                 sessionService,
@@ -322,6 +457,7 @@ namespace KineGestion.Web.Tests
                 reminderDispatchQueue,
                 reminderDeliveryService,
                 auditLogService,
+                resolvedBillingAlertService,
                 configuration);
 
             var httpContext = new DefaultHttpContext();
@@ -342,6 +478,18 @@ namespace KineGestion.Web.Tests
             controller.Url = url.Object;
 
             return controller;
+        }
+
+        private static Mock<IBillingOperationalAlertService> BuildBillingAlertServiceMock()
+        {
+            var service = new Mock<IBillingOperationalAlertService>();
+            service
+                .Setup(s => s.GetSnapshotAsync(It.IsAny<DateTime>(), default))
+                .ReturnsAsync(new BillingOperationalAlertSnapshot { ThresholdPct = 70m, HasConsecutiveLowWeeks = false });
+            service
+                .Setup(s => s.QueueAlertIfNeededAsync(It.IsAny<string?>(), It.IsAny<DateTime>(), default))
+                .ReturnsAsync(new BillingOperationalAlertDispatchResult { Message = string.Empty });
+            return service;
         }
 
         private static string BuildProtectedToken(int sessionId, string action, DateTime expiresUtc)

@@ -186,6 +186,7 @@ namespace KineGestion.Web.Tests
             Assert.Contains(AuditEntityType.Session, model.EntityOptions);
             Assert.Contains(AuditEntityType.Office, model.EntityOptions);
             Assert.Contains(AuditEntityType.Equipment, model.EntityOptions);
+            Assert.Contains(AuditEntityType.BillingBatch, model.EntityOptions);
             Assert.Contains(AuditActionType.Create, model.ActionOptions);
             Assert.Contains(AuditActionType.Update, model.ActionOptions);
             Assert.Contains(AuditActionType.Delete, model.ActionOptions);
@@ -382,6 +383,7 @@ namespace KineGestion.Web.Tests
 
             Assert.Contains(AuditEntityType.Patient, model.EntityOptions);
             Assert.Contains(AuditEntityType.Office, model.EntityOptions);
+            Assert.Contains(AuditEntityType.BillingBatch, model.EntityOptions);
             Assert.Contains(AuditActionType.Create, model.ActionOptions);
             Assert.Contains(AuditActionType.Update, model.ActionOptions);
             Assert.Contains(AuditActionType.Delete, model.ActionOptions);

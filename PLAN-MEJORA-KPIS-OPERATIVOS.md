@@ -139,6 +139,22 @@ Este plan esta pensado para ejecutar sobre lo que ya existe en KineGestion (Home
 2. Con esos resultados, avanzar Sprint B con motivos + recaptura.
 3. Revisar metas cada viernes con corte semanal fijo.
 
+## Marco de ejecucion adoptado (Ingenieria Minimalista)
+Desde 2026-06-01, este plan se ejecuta con el ciclo:
+1. Cuestionar requisitos.
+2. Eliminar partes/procesos sin valor.
+3. Optimizar solo lo que queda.
+4. Acelerar ritmo de entrega.
+5. Automatizar al final.
+
+Documento operativo:
+- METODO-INGENIERIA-MINIMALISTA-KINEGESTION.md
+
+Regla de aplicacion por item de backlog:
+1. Cada tarea nueva debe incluir problema real, metrica objetivo y al menos una eliminacion posible.
+2. No se automatiza un flujo inestable o innecesario.
+3. Si una mejora agrega complejidad sin mejorar KPI o latencia, queda fuera del sprint.
+
 ## Pendiente abierto: optimizacion de tiempos
 Para la siguiente iteracion, queda como pendiente explicito afinar tiempos de respuesta con foco en primera carga y estabilidad de p95.
 

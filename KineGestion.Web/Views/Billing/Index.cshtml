@@ -10,7 +10,84 @@
         <h2>Cobranzas</h2>
         <p class="text-muted mb-0">Control de pagos por sesiones y resumen financiero estimado.</p>
     </div>
+    <div class="d-flex gap-2">
+        <a class="btn btn-sm btn-outline-secondary"
+           href="@Url.Action("Index", "Audit", new { entityName = "BillingBatch", action = "Create", dateFrom = Model.WeeklyBatchFrom.ToString("yyyy-MM-dd"), dateTo = Model.WeeklyBatchTo.ToString("yyyy-MM-dd") })">
+            <i class="bi bi-clock-history"></i> Ver auditoría de lotes
+        </a>
+        <a class="btn btn-sm btn-outline-primary"
+           href="@Url.Action("Export", "Audit", new { entityName = "BillingBatch", action = "Create", dateFrom = Model.WeeklyBatchFrom.ToString("yyyy-MM-dd"), dateTo = Model.WeeklyBatchTo.ToString("yyyy-MM-dd") })">
+            <i class="bi bi-download"></i> Exportar lotes CSV
+        </a>
+    </div>
 </div>
+
+@if (Model.LastBatchRequestedCount.HasValue)
+{
+    <div class="alert alert-info mb-3" role="status">
+        <strong>Último lote:</strong>
+        Solicitadas @Model.LastBatchRequestedCount,
+        actualizadas @Model.LastBatchUpdatedCount,
+        omitidas @Model.LastBatchSkippedCount,
+        efectividad @Model.LastBatchEffectivenessPct?.ToString("N2")%.
+    </div>
+}
+
+<div class="row g-3 mb-4">
+    <div class="col-md-12">
+        <div class="kg-stat-card">
+            <div class="kg-stat-icon cyan"><i class="bi bi-graph-up-arrow"></i></div>
+            <div>
+                <div class="kg-stat-label">Efectividad semanal de lotes (@Model.WeeklyBatchFrom:dd/MM - @Model.WeeklyBatchTo:dd/MM)</div>
+                <div class="kg-stat-value">@((Model.WeeklyBatchEffectivenessPct ?? 0m).ToString("N2"))%</div>
+                <small class="text-muted">
+                    Corridas: @Model.WeeklyBatchRuns | Solicitadas: @Model.WeeklyBatchRequestedCount | Actualizadas: @Model.WeeklyBatchUpdatedCount | Omitidas: @Model.WeeklyBatchSkippedCount
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="kg-card mb-4">
+    <div class="kg-card-body">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h6 class="mb-0">Tendencia 4 semanas (efectividad de lotes)</h6>
+            <small class="text-muted">Visual rápido tipo sparkline</small>
+        </div>
+        <div class="d-flex flex-wrap gap-3">
+            @foreach (var point in Model.WeeklyTrendPoints)
+            {
+                var barClass = point.EffectivenessPct < Model.WeeklyBatchWarnThresholdPct ? "bg-warning" : "bg-success";
+                <div style="min-width: 170px;">
+                    <div class="d-flex justify-content-between">
+                        <small class="text-muted">@point.Label</small>
+                        <small><strong>@point.EffectivenessPct.ToString("N2")%</strong></small>
+                    </div>
+                    <div class="progress" style="height: 8px;">
+                        <div class="progress-bar @barClass" role="progressbar" style="width: @point.EffectivenessPct%;" aria-valuenow="@point.EffectivenessPct" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                    <small class="text-muted">Req: @point.RequestedCount | Upd: @point.UpdatedCount | Skip: @point.SkippedCount</small>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@if (Model.IsWeeklyBatchEffectivenessLow)
+{
+    <div class="alert alert-warning mb-3" role="alert">
+        <strong>Alerta operativa:</strong>
+        La efectividad semanal de lotes está en @Model.WeeklyBatchEffectivenessPct?.ToString("N2")% y quedó por debajo del umbral @Model.WeeklyBatchWarnThresholdPct.ToString("N2")%.
+    </div>
+}
+
+@if (Model.HasTwoConsecutiveLowWeeks)
+{
+    <div class="alert alert-danger mb-3" role="alert">
+        <strong>Alerta crítica de tendencia:</strong>
+        Se detectaron al menos 2 semanas consecutivas por debajo del umbral de efectividad (@Model.WeeklyBatchWarnThresholdPct.ToString("N2")%).
+    </div>
+}
 
 <div class="row g-3 mb-4">
     <div class="col-md-4">
@@ -137,10 +214,22 @@
             <input type="hidden" name="pageSize" value="@Model.PageSize" />
 
             <div class="d-flex justify-content-between align-items-center mb-3">
-                <small class="text-muted">Seleccioná sesiones pendientes y marcá pago en lote.</small>
-                <button type="submit" class="btn btn-sm btn-success" id="markSelectedPaidBtn" disabled>
-                    <i class="bi bi-check2-all"></i> Marcar seleccionadas como pagadas
-                </button>
+                <div class="d-flex align-items-center gap-2">
+                    <small class="text-muted mb-0">Seleccioná sesiones y ejecutá acción masiva de cobranza.</small>
+                    <select id="quickPaymentFilter" class="form-select form-select-sm" style="width: 170px;">
+                        <option value="all">Ver todas</option>
+                        <option value="pending">Solo pendientes</option>
+                        <option value="paid">Solo pagadas</option>
+                    </select>
+                </div>
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-sm btn-success" id="markSelectedPaidBtn" disabled>
+                        <i class="bi bi-check2-all"></i> Marcar seleccionadas como pagadas
+                    </button>
+                    <button type="submit" formaction="@Url.Action("MarkPendingBatch", "Billing")" class="btn btn-sm btn-outline-warning" id="markSelectedPendingBtn" disabled>
+                        <i class="bi bi-arrow-counterclockwise"></i> Reabrir seleccionadas
+                    </button>
+                </div>
             </div>
 
         <div class="table-responsive">
@@ -148,7 +237,7 @@
                 <thead>
                     <tr>
                         <th style="width: 40px;">
-                            <input type="checkbox" id="selectAllPending" class="form-check-input" title="Seleccionar pendientes" />
+                            <input type="checkbox" id="selectAllSessions" class="form-check-input" title="Seleccionar sesiones" />
                         </th>
                         <th>Fecha/Hora</th>
                         <th>Paciente</th>
@@ -161,17 +250,14 @@
                 <tbody>
                     @foreach (var item in Model.Items)
                     {
-                        <tr>
+                        <tr class="js-billing-row" data-payment-status="@(item.PaymentStatus == PaymentStatus.Paid ? "paid" : "pending")">
                             <td>
-                                @if (item.PaymentStatus == PaymentStatus.Pending)
-                                {
-                                    <input
-                                        type="checkbox"
-                                        class="form-check-input js-pending-session"
-                                        name="sessionIds"
-                                        value="@item.Id"
-                                        aria-label="Seleccionar sesión @item.Id" />
-                                }
+                                <input
+                                    type="checkbox"
+                                    class="form-check-input js-batch-session"
+                                    name="sessionIds"
+                                    value="@item.Id"
+                                    aria-label="Seleccionar sesión @item.Id" />
                             </td>
                             <td>@item.FechaHora.ToString("dd/MM/yyyy HH:mm")</td>
                             <td>@item.PacienteNombre</td>
@@ -228,19 +314,36 @@
 
 <script>
     (() => {
-        const selectAll = document.getElementById('selectAllPending');
-        const markSelectedButton = document.getElementById('markSelectedPaidBtn');
-        const checkboxes = Array.from(document.querySelectorAll('.js-pending-session'));
+        const selectAll = document.getElementById('selectAllSessions');
+        const markPaidButton = document.getElementById('markSelectedPaidBtn');
+        const markPendingButton = document.getElementById('markSelectedPendingBtn');
+        const quickFilter = document.getElementById('quickPaymentFilter');
+        const checkboxes = Array.from(document.querySelectorAll('.js-batch-session'));
+        const rows = Array.from(document.querySelectorAll('.js-billing-row'));
 
-        if (!selectAll || !markSelectedButton || checkboxes.length === 0) {
+        if (!selectAll || !markPaidButton || !markPendingButton || !quickFilter || checkboxes.length === 0) {
             return;
         }
 
         const refreshBatchState = () => {
             const selectedCount = checkboxes.filter(cb => cb.checked).length;
-            markSelectedButton.disabled = selectedCount === 0;
+            const disabled = selectedCount === 0;
+            markPaidButton.disabled = disabled;
+            markPendingButton.disabled = disabled;
             selectAll.checked = selectedCount > 0 && selectedCount === checkboxes.length;
             selectAll.indeterminate = selectedCount > 0 && selectedCount < checkboxes.length;
+        };
+
+        const applyQuickFilter = () => {
+            const mode = quickFilter.value;
+            rows.forEach(row => {
+                if (mode === 'all') {
+                    row.style.display = '';
+                    return;
+                }
+
+                row.style.display = row.dataset.paymentStatus === mode ? '' : 'none';
+            });
         };
 
         selectAll.addEventListener('change', () => {
@@ -248,7 +351,9 @@
             refreshBatchState();
         });
 
+        quickFilter.addEventListener('change', applyQuickFilter);
         checkboxes.forEach(cb => cb.addEventListener('change', refreshBatchState));
+        applyQuickFilter();
         refreshBatchState();
     })();
 </script>

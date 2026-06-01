@@ -7,7 +7,8 @@ namespace KineGestion.Core
         Treatment = 2,
         Session = 3,
         Office = 4,
-        Equipment = 5
+        Equipment = 5,
+        BillingBatch = 6
     }
 
     public enum AuditActionType

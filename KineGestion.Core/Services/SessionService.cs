@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using KineGestion.Core;
 using KineGestion.Core.DTOs;
@@ -220,6 +221,40 @@ namespace KineGestion.Core.Services
                 AppendSystemNote(session, paymentStatus == PaymentStatus.Paid ? "COBRO_REGISTRADO" : "COBRO_REABIERTO");
                 await _repository.UpdateAsync(session);
                 QueryCache.InvalidatePrefix("sessions:");
+            }
+
+            public async Task<(int UpdatedCount, int SkippedCount)> MarkCompletedPendingAsPaidBatchAsync(IReadOnlyCollection<int> sessionIds)
+            {
+                var normalizedIds = sessionIds
+                    .Where(id => id > 0)
+                    .Distinct()
+                    .ToList();
+
+                if (normalizedIds.Count == 0)
+                    return (0, 0);
+
+                var result = await _repository.MarkCompletedPendingAsPaidBatchAsync(normalizedIds, DateTime.UtcNow);
+                if (result.UpdatedCount > 0)
+                    QueryCache.InvalidatePrefix("sessions:");
+
+                return result;
+            }
+
+            public async Task<(int UpdatedCount, int SkippedCount)> MarkPaidAsPendingBatchAsync(IReadOnlyCollection<int> sessionIds)
+            {
+                var normalizedIds = sessionIds
+                    .Where(id => id > 0)
+                    .Distinct()
+                    .ToList();
+
+                if (normalizedIds.Count == 0)
+                    return (0, 0);
+
+                var result = await _repository.MarkPaidAsPendingBatchAsync(normalizedIds, DateTime.UtcNow);
+                if (result.UpdatedCount > 0)
+                    QueryCache.InvalidatePrefix("sessions:");
+
+                return result;
             }
 
         public async Task<Session> CreateAsync(Session session)

@@ -1,5 +1,11 @@
 namespace KineGestion.Web.Models.ViewModels
 {
+    public class BillingOperationalAlertHistoryItemViewModel
+    {
+        public DateTime ChangedAtUtc { get; set; }
+        public string ChangedBy { get; set; } = string.Empty;
+    }
+
     public class HomeDashboardViewModel
     {
         public int PacientesActivosCount { get; set; }
@@ -14,5 +20,10 @@ namespace KineGestion.Web.Models.ViewModels
         public decimal CompletionRateToday { get; set; }
         public decimal CollectionRateLast30Days { get; set; }
         public decimal CancellationRateLast30Days { get; set; }
+        public bool IsBillingOperationalAlertActive { get; set; }
+        public bool IsBillingOperationalAlertSentToday { get; set; }
+        public DateTime? LastBillingOperationalAlertAtUtc { get; set; }
+        public string? LastBillingOperationalAlertChangedBy { get; set; }
+        public List<BillingOperationalAlertHistoryItemViewModel> RecentBillingOperationalAlerts { get; set; } = new();
     }
 }

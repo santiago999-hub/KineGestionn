@@ -24,6 +24,7 @@ namespace KineGestion.Web.Controllers
         private readonly IReminderDispatchQueue _reminderDispatchQueue;
         private readonly IReminderDeliveryService _reminderDeliveryService;
         private readonly IAuditLogService _auditLogService;
+        private readonly IBillingOperationalAlertService _billingOperationalAlertService;
         private readonly IConfiguration _configuration;
 
         public RemindersController(
@@ -32,6 +33,7 @@ namespace KineGestion.Web.Controllers
             IReminderDispatchQueue reminderDispatchQueue,
             IReminderDeliveryService reminderDeliveryService,
             IAuditLogService auditLogService,
+            IBillingOperationalAlertService billingOperationalAlertService,
             IConfiguration configuration)
         {
             _sessionService = sessionService;
@@ -39,6 +41,7 @@ namespace KineGestion.Web.Controllers
             _reminderDispatchQueue = reminderDispatchQueue;
             _reminderDeliveryService = reminderDeliveryService;
             _auditLogService = auditLogService;
+            _billingOperationalAlertService = billingOperationalAlertService;
             _configuration = configuration;
         }
 
@@ -52,6 +55,7 @@ namespace KineGestion.Web.Controllers
             var operationalWindows = GetOperationalWindowsHours();
 
             var candidates = await _sessionService.GetReminderCandidatesAsync(start, end);
+            var billingAlertSnapshot = await _billingOperationalAlertService.GetSnapshotAsync(start);
 
             var operationalCount = 0;
             if (operationalWindows.Count > 0)
@@ -74,6 +78,9 @@ namespace KineGestion.Web.Controllers
                 WindowEndUtc = end,
                 OperationalWindowsHours = operationalWindows,
                 OperationalCandidatesCount = operationalCount,
+                BillingBatchWarnThresholdPct = billingAlertSnapshot.ThresholdPct,
+                HasBillingBatchConsecutiveLowWeeks = billingAlertSnapshot.HasConsecutiveLowWeeks,
+                BillingBatchWeeklyTrendPoints = billingAlertSnapshot.TrendPoints,
                 Items = candidates.Select(c => new ReminderItemViewModel
                 {
                     SessionId = c.SessionId,
@@ -208,7 +215,9 @@ namespace KineGestion.Web.Controllers
                 await _reminderDispatchQueue.QueueAsync(workItem);
             }
 
-            TempData["Success"] = $"Recordatorios operativos encolados: {bySessionId.Count}. Ventanas: {string.Join(" + ", windows.Select(w => w + "h"))}.";
+            var billingAlertDispatch = await _billingOperationalAlertService.QueueAlertIfNeededAsync(User?.Identity?.Name, now);
+
+            TempData["Success"] = $"Recordatorios operativos encolados: {bySessionId.Count}. Ventanas: {string.Join(" + ", windows.Select(w => w + "h"))}.{(string.IsNullOrWhiteSpace(billingAlertDispatch.Message) ? string.Empty : " " + billingAlertDispatch.Message)}";
             return RedirectToAction(nameof(Index), new { hoursAhead });
         }
 
@@ -433,5 +442,6 @@ namespace KineGestion.Web.Controllers
 
             return windows.Count == 0 ? new List<int> { 24, 3 } : windows;
         }
+
     }
 }

@@ -45,6 +45,12 @@ namespace KineGestion.Web.Services
         public string CancelUrl { get; set; } = string.Empty;
         public string? ChangedBy { get; set; }
         public DateTime EnqueuedAtUtc { get; set; }
+        public string DispatchType { get; set; } = "PatientReminder";
+        public string? EmailSubjectOverride { get; set; }
+        public string? EmailBodyOverride { get; set; }
+        public string? WhatsAppBodyOverride { get; set; }
+        public string AuditEntityName { get; set; } = "ReminderDispatch";
+        public string? AuditEntityId { get; set; }
     }
 
     public sealed class ReminderDispatchBackgroundService : BackgroundService
@@ -94,18 +100,24 @@ namespace KineGestion.Web.Services
                         ProfesionalNombre = workItem.ProfesionalNombre,
                         TratamientoDescripcion = workItem.TratamientoDescripcion,
                         ConfirmUrl = workItem.ConfirmUrl,
-                        CancelUrl = workItem.CancelUrl
+                        CancelUrl = workItem.CancelUrl,
+                        EmailSubjectOverride = workItem.EmailSubjectOverride,
+                        EmailBodyOverride = workItem.EmailBodyOverride,
+                        WhatsAppBodyOverride = workItem.WhatsAppBodyOverride
                     }, stoppingToken);
 
                     await auditLogService.AddAsync(new KineGestion.Core.Entities.AuditLog
                     {
-                        EntityName = "ReminderDispatch",
-                        EntityId = workItem.SessionId.ToString(CultureInfo.InvariantCulture),
+                        EntityName = string.IsNullOrWhiteSpace(workItem.AuditEntityName) ? "ReminderDispatch" : workItem.AuditEntityName,
+                        EntityId = string.IsNullOrWhiteSpace(workItem.AuditEntityId)
+                            ? workItem.SessionId.ToString(CultureInfo.InvariantCulture)
+                            : workItem.AuditEntityId,
                         Action = "Create",
                         ChangedBy = string.IsNullOrWhiteSpace(workItem.ChangedBy) ? "system" : workItem.ChangedBy,
                         ChangedAt = DateTime.UtcNow,
                         NewValuesJson = JsonSerializer.Serialize(new
                         {
+                            workItem.DispatchType,
                             workItem.SessionId,
                             workItem.FechaHora,
                             workItem.PacienteNombre,

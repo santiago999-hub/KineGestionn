@@ -12,6 +12,39 @@
     </div>
 </div>
 
+@if (Model.HasBillingBatchConsecutiveLowWeeks)
+{
+    <div class="alert alert-danger mb-3" role="alert">
+        <strong>Notificación operativa de cobranzas:</strong>
+        Se detectaron 2 semanas consecutivas con efectividad de lotes por debajo del umbral (@Model.BillingBatchWarnThresholdPct.ToString("N2")%).
+    </div>
+}
+
+<div class="kg-card mb-3">
+    <div class="kg-card-body">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h6 class="mb-0">Tendencia de cobranzas (4 semanas)</h6>
+            <small class="text-muted">Fuente: auditoría BillingBatch</small>
+        </div>
+        <div class="d-flex flex-wrap gap-3">
+            @foreach (var point in Model.BillingBatchWeeklyTrendPoints)
+            {
+                var barClass = point.EffectivenessPct < Model.BillingBatchWarnThresholdPct ? "bg-warning" : "bg-success";
+                <div style="min-width: 170px;">
+                    <div class="d-flex justify-content-between">
+                        <small class="text-muted">@point.Label</small>
+                        <small><strong>@point.EffectivenessPct.ToString("N2")%</strong></small>
+                    </div>
+                    <div class="progress" style="height: 8px;">
+                        <div class="progress-bar @barClass" role="progressbar" style="width: @point.EffectivenessPct%;" aria-valuenow="@point.EffectivenessPct" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                    <small class="text-muted">Req: @point.RequestedCount | Upd: @point.UpdatedCount | Skip: @point.SkippedCount</small>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
 <div class="kg-card mb-3">
     <div class="kg-card-body">
         <form asp-action="DispatchOperational" method="post" class="d-flex justify-content-end mb-3">

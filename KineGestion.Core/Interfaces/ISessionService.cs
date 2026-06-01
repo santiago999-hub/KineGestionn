@@ -49,6 +49,8 @@ namespace KineGestion.Core.Interfaces
         Task ConfirmByReminderAsync(int sessionId);
         Task CancelByReminderAsync(int sessionId);
         Task SetPaymentStatusAsync(int sessionId, PaymentStatus paymentStatus);
+        Task<(int UpdatedCount, int SkippedCount)> MarkCompletedPendingAsPaidBatchAsync(IReadOnlyCollection<int> sessionIds);
+        Task<(int UpdatedCount, int SkippedCount)> MarkPaidAsPendingBatchAsync(IReadOnlyCollection<int> sessionIds);
         Task<Session> CreateAsync(Session session);
         Task<Session> UpdateAsync(Session session);
         Task DeleteAsync(int id);

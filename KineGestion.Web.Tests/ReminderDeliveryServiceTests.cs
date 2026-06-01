@@ -136,6 +136,36 @@ namespace KineGestion.Web.Tests
             Assert.Contains("paciente sin teléfono", string.Join(" | ", result.Errors), StringComparison.OrdinalIgnoreCase);
         }
 
+        [Fact]
+        public async Task SendAsync_ShouldUseOverrideContent_WhenOperationalAlertIsQueued()
+        {
+            string? capturedText = null;
+            var handler = new CaptureHandler(req =>
+            {
+                var payloadJson = req.Content!.ReadAsStringAsync().GetAwaiter().GetResult();
+                using var payload = JsonDocument.Parse(payloadJson);
+                capturedText = payload.RootElement.GetProperty("text").GetString();
+                return new HttpResponseMessage(HttpStatusCode.OK);
+            });
+
+            var service = BuildService(
+                new Dictionary<string, string?>
+                {
+                    ["Reminders:Email:Enabled"] = "false",
+                    ["Reminders:WhatsApp:Enabled"] = "true",
+                    ["Reminders:WhatsApp:ApiUrl"] = "https://api.whatsapp.test/send"
+                },
+                handler);
+
+            var request = BuildRequest();
+            request.WhatsAppBodyOverride = "ALERTA OPERATIVA";
+
+            var result = await service.SendAsync(request);
+
+            Assert.True(result.WhatsAppSent);
+            Assert.Equal("ALERTA OPERATIVA", capturedText);
+        }
+
         private static ReminderDeliveryService BuildService(Dictionary<string, string?> values, HttpMessageHandler handler)
         {
             var config = new ConfigurationBuilder()

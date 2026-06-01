@@ -14,8 +14,22 @@ namespace KineGestion.Web.Models.ViewModels
             ? "24h + 3h"
             : string.Join(" + ", OperationalWindowsHours.Select(w => $"{w}h"));
         public int OperationalCandidatesCount { get; set; }
+        public decimal BillingBatchWarnThresholdPct { get; set; } = 70m;
+        public bool HasBillingBatchConsecutiveLowWeeks { get; set; }
+        public List<ReminderBillingTrendPointViewModel> BillingBatchWeeklyTrendPoints { get; set; } = new();
         public List<ReminderItemViewModel> Items { get; set; } = new();
         public List<ReminderDispatchHistoryItemViewModel> History { get; set; } = new();
+    }
+
+    public class ReminderBillingTrendPointViewModel
+    {
+        public string Label { get; set; } = string.Empty;
+        public int RequestedCount { get; set; }
+        public int UpdatedCount { get; set; }
+        public int SkippedCount { get; set; }
+        public decimal EffectivenessPct => RequestedCount > 0
+            ? Math.Round((decimal)UpdatedCount * 100m / RequestedCount, 2)
+            : 0m;
     }
 
     public class ReminderItemViewModel

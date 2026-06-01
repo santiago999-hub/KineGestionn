@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using KineGestion.Core.Interfaces;
 using KineGestion.Web.Models;
 using KineGestion.Web.Models.ViewModels;
+using KineGestion.Web.Services;
 using System.Linq;
 using KineGestion.Core;
 using System;
@@ -22,6 +23,8 @@ public class HomeController : Controller
     private readonly IProfessionalService _professionalService;
     private readonly ITreatmentService _treatmentService;
     private readonly ISessionService _sessionService;
+    private readonly IAuditLogService _auditLogService;
+    private readonly IBillingOperationalAlertService _billingOperationalAlertService;
 
     public HomeController(
         ILogger<HomeController> logger,
@@ -29,7 +32,9 @@ public class HomeController : Controller
         IPatientService patientService,
         IProfessionalService professionalService,
         ITreatmentService treatmentService,
-        ISessionService sessionService)
+        ISessionService sessionService,
+        IAuditLogService auditLogService,
+        IBillingOperationalAlertService billingOperationalAlertService)
     {
         _logger = logger;
         _memoryCache = memoryCache;
@@ -37,6 +42,8 @@ public class HomeController : Controller
         _professionalService = professionalService;
         _treatmentService = treatmentService;
         _sessionService = sessionService;
+        _auditLogService = auditLogService;
+        _billingOperationalAlertService = billingOperationalAlertService;
     }
 
     public async Task<IActionResult> Index()
@@ -64,6 +71,10 @@ public class HomeController : Controller
         var paidCompletedLast30 = await SafeCountAsync(() => _sessionService.CountByStatusAndPaymentStatusInRangeAsync(SessionStatus.Completed, PaymentStatus.Paid, rangeFrom, rangeTo), nameof(_sessionService.CountByStatusAndPaymentStatusInRangeAsync));
         var totalLast30 = await SafeCountAsync(() => _sessionService.CountInRangeAsync(rangeFrom, rangeTo), nameof(_sessionService.CountInRangeAsync));
         var canceledLast30 = await SafeCountAsync(() => _sessionService.CountByStatusInRangeAsync(SessionStatus.Canceled, rangeFrom, rangeTo), nameof(_sessionService.CountByStatusInRangeAsync));
+        var billingAlertSnapshot = await SafeGetBillingAlertSnapshotAsync();
+        var billingAlertSentToday = await SafeCountAsync(() => CountOperationalAlertsTodayAsync(), nameof(CountOperationalAlertsTodayAsync));
+        var recentBillingAlerts = await SafeGetRecentOperationalAlertsAsync();
+        var lastBillingAlert = recentBillingAlerts.FirstOrDefault();
 
         var completionRateToday = countToday == 0 ? 0m : Math.Round((decimal)countCompletedToday * 100m / countToday, 2);
         var collectionRateLast30 = completedLast30 == 0 ? 0m : Math.Round((decimal)paidCompletedLast30 * 100m / completedLast30, 2);
@@ -82,7 +93,12 @@ public class HomeController : Controller
             SesionesPendientesConfirmacionCount = countPendingStatus,
             CompletionRateToday = completionRateToday,
             CollectionRateLast30Days = collectionRateLast30,
-            CancellationRateLast30Days = cancellationRateLast30
+            CancellationRateLast30Days = cancellationRateLast30,
+            IsBillingOperationalAlertActive = billingAlertSnapshot?.HasConsecutiveLowWeeks ?? false,
+            IsBillingOperationalAlertSentToday = billingAlertSentToday > 0,
+            LastBillingOperationalAlertAtUtc = lastBillingAlert?.ChangedAtUtc,
+            LastBillingOperationalAlertChangedBy = lastBillingAlert?.ChangedBy,
+            RecentBillingOperationalAlerts = recentBillingAlerts
         };
 
         if (hasErrors == 0)
@@ -109,6 +125,89 @@ public class HomeController : Controller
                 return 0;
             }
         }
+
+        async Task<BillingOperationalAlertSnapshot?> SafeGetBillingAlertSnapshotAsync()
+        {
+            try
+            {
+                return await _billingOperationalAlertService.GetSnapshotAsync(today);
+            }
+            catch (Exception ex)
+            {
+                Interlocked.Exchange(ref hasErrors, 1);
+                _logger.LogError(ex, "Error cargando estado de alerta operativa de cobranzas.");
+                return null;
+            }
+        }
+
+        async Task<List<BillingOperationalAlertHistoryItemViewModel>> SafeGetRecentOperationalAlertsAsync()
+        {
+            try
+            {
+                var latest = await _auditLogService.GetPagedAsync(
+                    entityName: "OperationalAlert",
+                    entityId: null,
+                    changedBy: null,
+                    action: "Create",
+                    dateFrom: null,
+                    dateTo: null,
+                    page: 1,
+                    pageSize: 3);
+
+                return latest.Items
+                    .Select(item => new BillingOperationalAlertHistoryItemViewModel
+                    {
+                        ChangedAtUtc = item.ChangedAt,
+                        ChangedBy = string.IsNullOrWhiteSpace(item.ChangedBy) ? "system" : item.ChangedBy
+                    })
+                    .ToList();
+            }
+            catch (Exception ex)
+            {
+                Interlocked.Exchange(ref hasErrors, 1);
+                _logger.LogError(ex, "Error cargando fecha del último envío de alerta operativa.");
+                return new List<BillingOperationalAlertHistoryItemViewModel>();
+            }
+        }
+
+        async Task<int> CountOperationalAlertsTodayAsync()
+        {
+            var dayStart = today.Date;
+            var dayEnd = dayStart.AddDays(1).AddTicks(-1);
+            var alerts = await _auditLogService.GetAllAsync(
+                entityName: "OperationalAlert",
+                entityId: null,
+                changedBy: null,
+                action: "Create",
+                dateFrom: dayStart,
+                dateTo: dayEnd);
+
+            return alerts.Count();
+        }
+    }
+
+    [HttpPost]
+    [Authorize(Roles = "Admin")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> TriggerBillingOperationalAlert()
+    {
+        var result = await _billingOperationalAlertService.QueueAlertIfNeededAsync(User?.Identity?.Name, DateTime.UtcNow);
+        _memoryCache.Remove(DashboardCacheKey);
+
+        if (string.IsNullOrWhiteSpace(result.Message))
+        {
+            TempData["Success"] = "No se detectó condición activa para alerta operativa de cobranzas.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        if (result.Queued)
+        {
+            TempData["Success"] = result.Message;
+            return RedirectToAction(nameof(Index));
+        }
+
+        TempData["Error"] = result.Message;
+        return RedirectToAction(nameof(Index));
     }
 
     public IActionResult Privacy()

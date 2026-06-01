@@ -39,6 +39,9 @@
   <data name="Audit.Entity.Equipment" xml:space="preserve">
     <value>Equipo</value>
   </data>
+  <data name="Audit.Entity.BillingBatch" xml:space="preserve">
+    <value>Lote de cobranzas</value>
+  </data>
   <data name="Audit.View.Title" xml:space="preserve">
     <value>Auditoría</value>
   </data>

@@ -56,6 +56,7 @@ builder.Services.AddMemoryCache();
 builder.Services.AddSingleton<RequestMetricsStore>();
 builder.Services.AddSingleton<IReminderDispatchQueue, ReminderDispatchQueue>();
 builder.Services.AddHostedService<ReminderDispatchBackgroundService>();
+builder.Services.AddHostedService<BillingOperationalAlertBackgroundService>();
 builder.Services.AddHostedService<CacheWarmupBackgroundService>();
 builder.Services.AddHealthChecks()
     .AddCheck<DatabaseHealthCheck>("database", tags: new[] { "ready" });
@@ -88,6 +89,7 @@ builder.Services.AddScoped<IAuditLogRepository, AuditLogRepository>();
 builder.Services.AddScoped<IAuditLogService, AuditLogService>();
 builder.Services.AddHttpClient();
 builder.Services.AddScoped<IReminderDeliveryService, ReminderDeliveryService>();
+builder.Services.AddScoped<IBillingOperationalAlertService, BillingOperationalAlertService>();
 
 // ─── IDENTITY SERVICE (R5: desacoplamiento de UsersController) ────────────────
 // IIdentityService abstrae la lógica de UserManager/RoleManager del controlador.

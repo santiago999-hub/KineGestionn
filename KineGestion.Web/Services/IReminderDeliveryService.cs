@@ -24,6 +24,9 @@ namespace KineGestion.Web.Services
         public string? TratamientoDescripcion { get; set; }
         public string ConfirmUrl { get; set; } = string.Empty;
         public string CancelUrl { get; set; } = string.Empty;
+        public string? EmailSubjectOverride { get; set; }
+        public string? EmailBodyOverride { get; set; }
+        public string? WhatsAppBodyOverride { get; set; }
     }
 
     public class ReminderDeliveryResult
@@ -214,6 +217,9 @@ namespace KineGestion.Web.Services
 
         private string BuildEmailSubject(ReminderDeliveryRequest request)
         {
+            if (!string.IsNullOrWhiteSpace(request.EmailSubjectOverride))
+                return request.EmailSubjectOverride;
+
             var template = _configuration["Reminders:Templates:Email:Subject"]
                 ?? "Recordatorio de sesión - {{SessionDateTime}}";
 
@@ -222,6 +228,9 @@ namespace KineGestion.Web.Services
 
         private string BuildEmailBody(ReminderDeliveryRequest request)
         {
+            if (!string.IsNullOrWhiteSpace(request.EmailBodyOverride))
+                return request.EmailBodyOverride;
+
             var template = _configuration["Reminders:Templates:Email:Body"];
             if (string.IsNullOrWhiteSpace(template))
             {
@@ -233,6 +242,9 @@ namespace KineGestion.Web.Services
 
         private string BuildWhatsAppBody(ReminderDeliveryRequest request)
         {
+            if (!string.IsNullOrWhiteSpace(request.WhatsAppBodyOverride))
+                return request.WhatsAppBodyOverride;
+
             var template = _configuration["Reminders:Templates:WhatsApp:Body"];
             if (string.IsNullOrWhiteSpace(template))
             {

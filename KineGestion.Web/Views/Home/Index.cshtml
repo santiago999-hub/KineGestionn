@@ -54,6 +54,52 @@
     </span>
 </div>
 
+@if (Model.IsBillingOperationalAlertActive)
+{
+    <div class="alert alert-danger d-flex justify-content-between align-items-center mb-3" role="alert">
+        <div>
+            <strong>Alerta operativa activa:</strong>
+            Se detectaron 2 semanas consecutivas con baja efectividad de cobranzas.
+            @if (Model.IsBillingOperationalAlertSentToday)
+            {
+                <span class="ms-2">Notificación administrativa enviada hoy.</span>
+            }
+            @if (Model.LastBillingOperationalAlertAtUtc.HasValue)
+            {
+                <span class="ms-2">Último envío: @Model.LastBillingOperationalAlertAtUtc.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</span>
+            }
+            @if (!string.IsNullOrWhiteSpace(Model.LastBillingOperationalAlertChangedBy))
+            {
+                <span class="ms-2">Disparado por: @Model.LastBillingOperationalAlertChangedBy</span>
+            }
+        </div>
+        <div class="d-flex gap-2">
+            <a asp-controller="Billing" asp-action="Index" class="btn btn-sm btn-outline-danger">Ir a Cobranzas</a>
+            <a asp-controller="Reminders" asp-action="Index" class="btn btn-sm btn-outline-secondary">Ir a Recordatorios</a>
+            @if (User.IsInRole("Admin"))
+            {
+                <form asp-controller="Home" asp-action="TriggerBillingOperationalAlert" method="post" class="d-inline">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-sm btn-danger">Reintentar alerta</button>
+                </form>
+            }
+        </div>
+    </div>
+
+    @if (Model.RecentBillingOperationalAlerts.Any())
+    {
+        <div class="alert alert-light border mb-3" role="status">
+            <strong>Últimas alertas operativas:</strong>
+            <ul class="mb-0 mt-2">
+                @foreach (var item in Model.RecentBillingOperationalAlerts)
+                {
+                    <li>@item.ChangedAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm") - @item.ChangedBy</li>
+                }
+            </ul>
+        </div>
+    }
+}
+
 <!-- Stat Cards -->
 <div class="row g-3 mb-4">
     <div class="col-sm-6 col-xl-3">

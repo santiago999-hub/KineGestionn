@@ -19,7 +19,8 @@ namespace KineGestion.Web.Models.ViewModels
             AuditEntityType.Treatment,
             AuditEntityType.Session,
             AuditEntityType.Office,
-            AuditEntityType.Equipment
+            AuditEntityType.Equipment,
+            AuditEntityType.BillingBatch
         };
 
         public static readonly IReadOnlyList<AuditActionType> DefaultActionOptions = new[]
@@ -71,6 +72,7 @@ namespace KineGestion.Web.Models.ViewModels
             AuditEntityType.Session => Translate("Audit.Entity.Session", "Session"),
             AuditEntityType.Office => Translate("Audit.Entity.Office", "Office"),
             AuditEntityType.Equipment => Translate("Audit.Entity.Equipment", "Equipment"),
+            AuditEntityType.BillingBatch => Translate("Audit.Entity.BillingBatch", "Billing batch"),
             _ => entity.ToString()
         };
 
