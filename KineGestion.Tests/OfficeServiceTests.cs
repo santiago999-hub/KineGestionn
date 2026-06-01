@@ -68,6 +68,27 @@ namespace KineGestion.Tests
         }
 
         [Fact]
+        public async Task CreateAsync_ShouldTrimNameBeforeValidationAndPersist()
+        {
+            var office = BuildOffice();
+            office.Name = "  Consultorio Norte  ";
+
+            _repositoryMock
+                .Setup(r => r.ExistsByNameAsync("Consultorio Norte", null))
+                .ReturnsAsync(false);
+
+            _repositoryMock
+                .Setup(r => r.AddAsync(It.IsAny<Office>()))
+                .ReturnsAsync((Office o) => o);
+
+            var result = await _service.CreateAsync(office);
+
+            Assert.Equal("Consultorio Norte", result.Name);
+            _repositoryMock.Verify(r => r.ExistsByNameAsync("Consultorio Norte", null), Times.Once);
+            _repositoryMock.Verify(r => r.AddAsync(It.Is<Office>(o => o.Name == "Consultorio Norte")), Times.Once);
+        }
+
+        [Fact]
         public async Task GetActiveAsync_ShouldCacheResultBetweenCalls()
         {
             var expected = new[] { BuildOffice() };
@@ -163,6 +184,28 @@ namespace KineGestion.Tests
 
             Assert.Equal(office.Name, result.Name);
             _repositoryMock.Verify(r => r.UpdateAsync(office), Times.Once);
+        }
+
+        [Fact]
+        public async Task UpdateAsync_ShouldTrimNameBeforeValidationAndPersist()
+        {
+            var office = BuildOffice();
+            office.Id = 7;
+            office.Name = "  Consultorio Centro  ";
+
+            _repositoryMock
+                .Setup(r => r.ExistsByNameAsync("Consultorio Centro", office.Id))
+                .ReturnsAsync(false);
+
+            _repositoryMock
+                .Setup(r => r.UpdateAsync(It.IsAny<Office>()))
+                .ReturnsAsync((Office o) => o);
+
+            var result = await _service.UpdateAsync(office);
+
+            Assert.Equal("Consultorio Centro", result.Name);
+            _repositoryMock.Verify(r => r.ExistsByNameAsync("Consultorio Centro", office.Id), Times.Once);
+            _repositoryMock.Verify(r => r.UpdateAsync(It.Is<Office>(o => o.Name == "Consultorio Centro" && o.Id == office.Id)), Times.Once);
         }
 
         private static Office BuildOffice()

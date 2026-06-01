@@ -43,7 +43,7 @@ namespace KineGestion.Web.Tests
             sessionService.Setup(s => s.CountByStatusAndPaymentStatusInRangeAsync(SessionStatus.Completed, PaymentStatus.Paid, It.IsAny<DateTime>(), It.IsAny<DateTime>())).ReturnsAsync(15);
             sessionService.Setup(s => s.CountInRangeAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>())).ReturnsAsync(20);
             sessionService.Setup(s => s.CountByStatusInRangeAsync(SessionStatus.Canceled, It.IsAny<DateTime>(), It.IsAny<DateTime>())).ReturnsAsync(2);
-            auditLogService.Setup(s => s.GetAllAsync("OperationalAlert", null, null, "Create", It.IsAny<DateTime?>(), It.IsAny<DateTime?>())).ReturnsAsync(Array.Empty<AuditLog>());
+            auditLogService.Setup(s => s.GetPagedAsync("OperationalAlert", null, null, "Create", It.IsAny<DateTime?>(), It.IsAny<DateTime?>(), 1, 1)).ReturnsAsync((Array.Empty<AuditLog>().AsEnumerable(), 0));
             auditLogService.Setup(s => s.GetPagedAsync("OperationalAlert", null, null, "Create", null, null, 1, 3)).ReturnsAsync((Array.Empty<AuditLog>().AsEnumerable(), 0));
             billingAlertService.Setup(s => s.GetSnapshotAsync(It.IsAny<DateTime>(), default)).ReturnsAsync(new BillingOperationalAlertSnapshot { ThresholdPct = 70m, HasConsecutiveLowWeeks = false });
 
@@ -98,7 +98,7 @@ namespace KineGestion.Web.Tests
             sessionService.Setup(s => s.CountByStatusAndPaymentStatusInRangeAsync(SessionStatus.Completed, PaymentStatus.Paid, It.IsAny<DateTime>(), It.IsAny<DateTime>())).ReturnsAsync(15);
             sessionService.Setup(s => s.CountInRangeAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>())).ReturnsAsync(20);
             sessionService.Setup(s => s.CountByStatusInRangeAsync(SessionStatus.Canceled, It.IsAny<DateTime>(), It.IsAny<DateTime>())).ReturnsAsync(2);
-            auditLogService.Setup(s => s.GetAllAsync("OperationalAlert", null, null, "Create", It.IsAny<DateTime?>(), It.IsAny<DateTime?>())).ReturnsAsync(Array.Empty<AuditLog>());
+            auditLogService.Setup(s => s.GetPagedAsync("OperationalAlert", null, null, "Create", It.IsAny<DateTime?>(), It.IsAny<DateTime?>(), 1, 1)).ReturnsAsync((Array.Empty<AuditLog>().AsEnumerable(), 0));
             auditLogService.Setup(s => s.GetPagedAsync("OperationalAlert", null, null, "Create", null, null, 1, 3)).ReturnsAsync((Array.Empty<AuditLog>().AsEnumerable(), 0));
             billingAlertService.Setup(s => s.GetSnapshotAsync(It.IsAny<DateTime>(), default)).ReturnsAsync(new BillingOperationalAlertSnapshot { ThresholdPct = 70m, HasConsecutiveLowWeeks = false });
 
@@ -153,7 +153,7 @@ namespace KineGestion.Web.Tests
             sessionService.Setup(s => s.CountByStatusAndPaymentStatusInRangeAsync(SessionStatus.Completed, PaymentStatus.Paid, It.IsAny<DateTime>(), It.IsAny<DateTime>())).ReturnsAsync(15);
             sessionService.Setup(s => s.CountInRangeAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>())).ReturnsAsync(20);
             sessionService.Setup(s => s.CountByStatusInRangeAsync(SessionStatus.Canceled, It.IsAny<DateTime>(), It.IsAny<DateTime>())).ReturnsAsync(2);
-            auditLogService.Setup(s => s.GetAllAsync("OperationalAlert", null, null, "Create", It.IsAny<DateTime?>(), It.IsAny<DateTime?>())).ReturnsAsync(Array.Empty<AuditLog>());
+            auditLogService.Setup(s => s.GetPagedAsync("OperationalAlert", null, null, "Create", It.IsAny<DateTime?>(), It.IsAny<DateTime?>(), 1, 1)).ReturnsAsync((Array.Empty<AuditLog>().AsEnumerable(), 0));
             auditLogService.Setup(s => s.GetPagedAsync("OperationalAlert", null, null, "Create", null, null, 1, 3)).ReturnsAsync((Array.Empty<AuditLog>().AsEnumerable(), 0));
             billingAlertService.Setup(s => s.GetSnapshotAsync(It.IsAny<DateTime>(), default)).ReturnsAsync(new BillingOperationalAlertSnapshot { ThresholdPct = 70m, HasConsecutiveLowWeeks = false });
 
@@ -207,8 +207,8 @@ namespace KineGestion.Web.Tests
                 .ReturnsAsync(new BillingOperationalAlertSnapshot { ThresholdPct = 70m, HasConsecutiveLowWeeks = true });
 
             auditLogService
-                .Setup(s => s.GetAllAsync("OperationalAlert", null, null, "Create", It.IsAny<DateTime?>(), It.IsAny<DateTime?>()))
-                .ReturnsAsync(new[] { new AuditLog { EntityName = "OperationalAlert", Action = "Create", ChangedAt = DateTime.UtcNow } });
+                .Setup(s => s.GetPagedAsync("OperationalAlert", null, null, "Create", It.IsAny<DateTime?>(), It.IsAny<DateTime?>(), 1, 1))
+                .ReturnsAsync((new[] { new AuditLog { EntityName = "OperationalAlert", Action = "Create", ChangedAt = DateTime.UtcNow } }.AsEnumerable(), 1));
             auditLogService
                 .Setup(s => s.GetPagedAsync("OperationalAlert", null, null, "Create", null, null, 1, 3))
                 .ReturnsAsync((new[] { new AuditLog { EntityName = "OperationalAlert", Action = "Create", ChangedAt = DateTime.UtcNow.AddMinutes(-5), ChangedBy = "system" } }.AsEnumerable(), 1));
@@ -265,8 +265,8 @@ namespace KineGestion.Web.Tests
                 .ReturnsAsync(new BillingOperationalAlertSnapshot { ThresholdPct = 70m, HasConsecutiveLowWeeks = true });
 
             auditLogService
-                .Setup(s => s.GetAllAsync("OperationalAlert", null, null, "Create", It.IsAny<DateTime?>(), It.IsAny<DateTime?>()))
-                .ReturnsAsync(new[] { new AuditLog { EntityName = "OperationalAlert", Action = "Create", ChangedAt = DateTime.UtcNow } });
+                .Setup(s => s.GetPagedAsync("OperationalAlert", null, null, "Create", It.IsAny<DateTime?>(), It.IsAny<DateTime?>(), 1, 1))
+                .ReturnsAsync((new[] { new AuditLog { EntityName = "OperationalAlert", Action = "Create", ChangedAt = DateTime.UtcNow } }.AsEnumerable(), 1));
             auditLogService
                 .Setup(s => s.GetPagedAsync("OperationalAlert", null, null, "Create", null, null, 1, 3))
                 .ReturnsAsync((new[]

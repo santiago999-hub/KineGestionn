@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 
 namespace KineGestion.Web.Controllers
 {
@@ -26,6 +27,7 @@ namespace KineGestion.Web.Controllers
         private readonly IAuditLogService _auditLogService;
         private readonly IBillingOperationalAlertService _billingOperationalAlertService;
         private readonly IConfiguration _configuration;
+        private readonly ILogger<RemindersController> _logger;
 
         public RemindersController(
             ISessionService sessionService,
@@ -34,7 +36,8 @@ namespace KineGestion.Web.Controllers
             IReminderDeliveryService reminderDeliveryService,
             IAuditLogService auditLogService,
             IBillingOperationalAlertService billingOperationalAlertService,
-            IConfiguration configuration)
+            IConfiguration configuration,
+            ILogger<RemindersController> logger)
         {
             _sessionService = sessionService;
             _protector = dataProtectionProvider.CreateProtector("KineGestion.ReminderLink.v1");
@@ -43,6 +46,7 @@ namespace KineGestion.Web.Controllers
             _auditLogService = auditLogService;
             _billingOperationalAlertService = billingOperationalAlertService;
             _configuration = configuration;
+            _logger = logger;
         }
 
         public async Task<IActionResult> Index(int hoursAhead = 24)
@@ -427,20 +431,13 @@ namespace KineGestion.Web.Controllers
 
         private List<int> GetOperationalWindowsHours()
         {
-            var configured = _configuration.GetValue<string>("Reminders:OperationalWindowsHours");
-
-            if (string.IsNullOrWhiteSpace(configured))
-                return new List<int> { 24, 3 };
-
-            var windows = configured
-                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                .Select(value => int.TryParse(value, out var parsed) ? parsed : 0)
-                .Where(value => value is >= 1 and <= 168)
-                .Distinct()
-                .OrderByDescending(value => value)
-                .ToList();
-
-            return windows.Count == 0 ? new List<int> { 24, 3 } : windows;
+            return OperationalConfig.ReadDistinctHourWindows(
+                _configuration,
+                _logger,
+                "Reminders:OperationalWindowsHours",
+                fallback: new[] { 24, 3 },
+                min: 1,
+                max: 168);
         }
 
     }

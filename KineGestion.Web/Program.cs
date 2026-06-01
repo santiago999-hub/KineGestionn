@@ -7,11 +7,14 @@ using KineGestion.Web.Services;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using System.Diagnostics;
 using System.Globalization;
 
 var builder = WebApplication.CreateBuilder(args);
+var startupLogger = LoggerFactory.Create(logging => logging.AddConsole()).CreateLogger("StartupConfig");
 
 // ─── BASE DE DATOS ────────────────────────────────────────────────────────────
 // AppDbContext vive en Data; Program.cs es el único lugar donde se configura.
@@ -28,10 +31,42 @@ var builder = WebApplication.CreateBuilder(args);
 // Storage, Redis, SQL Server) via builder.Services.AddDataProtection().PersistKeysTo*().
 // Se usa un key ring en disco configurable para que un volumen compartido pueda montarse
 // sin tocar el código al pasar de una instancia a varias.
-var sqlMaxRetryCount = Math.Max(0, builder.Configuration.GetValue<int?>("SqlResilience:MaxRetryCount") ?? 5);
-var sqlMaxRetryDelaySeconds = Math.Max(1, builder.Configuration.GetValue<int?>("SqlResilience:MaxRetryDelaySeconds") ?? 10);
+var sqlMaxRetryCount = OperationalConfig.ReadBoundedInt(
+    builder.Configuration,
+    startupLogger,
+    "SqlResilience:MaxRetryCount",
+    defaultValue: 5,
+    min: 0,
+    max: 20);
+var sqlMaxRetryDelaySeconds = OperationalConfig.ReadBoundedInt(
+    builder.Configuration,
+    startupLogger,
+    "SqlResilience:MaxRetryDelaySeconds",
+    defaultValue: 10,
+    min: 1,
+    max: 120);
+var pipelineProfileEnabled = builder.Configuration.GetValue<bool?>("Observability:PipelineProfileEnabled") ?? true;
+var pipelineProfileMinTotalMs = OperationalConfig.ReadBoundedInt(
+    builder.Configuration,
+    startupLogger,
+    "Observability:PipelineProfileMinTotalMs",
+    defaultValue: 250,
+    min: 1,
+    max: 60000);
+var pipelineProfilePaths = ParseProfilePaths(builder.Configuration["Observability:PipelineProfilePaths"]);
 
-var keyRingPath = builder.Configuration["DataProtection:KeyRingPath"] ?? "App_Data/DataProtectionKeys";
+var configuredKeyRingPath = builder.Configuration["DataProtection:KeyRingPath"];
+if (string.IsNullOrWhiteSpace(configuredKeyRingPath))
+{
+    startupLogger.LogWarning(
+        "Configuración {Key} ausente/vacía. Se aplica default {DefaultPath}.",
+        "DataProtection:KeyRingPath",
+        "App_Data/DataProtectionKeys");
+}
+
+var keyRingPath = string.IsNullOrWhiteSpace(configuredKeyRingPath)
+    ? "App_Data/DataProtectionKeys"
+    : configuredKeyRingPath;
 var resolvedKeyRingPath = Path.IsPathRooted(keyRingPath)
     ? keyRingPath
     : Path.GetFullPath(Path.Combine(builder.Environment.ContentRootPath, keyRingPath));
@@ -75,7 +110,13 @@ builder.Services.AddScoped<ISessionService>(sp =>
 {
     var repository = sp.GetRequiredService<ISessionRepository>();
     var treatmentRepository = sp.GetRequiredService<ITreatmentRepository>();
-    var conflictWindow = builder.Configuration.GetValue<int?>("Scheduling:ProfessionalConflictWindowMinutes") ?? 45;
+    var conflictWindow = OperationalConfig.ReadBoundedInt(
+        builder.Configuration,
+        startupLogger,
+        "Scheduling:ProfessionalConflictWindowMinutes",
+        defaultValue: 45,
+        min: 5,
+        max: 240);
     return new SessionService(repository, treatmentRepository, conflictWindow);
 });
 
@@ -119,12 +160,28 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.LoginPath = "/Account/Login";
     options.AccessDeniedPath = "/Account/AccessDenied";
     options.ExpireTimeSpan = TimeSpan.FromHours(8);
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+    options.Cookie.SameSite = ParseSameSiteMode(builder.Configuration["Authentication:Cookie:SameSite"], SameSiteMode.Lax);
+    options.Cookie.SecurePolicy = builder.Environment.IsDevelopment()
+        ? CookieSecurePolicy.SameAsRequest
+        : CookieSecurePolicy.Always;
 });
 
 var app = builder.Build();
 
+ValidateProductionSafetyConfiguration(app);
+
 var defaultCultureCode = builder.Configuration["Localization:DefaultCulture"] ?? "es";
 var supportedCultureCodes = new[] { "es", "en" };
+if (!supportedCultureCodes.Contains(defaultCultureCode, StringComparer.OrdinalIgnoreCase))
+{
+    app.Logger.LogWarning(
+        "Localization:DefaultCulture ({DefaultCulture}) no está soportada. Se aplicará fallback a 'es'.",
+        defaultCultureCode);
+    defaultCultureCode = "es";
+}
+
 var supportedCultures = supportedCultureCodes.Select(c => new CultureInfo(c)).ToList();
 
 var requestLocalizationOptions = new RequestLocalizationOptions
@@ -151,8 +208,83 @@ if (!app.Environment.IsDevelopment())
 app.UseRequestLocalization(requestLocalizationOptions);
 app.UseStaticFiles();
 app.UseRouting();
+
+if (pipelineProfileEnabled)
+{
+    app.Use(async (context, next) =>
+    {
+        if (!ShouldProfilePipelinePath(context.Request.Path, pipelineProfilePaths))
+        {
+            await next();
+            return;
+        }
+
+        var totalAfterRouting = Stopwatch.StartNew();
+        await next();
+        totalAfterRouting.Stop();
+
+        var endpointMs = context.Items.TryGetValue("kg.pipeline.endpointMs", out var endpointValue)
+            && endpointValue is long endpointElapsed
+            ? endpointElapsed
+            : -1;
+
+        var actionMs = context.Items.TryGetValue("kg.pipeline.actionMs", out var actionValue)
+            && actionValue is long actionElapsed
+            ? actionElapsed
+            : -1;
+
+        var estimatedRenderMs = (endpointMs >= 0 && actionMs >= 0)
+            ? Math.Max(0, endpointMs - actionMs)
+            : -1;
+
+        var authAndPreEndpointMs = endpointMs >= 0
+            ? Math.Max(0, totalAfterRouting.ElapsedMilliseconds - endpointMs)
+            : -1;
+
+        if (totalAfterRouting.ElapsedMilliseconds >= pipelineProfileMinTotalMs)
+        {
+            app.Logger.LogWarning(
+                "Pipeline profile: path={Path}, totalAfterRouting={TotalMs}ms, authAndPreEndpoint={AuthMs}ms, endpoint={EndpointMs}ms, action={ActionMs}ms, renderApprox={RenderMs}ms",
+                context.Request.Path,
+                totalAfterRouting.ElapsedMilliseconds,
+                authAndPreEndpointMs,
+                endpointMs,
+                actionMs,
+                estimatedRenderMs);
+        }
+        else
+        {
+            app.Logger.LogInformation(
+                "Pipeline profile: path={Path}, totalAfterRouting={TotalMs}ms, authAndPreEndpoint={AuthMs}ms, endpoint={EndpointMs}ms, action={ActionMs}ms, renderApprox={RenderMs}ms",
+                context.Request.Path,
+                totalAfterRouting.ElapsedMilliseconds,
+                authAndPreEndpointMs,
+                endpointMs,
+                actionMs,
+                estimatedRenderMs);
+        }
+    });
+}
+
 app.UseAuthentication();
 app.UseAuthorization();
+
+if (pipelineProfileEnabled)
+{
+    app.Use(async (context, next) =>
+    {
+        if (!ShouldProfilePipelinePath(context.Request.Path, pipelineProfilePaths))
+        {
+            await next();
+            return;
+        }
+
+        var endpointStopwatch = Stopwatch.StartNew();
+        await next();
+        endpointStopwatch.Stop();
+        context.Items["kg.pipeline.endpointMs"] = endpointStopwatch.ElapsedMilliseconds;
+    });
+}
 
 app.MapHealthChecks("/health/live", new HealthCheckOptions
 {
@@ -218,4 +350,85 @@ using (var scope = app.Services.CreateScope())
 }
 
 app.Run();
+
+static SameSiteMode ParseSameSiteMode(string? value, SameSiteMode fallback)
+{
+    if (string.IsNullOrWhiteSpace(value))
+        return fallback;
+
+    return Enum.TryParse<SameSiteMode>(value, ignoreCase: true, out var parsed)
+        ? parsed
+        : fallback;
+}
+
+static void ValidateProductionSafetyConfiguration(WebApplication app)
+{
+    if (app.Environment.IsDevelopment())
+        return;
+
+    var connectionString = app.Configuration.GetConnectionString("DefaultConnection") ?? string.Empty;
+    if (ContainsUnsafePlaceholder(connectionString))
+    {
+        throw new InvalidOperationException(
+            "Configuración inválida para producción: ConnectionStrings:DefaultConnection contiene placeholders inseguros.");
+    }
+
+    var adminPassword = app.Configuration["Seed:AdminPassword"] ?? string.Empty;
+    if (IsUnsafeAdminPassword(adminPassword))
+    {
+        throw new InvalidOperationException(
+            "Configuración inválida para producción: Seed:AdminPassword usa un valor inseguro o placeholder.");
+    }
+
+    if (app.Configuration.GetValue<bool>("Seed:ResetAdminPasswordOnStartup"))
+    {
+        throw new InvalidOperationException(
+            "Configuración inválida para producción: Seed:ResetAdminPasswordOnStartup debe ser false.");
+    }
+}
+
+static bool ContainsUnsafePlaceholder(string value)
+{
+    if (string.IsNullOrWhiteSpace(value))
+        return true;
+
+    return value.Contains("CHANGE_ME", StringComparison.OrdinalIgnoreCase)
+        || value.Contains("<secret>", StringComparison.OrdinalIgnoreCase)
+        || value.Contains("<usar-secreto-externo>", StringComparison.OrdinalIgnoreCase);
+}
+
+static bool IsUnsafeAdminPassword(string value)
+{
+    if (string.IsNullOrWhiteSpace(value))
+        return true;
+
+    return value.Equals("Admin1234", StringComparison.Ordinal)
+        || value.Equals("CHANGE_ME", StringComparison.OrdinalIgnoreCase)
+        || value.Contains("<usar-secreto-externo>", StringComparison.OrdinalIgnoreCase);
+}
+
+static HashSet<string> ParseProfilePaths(string? configured)
+{
+    var fallback = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+    {
+        "/",
+        "/Sessions"
+    };
+
+    if (string.IsNullOrWhiteSpace(configured))
+        return fallback;
+
+    var parsed = configured
+        .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+        .Select(path => path.StartsWith("/", StringComparison.Ordinal) ? path : "/" + path)
+        .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+    return parsed.Count == 0 ? fallback : parsed;
+}
+
+static bool ShouldProfilePipelinePath(PathString requestPath, HashSet<string> configuredPaths)
+{
+    var value = requestPath.Value;
+    return !string.IsNullOrWhiteSpace(value) && configuredPaths.Contains(value);
+}
 

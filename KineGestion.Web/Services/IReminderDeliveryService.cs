@@ -121,7 +121,13 @@ namespace KineGestion.Web.Services
             }
 
             var host = _configuration["Reminders:Email:SmtpHost"];
-            var port = Math.Max(1, _configuration.GetValue<int?>("Reminders:Email:SmtpPort") ?? 587);
+            var port = OperationalConfig.ReadBoundedInt(
+                _configuration,
+                _logger,
+                "Reminders:Email:SmtpPort",
+                defaultValue: 587,
+                min: 1,
+                max: 65535);
             var user = _configuration["Reminders:Email:Username"];
             var pass = _configuration["Reminders:Email:Password"];
             var from = _configuration["Reminders:Email:From"];
@@ -173,7 +179,13 @@ namespace KineGestion.Web.Services
 
             var apiUrl = _configuration["Reminders:WhatsApp:ApiUrl"];
             var apiToken = _configuration["Reminders:WhatsApp:ApiToken"];
-            var timeoutSeconds = Math.Max(3, _configuration.GetValue<int?>("Reminders:WhatsApp:TimeoutSeconds") ?? 15);
+            var timeoutSeconds = OperationalConfig.ReadBoundedInt(
+                _configuration,
+                _logger,
+                "Reminders:WhatsApp:TimeoutSeconds",
+                defaultValue: 15,
+                min: 3,
+                max: 120);
 
             if (string.IsNullOrWhiteSpace(apiUrl))
             {

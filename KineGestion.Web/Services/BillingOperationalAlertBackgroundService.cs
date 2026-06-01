@@ -16,8 +16,20 @@ namespace KineGestion.Web.Services
             _scopeFactory = scopeFactory;
             _logger = logger;
             _enabled = configuration.GetValue<bool?>("Reminders:OperationalAlerts:Enabled") ?? true;
-            _startupDelayMs = Math.Clamp(configuration.GetValue<int?>("Reminders:OperationalAlerts:StartupDelayMs") ?? 5000, 0, 60000);
-            _repeatIntervalMinutes = Math.Clamp(configuration.GetValue<int?>("Reminders:OperationalAlerts:BackgroundCheckIntervalMinutes") ?? 60, 5, 1440);
+            _startupDelayMs = OperationalConfig.ReadBoundedInt(
+                configuration,
+                logger,
+                "Reminders:OperationalAlerts:StartupDelayMs",
+                defaultValue: 5000,
+                min: 0,
+                max: 60000);
+            _repeatIntervalMinutes = OperationalConfig.ReadBoundedInt(
+                configuration,
+                logger,
+                "Reminders:OperationalAlerts:BackgroundCheckIntervalMinutes",
+                defaultValue: 60,
+                min: 5,
+                max: 1440);
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)

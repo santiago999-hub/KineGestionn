@@ -2,6 +2,11 @@
 
 @{
     ViewData["Title"] = "Dashboard";
+    var today = DateTime.Today;
+    var todayIso = today.ToString("yyyy-MM-dd");
+    var todayDisplay = today.ToString("dd/MM/yyyy");
+    var isAdmin = User.IsInRole("Admin");
+    var isKinesiologo = User.IsInRole("Kinesiologo");
 }
 
 <div class="kg-dashboard-hero mb-4">
@@ -16,7 +21,7 @@
             para resolver la operación clínica sin navegar de más.
         </p>
         <div class="kg-dashboard-hero-actions">
-            <a asp-controller="Sessions" asp-action="Index" asp-route-dateFrom="@DateTime.Today.ToString("yyyy-MM-dd")" asp-route-dateTo="@DateTime.Today.ToString("yyyy-MM-dd")" class="btn-kg-primary">
+            <a asp-controller="Sessions" asp-action="Index" asp-route-dateFrom="@todayIso" asp-route-dateTo="@todayIso" class="btn-kg-primary">
                 <i class="bi bi-calendar2-week-fill"></i>
                 Ver agenda de hoy
             </a>
@@ -30,7 +35,7 @@
     <div class="kg-dashboard-hero-meta">
         <div class="kg-dashboard-hero-chip">
             <i class="bi bi-calendar3"></i>
-            <span>@DateTime.Today.ToString("dd/MM/yyyy")</span>
+            <span>@todayDisplay</span>
         </div>
         <div class="kg-dashboard-hero-chip">
             <i class="bi bi-activity"></i>
@@ -76,7 +81,7 @@
         <div class="d-flex gap-2">
             <a asp-controller="Billing" asp-action="Index" class="btn btn-sm btn-outline-danger">Ir a Cobranzas</a>
             <a asp-controller="Reminders" asp-action="Index" class="btn btn-sm btn-outline-secondary">Ir a Recordatorios</a>
-            @if (User.IsInRole("Admin"))
+            @if (isAdmin)
             {
                 <form asp-controller="Home" asp-action="TriggerBillingOperationalAlert" method="post" class="d-inline">
                     @Html.AntiForgeryToken()
@@ -86,7 +91,7 @@
         </div>
     </div>
 
-    @if (Model.RecentBillingOperationalAlerts.Any())
+    @if (Model.RecentBillingOperationalAlerts.Count > 0)
     {
         <div class="alert alert-light border mb-3" role="status">
             <strong>Últimas alertas operativas:</strong>
@@ -156,7 +161,7 @@
 <!-- Operational Cards -->
 <div class="row g-3 mb-4">
     <div class="col-sm-6 col-xl-3">
-        <a asp-controller="Sessions" asp-action="Index" asp-route-dateFrom="@DateTime.Today.ToString("yyyy-MM-dd")" asp-route-dateTo="@DateTime.Today.ToString("yyyy-MM-dd")" class="kg-stat-card kg-stat-link">
+        <a asp-controller="Sessions" asp-action="Index" asp-route-dateFrom="@todayIso" asp-route-dateTo="@todayIso" class="kg-stat-card kg-stat-link">
             <div class="kg-stat-icon orange"><i class="bi bi-calendar2-day-fill"></i></div>
             <div>
                 <div class="kg-stat-label">Sesiones hoy</div>
@@ -165,7 +170,7 @@
         </a>
     </div>
     <div class="col-sm-6 col-xl-3">
-        <a asp-controller="Sessions" asp-action="Index" asp-route-status="Completed" asp-route-dateFrom="@DateTime.Today.ToString("yyyy-MM-dd")" asp-route-dateTo="@DateTime.Today.ToString("yyyy-MM-dd")" class="kg-stat-card kg-stat-link">
+        <a asp-controller="Sessions" asp-action="Index" asp-route-status="Completed" asp-route-dateFrom="@todayIso" asp-route-dateTo="@todayIso" class="kg-stat-card kg-stat-link">
             <div class="kg-stat-icon green"><i class="bi bi-check2-circle"></i></div>
             <div>
                 <div class="kg-stat-label">Completadas hoy</div>
@@ -192,7 +197,7 @@
         </a>
     </div>
     <div class="col-sm-6 col-xl-3">
-        <a asp-controller="Sessions" asp-action="Index" asp-route-status="Canceled" asp-route-dateFrom="@DateTime.Today.ToString("yyyy-MM-dd")" asp-route-dateTo="@DateTime.Today.ToString("yyyy-MM-dd")" class="kg-stat-card kg-stat-link">
+        <a asp-controller="Sessions" asp-action="Index" asp-route-status="Canceled" asp-route-dateFrom="@todayIso" asp-route-dateTo="@todayIso" class="kg-stat-card kg-stat-link">
             <div class="kg-stat-icon orange"><i class="bi bi-x-circle-fill"></i></div>
             <div>
                 <div class="kg-stat-label">Canceladas hoy</div>
@@ -247,9 +252,9 @@
             <div class="kg-card-body">
                 <div class="kg-action-priority-label">Prioridad de hoy</div>
                 <div class="kg-action-priority-strip mb-4">
-                    @if (User.IsInRole("Admin"))
+                    @if (isAdmin)
                     {
-                        <a asp-controller="Sessions" asp-action="Index" asp-route-paymentStatus="Pending" asp-route-dateFrom="@DateTime.Today.ToString("yyyy-MM-dd")" asp-route-dateTo="@DateTime.Today.ToString("yyyy-MM-dd")" class="kg-quick-action kg-quick-action-featured">
+                        <a asp-controller="Sessions" asp-action="Index" asp-route-paymentStatus="Pending" asp-route-dateFrom="@todayIso" asp-route-dateTo="@todayIso" class="kg-quick-action kg-quick-action-featured">
                             <i class="bi bi-cash-stack"></i>
                             <div>
                                 <span class="kg-quick-action-kicker">Urgente</span>
@@ -257,7 +262,7 @@
                                 <div class="kg-quick-action-help">Filtrar cobros pendientes del día</div>
                             </div>
                         </a>
-                        <a asp-controller="Sessions" asp-action="Index" asp-route-status="Pending" asp-route-dateFrom="@DateTime.Today.ToString("yyyy-MM-dd")" asp-route-dateTo="@DateTime.Today.ToString("yyyy-MM-dd")" class="kg-quick-action kg-quick-action-featured">
+                        <a asp-controller="Sessions" asp-action="Index" asp-route-status="Pending" asp-route-dateFrom="@todayIso" asp-route-dateTo="@todayIso" class="kg-quick-action kg-quick-action-featured">
                             <i class="bi bi-hourglass-split"></i>
                             <div>
                                 <span class="kg-quick-action-kicker">Control</span>
@@ -265,7 +270,7 @@
                                 <div class="kg-quick-action-help">Revisar sesiones pendientes del día</div>
                             </div>
                         </a>
-                        <a asp-controller="Sessions" asp-action="Index" asp-route-status="Canceled" asp-route-dateFrom="@DateTime.Today.ToString("yyyy-MM-dd")" asp-route-dateTo="@DateTime.Today.ToString("yyyy-MM-dd")" class="kg-quick-action kg-quick-action-featured">
+                        <a asp-controller="Sessions" asp-action="Index" asp-route-status="Canceled" asp-route-dateFrom="@todayIso" asp-route-dateTo="@todayIso" class="kg-quick-action kg-quick-action-featured">
                             <i class="bi bi-arrow-repeat"></i>
                             <div>
                                 <span class="kg-quick-action-kicker">Seguimiento</span>
@@ -282,9 +287,9 @@
                             </div>
                         </a>
                     }
-                    else if (User.IsInRole("Kinesiologo"))
+                    else if (isKinesiologo)
                     {
-                        <a asp-controller="Sessions" asp-action="MyAgenda" asp-route-dateFrom="@DateTime.Today.ToString("yyyy-MM-dd")" asp-route-dateTo="@DateTime.Today.ToString("yyyy-MM-dd")" class="kg-quick-action kg-quick-action-featured">
+                        <a asp-controller="Sessions" asp-action="MyAgenda" asp-route-dateFrom="@todayIso" asp-route-dateTo="@todayIso" class="kg-quick-action kg-quick-action-featured">
                             <i class="bi bi-calendar2-week-fill"></i>
                             <div>
                                 <span class="kg-quick-action-kicker">Hoy</span>
@@ -304,7 +309,7 @@
                 </div>
 
                 <div class="row g-3">
-                    @if (User.IsInRole("Admin"))
+                    @if (isAdmin)
                     {
                         <div class="col-sm-6">
                             <a asp-controller="Patients" asp-action="Create" class="kg-quick-action">
@@ -334,7 +339,7 @@
                             </a>
                         </div>
                     }
-                    else if (User.IsInRole("Kinesiologo"))
+                    else if (isKinesiologo)
                     {
                         <div class="col-12">
                             <div class="kg-empty kg-quick-action-empty">
@@ -376,7 +381,7 @@
                     </li>
                     <li class="d-flex justify-content-between align-items-center">
                         <span class="text-muted">Fecha</span>
-                        <span class="kg-system-date">@DateTime.Today.ToString("dd/MM/yyyy")</span>
+                        <span class="kg-system-date">@todayDisplay</span>
                     </li>
                 </ul>
             </div>

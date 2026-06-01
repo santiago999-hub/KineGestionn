@@ -22,7 +22,13 @@ namespace KineGestion.Web.Middleware
             _next = next;
             _logger = logger;
             _metricsStore = metricsStore;
-            _slowRequestThresholdMs = Math.Max(100, configuration.GetValue<int?>("Observability:SlowRequestThresholdMs") ?? 1000);
+            _slowRequestThresholdMs = OperationalConfig.ReadBoundedInt(
+                configuration,
+                logger,
+                "Observability:SlowRequestThresholdMs",
+                defaultValue: 1000,
+                min: 100,
+                max: 120000);
         }
 
         public async Task InvokeAsync(HttpContext context)

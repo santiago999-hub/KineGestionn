@@ -18,6 +18,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Routing;
 using Microsoft.AspNetCore.Mvc.ViewFeatures;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 
 namespace KineGestion.Web.Tests
@@ -255,6 +256,34 @@ namespace KineGestion.Web.Tests
         }
 
         [Fact]
+        public async Task DispatchOperational_ShouldFallbackToDefaultWindows_WhenConfigIsInvalid()
+        {
+            var sessionService = new Mock<ISessionService>();
+            var reminderDeliveryService = new Mock<IReminderDeliveryService>();
+            var reminderDispatchQueue = new Mock<IReminderDispatchQueue>();
+            var auditLogService = new Mock<IAuditLogService>();
+
+            sessionService
+                .Setup(s => s.GetReminderCandidatesAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>()))
+                .ReturnsAsync(Array.Empty<SessionReminderCandidateDto>());
+
+            var controller = BuildController(
+                sessionService.Object,
+                reminderDispatchQueue.Object,
+                reminderDeliveryService.Object,
+                auditLogService.Object,
+                "admin@kinegestion.com",
+                new Dictionary<string, string?> { ["Reminders:OperationalWindowsHours"] = "abc,-1,999" });
+
+            var result = await controller.DispatchOperational(24);
+
+            var redirect = Assert.IsType<RedirectToActionResult>(result);
+            Assert.Equal("Index", redirect.ActionName);
+            sessionService.Verify(s => s.GetReminderCandidatesAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>()), Times.Exactly(2));
+            Assert.Equal("No hay sesiones elegibles en ventanas operativas para enviar recordatorios.", controller.TempData["Success"]);
+        }
+
+        [Fact]
         public async Task DispatchOperational_ShouldQueueBillingAlert_WhenLowTrendIsDetectedAndNotSentToday()
         {
             var sessionService = new Mock<ISessionService>();
@@ -458,7 +487,8 @@ namespace KineGestion.Web.Tests
                 reminderDeliveryService,
                 auditLogService,
                 resolvedBillingAlertService,
-                configuration);
+                configuration,
+                NullLogger<RemindersController>.Instance);
 
             var httpContext = new DefaultHttpContext();
             httpContext.Request.Scheme = "https";

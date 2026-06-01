@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Linq;
 using System.Security.Claims;
 using System.Text.Json;
@@ -42,6 +43,8 @@ namespace KineGestion.Web.Controllers
         // Listado administrativo: no incluye Evolution
         public async Task<IActionResult> Index(string? search, SessionStatus? status, PaymentStatus? paymentStatus, DateTime? dateFrom, DateTime? dateTo, string? sortBy = "fecha", string? sortDir = "desc", int page = 1, int pageSize = 10)
         {
+            var actionStopwatch = Stopwatch.StartNew();
+
             if (HasNoQueryString() && TryReadFilters(IndexFiltersCookieKey, out var savedFilters))
             {
                 search = savedFilters.Search;
@@ -87,6 +90,10 @@ namespace KineGestion.Web.Controllers
                 PageSize = pageSize,
                 TotalCount = totalCount
             };
+
+            actionStopwatch.Stop();
+            if (HttpContext is not null)
+                HttpContext.Items["kg.pipeline.actionMs"] = actionStopwatch.ElapsedMilliseconds;
 
             return View(model);
         }

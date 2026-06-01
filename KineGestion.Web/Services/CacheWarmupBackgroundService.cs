@@ -21,9 +21,27 @@ namespace KineGestion.Web.Services
             _scopeFactory = scopeFactory;
             _logger = logger;
             _enabled = configuration.GetValue<bool?>("Performance:Warmup:Enabled") ?? true;
-            _startupDelayMs = Math.Clamp(configuration.GetValue<int?>("Performance:Warmup:StartupDelayMs") ?? 1500, 0, 60000);
-            _repeatIntervalSeconds = Math.Max(0, configuration.GetValue<int?>("Performance:Warmup:RepeatIntervalSeconds") ?? 0);
-            _operationTimeoutSeconds = Math.Clamp(configuration.GetValue<int?>("Performance:Warmup:OperationTimeoutSeconds") ?? 10, 2, 120);
+            _startupDelayMs = OperationalConfig.ReadBoundedInt(
+                configuration,
+                logger,
+                "Performance:Warmup:StartupDelayMs",
+                defaultValue: 1500,
+                min: 0,
+                max: 60000);
+            _repeatIntervalSeconds = OperationalConfig.ReadBoundedInt(
+                configuration,
+                logger,
+                "Performance:Warmup:RepeatIntervalSeconds",
+                defaultValue: 0,
+                min: 0,
+                max: 86400);
+            _operationTimeoutSeconds = OperationalConfig.ReadBoundedInt(
+                configuration,
+                logger,
+                "Performance:Warmup:OperationTimeoutSeconds",
+                defaultValue: 10,
+                min: 2,
+                max: 120);
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)

@@ -10,15 +10,22 @@ param(
 
     [int]$PauseMs = 0,
 
+    [int]$WarmupIterations = 2,
+
+    [int]$WarmupPauseMs = 0,
+
     [string[]]$Routes = @('/', '/Sessions'),
 
     [switch]$IncludeOpsMetrics,
 
-    [switch]$SkipTlsValidation
+    [switch]$SkipTlsValidation,
+
+    [switch]$AsObject
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+$script:SupportsBasicParsing = $PSVersionTable.PSVersion.Major -lt 6
 
 if ($SkipTlsValidation) {
     Add-Type @"
@@ -65,6 +72,32 @@ function Get-AntiForgeryToken {
     return $match.Groups[2].Value
 }
 
+function Invoke-RequestCompat {
+    param(
+        [string]$Uri,
+        [string]$Method,
+        [Microsoft.PowerShell.Commands.WebRequestSession]$WebSession,
+        [hashtable]$Body = $null
+    )
+
+    $requestParams = @{
+        Uri = $Uri
+        Method = $Method
+        WebSession = $WebSession
+        MaximumRedirection = 5
+    }
+
+    if ($null -ne $Body) {
+        $requestParams.Body = $Body
+    }
+
+    if ($script:SupportsBasicParsing) {
+        $requestParams.UseBasicParsing = $true
+    }
+
+    return Invoke-WebRequest @requestParams
+}
+
 function Invoke-Login {
     param(
         [string]$Base,
@@ -74,7 +107,7 @@ function Invoke-Login {
     )
 
     $loginUrl = "$Base/Account/Login"
-    $loginPage = Invoke-WebRequest -Uri $loginUrl -Method Get -WebSession $WebSession -MaximumRedirection 5
+    $loginPage = Invoke-RequestCompat -Uri $loginUrl -Method Get -WebSession $WebSession
     $token = Get-AntiForgeryToken -Html $loginPage.Content
 
     $form = @{
@@ -85,7 +118,7 @@ function Invoke-Login {
         'ReturnUrl' = ''
     }
 
-    $response = Invoke-WebRequest -Uri $loginUrl -Method Post -Body $form -WebSession $WebSession -MaximumRedirection 5
+    $response = Invoke-RequestCompat -Uri $loginUrl -Method Post -Body $form -WebSession $WebSession
 
     $authCookie = $WebSession.Cookies.GetCookies($Base) | Where-Object { $_.Name -like '.AspNetCore.Identity.Application*' } | Select-Object -First 1
     if ($null -eq $authCookie) {
@@ -117,7 +150,7 @@ function Measure-Route {
     for ($i = 1; $i -le $Runs; $i++) {
         $sw = [System.Diagnostics.Stopwatch]::StartNew()
         try {
-            $res = Invoke-WebRequest -Uri $url -Method Get -WebSession $WebSession -MaximumRedirection 5
+            $res = Invoke-RequestCompat -Uri $url -Method Get -WebSession $WebSession
             if ($res.StatusCode -ge 200 -and $res.StatusCode -lt 400) {
                 $successCount++
             }
@@ -161,6 +194,38 @@ function Measure-Route {
     }
 }
 
+function Invoke-Warmup {
+    param(
+        [string]$Base,
+        [string[]]$WarmupRoutes,
+        [int]$WarmupRuns,
+        [int]$Pause,
+        [Microsoft.PowerShell.Commands.WebRequestSession]$WebSession
+    )
+
+    if ($WarmupRuns -le 0 -or -not $WarmupRoutes -or $WarmupRoutes.Count -eq 0) {
+        return
+    }
+
+    foreach ($route in $WarmupRoutes) {
+        $normalizedRoute = if ($route.StartsWith('/')) { $route } else { "/$route" }
+        $url = "$Base$normalizedRoute"
+
+        for ($i = 1; $i -le $WarmupRuns; $i++) {
+            try {
+                Invoke-RequestCompat -Uri $url -Method Get -WebSession $WebSession | Out-Null
+            }
+            catch {
+                Write-Warning "Warmup falló para $normalizedRoute (iteración $i): $($_.Exception.Message)"
+            }
+
+            if ($Pause -gt 0) {
+                Start-Sleep -Milliseconds $Pause
+            }
+        }
+    }
+}
+
 $base = $BaseUrl.TrimEnd('/')
 
 if ($IncludeOpsMetrics -and -not ($Routes -contains '/ops/metrics')) {
@@ -170,8 +235,15 @@ if ($IncludeOpsMetrics -and -not ($Routes -contains '/ops/metrics')) {
 $session = New-Object Microsoft.PowerShell.Commands.WebRequestSession
 Invoke-Login -Base $base -UserEmail $Email -UserSecret $AuthSecret -WebSession $session
 
+Invoke-Warmup -Base $base -WarmupRoutes $Routes -WarmupRuns $WarmupIterations -Pause $WarmupPauseMs -WebSession $session
+
 $results = foreach ($route in $Routes) {
     Measure-Route -Base $base -Route $route -Runs $Iterations -Pause $PauseMs -WebSession $session
 }
 
-$results | Format-Table -AutoSize
+if ($AsObject) {
+    $results
+}
+else {
+    $results | Format-Table -AutoSize
+}

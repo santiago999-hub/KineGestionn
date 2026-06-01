@@ -72,36 +72,35 @@ namespace KineGestion.Data.Repositories
                 .AsNoTracking()
                 .Where(s => s.OfficeId == officeId);
 
-            var professionals = await sessionBaseQuery
-                .Select(s => s.Professional != null
-                    ? (s.Professional.Apellido + ", " + s.Professional.Nombre)
-                    : string.Empty)
+            var professionalRows = await sessionBaseQuery
+                .Where(s => s.Professional != null)
+                .Select(s => new
+                {
+                    s.Professional!.Apellido,
+                    s.Professional!.Nombre
+                })
+                .ToListAsync();
+
+            var professionals = professionalRows
+                .Select(row => BuildProfessionalDisplayName(row.Apellido, row.Nombre))
                 .Where(name => !string.IsNullOrWhiteSpace(name))
-                .Distinct()
-                .OrderBy(name => name)
-                .ToListAsync();
-
-            var treatments = await sessionBaseQuery
-                .Select(s => s.Treatment != null ? s.Treatment.Descripcion : string.Empty)
-                .Where(desc => !string.IsNullOrWhiteSpace(desc))
-                .Distinct()
-                .OrderBy(desc => desc)
-                .ToListAsync();
-
-            var obrasSociales = await sessionBaseQuery
-                .Select(s => s.Patient != null ? s.Patient.ObraSocial : string.Empty)
-                .Where(os => !string.IsNullOrWhiteSpace(os))
-                .Select(os => os!)
-                .Distinct()
-                .OrderBy(os => os)
-                .ToListAsync();
-
-            var equipments = office.Equipments
-                .Where(e => !string.IsNullOrWhiteSpace(e.Name))
-                .Select(e => e.Name.Trim())
-                .Distinct()
-                .OrderBy(name => name)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(name => name, StringComparer.OrdinalIgnoreCase)
                 .ToList();
+
+            var treatmentRows = await sessionBaseQuery
+                .Select(s => s.Treatment != null ? s.Treatment.Descripcion : string.Empty)
+                .ToListAsync();
+
+            var treatments = NormalizeDistinctSorted(treatmentRows);
+
+            var obraSocialRows = await sessionBaseQuery
+                .Select(s => s.Patient != null ? s.Patient.ObraSocial : string.Empty)
+                .ToListAsync();
+
+            var obrasSociales = NormalizeDistinctSorted(obraSocialRows);
+
+            var equipments = NormalizeDistinctSorted(office.Equipments.Select(e => e.Name));
 
             return new OfficeClinicalProfileDto
             {
@@ -111,6 +110,32 @@ namespace KineGestion.Data.Repositories
                 Equipments = equipments,
                 ObrasSociales = obrasSociales
             };
+        }
+
+        private static List<string> NormalizeDistinctSorted(IEnumerable<string?> values)
+            => values
+                .Select(value => value?.Trim())
+                .Where(value => !string.IsNullOrWhiteSpace(value))
+                .Select(value => value!)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(value => value, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+        private static string BuildProfessionalDisplayName(string? lastName, string? firstName)
+        {
+            var normalizedLastName = lastName?.Trim();
+            var normalizedFirstName = firstName?.Trim();
+
+            if (string.IsNullOrWhiteSpace(normalizedLastName) && string.IsNullOrWhiteSpace(normalizedFirstName))
+                return string.Empty;
+
+            if (string.IsNullOrWhiteSpace(normalizedLastName))
+                return normalizedFirstName!;
+
+            if (string.IsNullOrWhiteSpace(normalizedFirstName))
+                return normalizedLastName;
+
+            return $"{normalizedLastName}, {normalizedFirstName}";
         }
 
         public async Task<bool> ExistsByNameAsync(string name, int? excludeId = null)

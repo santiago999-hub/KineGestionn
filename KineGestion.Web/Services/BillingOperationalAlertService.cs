@@ -4,6 +4,7 @@ using System.Text.Json;
 using KineGestion.Core.Entities;
 using KineGestion.Core.Interfaces;
 using KineGestion.Web.Models.ViewModels;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace KineGestion.Web.Services
 {
@@ -30,23 +31,37 @@ namespace KineGestion.Web.Services
 
     public sealed class BillingOperationalAlertService : IBillingOperationalAlertService
     {
+        private const string SnapshotCacheKeyPrefix = "BillingOperationalAlertService.Snapshot";
+
         private readonly IAuditLogService _auditLogService;
         private readonly IReminderDispatchQueue _reminderDispatchQueue;
         private readonly IConfiguration _configuration;
+        private readonly IMemoryCache _memoryCache;
 
         public BillingOperationalAlertService(
             IAuditLogService auditLogService,
             IReminderDispatchQueue reminderDispatchQueue,
-            IConfiguration configuration)
+            IConfiguration configuration,
+            IMemoryCache memoryCache)
         {
             _auditLogService = auditLogService;
             _reminderDispatchQueue = reminderDispatchQueue;
             _configuration = configuration;
+            _memoryCache = memoryCache;
         }
 
         public async Task<BillingOperationalAlertSnapshot> GetSnapshotAsync(DateTime referenceUtc, CancellationToken cancellationToken = default)
         {
             var thresholdPct = _configuration.GetValue<decimal?>("Billing:BatchEffectivenessWarnThresholdPct") ?? 70m;
+            var cacheKey = string.Create(
+                CultureInfo.InvariantCulture,
+                $"{SnapshotCacheKeyPrefix}:{referenceUtc:yyyyMMdd}:{thresholdPct:F2}");
+
+            if (_memoryCache.TryGetValue(cacheKey, out BillingOperationalAlertSnapshot? cachedSnapshot) && cachedSnapshot is not null)
+            {
+                return cachedSnapshot;
+            }
+
             var windowStart = referenceUtc.Date.AddDays(-27);
             var windowEnd = referenceUtc.Date;
 
@@ -60,12 +75,20 @@ namespace KineGestion.Web.Services
 
             var trendPoints = BuildBillingWeeklyTrend(billingBatchLogs, windowEnd, weeks: 4);
 
-            return new BillingOperationalAlertSnapshot
+            var snapshot = new BillingOperationalAlertSnapshot
             {
                 ThresholdPct = thresholdPct,
                 HasConsecutiveLowWeeks = HasConsecutiveLowWeeks(trendPoints, thresholdPct, requiredConsecutiveWeeks: 2),
                 TrendPoints = trendPoints
             };
+
+            _memoryCache.Set(cacheKey, snapshot, new MemoryCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(30),
+                SlidingExpiration = TimeSpan.FromSeconds(15)
+            });
+
+            return snapshot;
         }
 
         public async Task<BillingOperationalAlertDispatchResult> QueueAlertIfNeededAsync(string? changedBy, DateTime nowUtc, CancellationToken cancellationToken = default)
