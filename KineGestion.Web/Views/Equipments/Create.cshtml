@@ -1,0 +1,53 @@
+@model KineGestion.Web.Models.ViewModels.EquipmentViewModel
+
+@{
+    ViewData["Title"] = "Nuevo Equipo";
+}
+
+<div class="kg-page-header">
+    <div>
+        <h2>Nuevo Equipo</h2>
+        <p class="text-muted mb-0">Registrá un equipo del centro</p>
+    </div>
+    <a asp-action="Index" class="btn-kg-outline">
+        <i class="bi bi-arrow-left"></i> Volver al listado
+    </a>
+</div>
+
+<div class="kg-form-card">
+    <div class="kg-form-header">
+        <div class="kg-form-header-icon primary"><i class="bi bi-plus-circle"></i></div>
+        <div>
+            <h4>Datos del Equipo</h4>
+            <p>Los campos marcados son obligatorios</p>
+        </div>
+    </div>
+    <form asp-action="Create" method="post">
+        @Html.AntiForgeryToken()
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger mb-4" role="alert"></div>
+        <div class="kg-form-body">
+            <div class="row g-3">
+                <div class="col-md-8">
+                    <label asp-for="Name" class="form-label"></label>
+                    <input asp-for="Name" class="form-control" placeholder="Ej: Camilla, Ultrasonido, Electroestimulador..." />
+                    <span asp-validation-for="Name" class="text-danger small"></span>
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="OfficeId" class="form-label"></label>
+                    <select asp-for="OfficeId" asp-items="Model.Offices" class="form-select">
+                        <option value="">Sin asignar</option>
+                    </select>
+                    <span asp-validation-for="OfficeId" class="text-danger small"></span>
+                </div>
+            </div>
+        </div>
+        <div class="kg-form-footer">
+            <a asp-action="Index" class="btn-kg-outline"><i class="bi bi-x-lg"></i> Cancelar</a>
+            <button type="submit" class="btn-kg-primary"><i class="bi bi-check-lg"></i> Guardar Equipo</button>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

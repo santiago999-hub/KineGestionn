@@ -17,25 +17,60 @@ namespace KineGestion.Data.Repositories
     public class SessionRepository : ISessionRepository
     {
         private readonly AppDbContext _context;
+        private readonly ICurrentUserProvider? _currentUserProvider;
 
         public SessionRepository(AppDbContext context)
         {
             _context = context;
         }
 
+        public SessionRepository(AppDbContext context, ICurrentUserProvider currentUserProvider)
+        {
+            _context = context;
+            _currentUserProvider = currentUserProvider;
+        }
+
+        private bool IsClinicalStaff()
+            => _currentUserProvider?.IsInRole("Admin") == true
+            || _currentUserProvider?.IsInRole("Kinesiologo") == true
+            || _currentUserProvider?.IsInRole("Asistente") == true;
+
+        private bool CanViewClinicalNotes()
+            => _currentUserProvider?.IsInRole("Admin") == true
+            || _currentUserProvider?.IsInRole("Kinesiologo") == true;
+
+        private int? GetProfessionalIdFilter()
+        {
+            if (_currentUserProvider is null) return null;
+            if (_currentUserProvider.IsInRole("Admin")) return null;
+            var profIdStr = _currentUserProvider.GetClaimValue("ProfessionalId");
+            return int.TryParse(profIdStr, out var profId) ? profId : null;
+        }
+
         /// <summary>
         /// Carga la sesión con sus relaciones para visualización o edición.
         /// AsNoTracking: no registra la entidad en el ChangeTracker, reduciendo overhead de memoria.
         /// El UpdateAsync adjunta el objeto modificado explícitamente, por lo que no se necesita tracking aquí.
+        /// Para Asistente: se ocultan campos clínicos sensibles (Evolution, InternalNotes).
         /// </summary>
         public async Task<Session?> GetByIdAsync(int id)
-            => await _context.Sessions
+        {
+            var session = await _context.Sessions
                              .AsNoTracking()
                              .Include(s => s.Patient)
                              .Include(s => s.Professional)
                              .Include(s => s.Treatment)
                              .Include(s => s.Office)
                              .FirstOrDefaultAsync(s => s.Id == id);
+
+            if (session is not null && !CanViewClinicalNotes())
+            {
+                session.Evolution = null;
+                session.InternalNotes = null;
+            }
+
+            return session;
+        }
 
         /// <summary>OBSOLETO: carga la tabla completa en memoria. Ver interfaz para detalles del riesgo.</summary>
         [Obsolete("Peligro de Memory Bomb. Usar GetPagedListForAdminAsync.")]
@@ -115,6 +150,7 @@ namespace KineGestion.Data.Repositories
         /// <summary>
         /// Proyección SQL directa: solo trae los campos necesarios para la tabla admin.
         /// Evita cargar nav properties completas de Patient, Professional, Treatment y Office.
+        /// Filtrado por rol: Admin ve todo, Kinesiologo ve sus sesiones, Asistente ve sin notas clínicas.
         /// </summary>
         public async Task<(IEnumerable<SessionListDto> Items, int TotalCount)> GetPagedListForAdminAsync(
             int page,
@@ -128,6 +164,11 @@ namespace KineGestion.Data.Repositories
             string? sortDir)
         {
             var baseQuery = _context.Sessions.AsNoTracking().AsQueryable();
+
+            // IDOR protection: non-admin users only see their own professional's sessions
+            var profFilter = GetProfessionalIdFilter();
+            if (profFilter.HasValue)
+                baseQuery = baseQuery.Where(s => s.ProfessionalId == profFilter.Value);
 
             if (!string.IsNullOrWhiteSpace(search))
             {
@@ -352,61 +393,147 @@ namespace KineGestion.Data.Repositories
                              .CountAsync(s => s.OfficeId == officeId);
 
         public async Task<int> CountAsync()
-            => await _context.Sessions.AsNoTracking().CountAsync();
+        {
+            // Non-admin (Asistente/Kinesiologo) solo cuentan dentro del alcance de su profesional
+            var profFilter = GetProfessionalIdFilter();
+            if (profFilter.HasValue)
+                return await _context.Sessions.AsNoTracking()
+                    .CountAsync(s => s.ProfessionalId == profFilter.Value);
+
+            return await _context.Sessions.AsNoTracking().CountAsync();
+        }
 
         public async Task<int> CountTodayAsync(DateTime utcToday)
         {
             var tomorrow = utcToday.Date.AddDays(1);
+            var profFilter = GetProfessionalIdFilter();
+            if (profFilter.HasValue)
+                return await _context.Sessions
+                    .AsNoTracking()
+                    .CountAsync(s => s.ProfessionalId == profFilter.Value
+                        && s.FechaHora >= utcToday.Date && s.FechaHora < tomorrow);
+
             return await _context.Sessions
                 .AsNoTracking()
                 .CountAsync(s => s.FechaHora >= utcToday.Date && s.FechaHora < tomorrow);
         }
 
         public async Task<int> CountByPaymentStatusAsync(PaymentStatus paymentStatus)
-            => await _context.Sessions
+        {
+            var profFilter = GetProfessionalIdFilter();
+            if (profFilter.HasValue)
+                return await _context.Sessions
+                    .AsNoTracking()
+                    .CountAsync(s => s.ProfessionalId == profFilter.Value && s.PaymentStatus == paymentStatus);
+
+            return await _context.Sessions
                 .AsNoTracking()
                 .CountAsync(s => s.PaymentStatus == paymentStatus);
+        }
 
         public async Task<int> CountByStatusAsync(SessionStatus status)
-            => await _context.Sessions
+        {
+            var profFilter = GetProfessionalIdFilter();
+            if (profFilter.HasValue)
+                return await _context.Sessions
+                    .AsNoTracking()
+                    .CountAsync(s => s.ProfessionalId == profFilter.Value && s.Status == status);
+
+            return await _context.Sessions
                 .AsNoTracking()
                 .CountAsync(s => s.Status == status);
+        }
 
         public async Task<int> CountByStatusAndPaymentStatusAsync(SessionStatus status, PaymentStatus paymentStatus)
-            => await _context.Sessions
+        {
+            var profFilter = GetProfessionalIdFilter();
+            if (profFilter.HasValue)
+                return await _context.Sessions
+                    .AsNoTracking()
+                    .CountAsync(s => s.ProfessionalId == profFilter.Value
+                        && s.Status == status && s.PaymentStatus == paymentStatus);
+
+            return await _context.Sessions
                 .AsNoTracking()
                 .CountAsync(s => s.Status == status && s.PaymentStatus == paymentStatus);
+        }
 
         public async Task<int> CountByStatusOnDateAsync(SessionStatus status, DateTime utcDay)
         {
             var tomorrow = utcDay.Date.AddDays(1);
+            var profFilter = GetProfessionalIdFilter();
+            if (profFilter.HasValue)
+                return await _context.Sessions
+                    .AsNoTracking()
+                    .CountAsync(s => s.ProfessionalId == profFilter.Value
+                        && s.Status == status && s.FechaHora >= utcDay.Date && s.FechaHora < tomorrow);
+
             return await _context.Sessions
                 .AsNoTracking()
                 .CountAsync(s => s.Status == status && s.FechaHora >= utcDay.Date && s.FechaHora < tomorrow);
         }
 
         public async Task<int> CountInRangeAsync(DateTime fromInclusiveUtc, DateTime toExclusiveUtc)
-            => await _context.Sessions
+        {
+            var profFilter = GetProfessionalIdFilter();
+            if (profFilter.HasValue)
+                return await _context.Sessions
+                    .AsNoTracking()
+                    .CountAsync(s => s.ProfessionalId == profFilter.Value
+                        && s.FechaHora >= fromInclusiveUtc && s.FechaHora < toExclusiveUtc);
+
+            return await _context.Sessions
                 .AsNoTracking()
                 .CountAsync(s => s.FechaHora >= fromInclusiveUtc && s.FechaHora < toExclusiveUtc);
+        }
 
         public async Task<int> CountByStatusInRangeAsync(SessionStatus status, DateTime fromInclusiveUtc, DateTime toExclusiveUtc)
-            => await _context.Sessions
+        {
+            var profFilter = GetProfessionalIdFilter();
+            if (profFilter.HasValue)
+                return await _context.Sessions
+                    .AsNoTracking()
+                    .CountAsync(s => s.ProfessionalId == profFilter.Value
+                        && s.Status == status && s.FechaHora >= fromInclusiveUtc && s.FechaHora < toExclusiveUtc);
+
+            return await _context.Sessions
                 .AsNoTracking()
                 .CountAsync(s => s.Status == status && s.FechaHora >= fromInclusiveUtc && s.FechaHora < toExclusiveUtc);
+        }
 
         public async Task<int> CountByPaymentStatusInRangeAsync(PaymentStatus paymentStatus, DateTime fromInclusiveUtc, DateTime toExclusiveUtc)
-            => await _context.Sessions
+        {
+            var profFilter = GetProfessionalIdFilter();
+            if (profFilter.HasValue)
+                return await _context.Sessions
+                    .AsNoTracking()
+                    .CountAsync(s => s.ProfessionalId == profFilter.Value
+                        && s.PaymentStatus == paymentStatus && s.FechaHora >= fromInclusiveUtc && s.FechaHora < toExclusiveUtc);
+
+            return await _context.Sessions
                 .AsNoTracking()
                 .CountAsync(s => s.PaymentStatus == paymentStatus && s.FechaHora >= fromInclusiveUtc && s.FechaHora < toExclusiveUtc);
+        }
 
         public async Task<int> CountByStatusAndPaymentStatusInRangeAsync(SessionStatus status, PaymentStatus paymentStatus, DateTime fromInclusiveUtc, DateTime toExclusiveUtc)
-            => await _context.Sessions
+        {
+            var profFilter = GetProfessionalIdFilter();
+            if (profFilter.HasValue)
+                return await _context.Sessions
+                    .AsNoTracking()
+                    .CountAsync(s => s.ProfessionalId == profFilter.Value
+                        && s.Status == status
+                        && s.PaymentStatus == paymentStatus
+                        && s.FechaHora >= fromInclusiveUtc
+                        && s.FechaHora < toExclusiveUtc);
+
+            return await _context.Sessions
                 .AsNoTracking()
                 .CountAsync(s => s.Status == status
                     && s.PaymentStatus == paymentStatus
                     && s.FechaHora >= fromInclusiveUtc
                     && s.FechaHora < toExclusiveUtc);
+        }
 
         public async Task<IEnumerable<SessionReminderCandidateDto>> GetReminderCandidatesAsync(DateTime fromInclusiveUtc, DateTime toExclusiveUtc)
             => await _context.Sessions

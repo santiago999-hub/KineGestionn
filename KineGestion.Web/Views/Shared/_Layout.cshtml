@@ -41,7 +41,7 @@
             </a>
 
             <div class="kg-nav-section-label">@LayoutText.Get("Nav.Management", "Operación Clínica")</div>
-            @if (User.IsInRole("Admin"))
+            @if (User.IsInRole("Admin") || User.IsInRole("Asistente"))
             {
                 <a class="kg-nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Patients" ? "active" : "")"
                    asp-controller="Patients" asp-action="Index">
@@ -57,26 +57,43 @@
                     <span>@LayoutText.Get("Nav.MyAgenda", "Mi Agenda")</span>
                 </a>
             }
-            <a class="kg-nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Professionals" ? "active" : "")"
-               asp-controller="Professionals" asp-action="Index">
-                <i class="bi bi-person-workspace"></i>
-                <span>@LayoutText.Get("Nav.Professionals", "Equipo Clínico")</span>
-            </a>
-            <a class="kg-nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Treatments" ? "active" : "")"
-               asp-controller="Treatments" asp-action="Index">
-                <i class="bi bi-clipboard2-pulse"></i>
-                <span>@LayoutText.Get("Nav.Treatments", "Planes Terapéuticos")</span>
-            </a>
-            <a class="kg-nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Sessions" ? "active" : "")"
-               asp-controller="Sessions" asp-action="Index">
-                <i class="bi bi-calendar2-check"></i>
-                <span>@LayoutText.Get("Nav.Sessions", "Agenda de Sesiones")</span>
-            </a>
-            <a class="kg-nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Offices" ? "active" : "")"
-               asp-controller="Offices" asp-action="Index">
-                <i class="bi bi-hospital"></i>
-                <span>@LayoutText.Get("Nav.Offices", "Salas y Consultorios")</span>
-            </a>
+            @if (User.IsInRole("Admin") || User.IsInRole("Asistente"))
+            {
+                <a class="kg-nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Sessions" ? "active" : "")"
+                   asp-controller="Sessions" asp-action="Index">
+                    <i class="bi bi-calendar2-check"></i>
+                    <span>@LayoutText.Get("Nav.Sessions", "Agenda de Sesiones")</span>
+                </a>
+            }
+            @if (User.IsInRole("Admin") || User.IsInRole("Asistente"))
+            {
+                <a class="kg-nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Professionals" ? "active" : "")"
+                   asp-controller="Professionals" asp-action="Index">
+                    <i class="bi bi-person-workspace"></i>
+                    <span>@LayoutText.Get("Nav.Professionals", "Equipo Clínico")</span>
+                </a>
+                <a class="kg-nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Treatments" ? "active" : "")"
+                   asp-controller="Treatments" asp-action="Index">
+                    <i class="bi bi-clipboard2-pulse"></i>
+                    <span>@LayoutText.Get("Nav.Treatments", "Planes Terapéuticos")</span>
+                </a>
+            }
+            @if (User.IsInRole("Admin") || User.IsInRole("Asistente"))
+            {
+                <a class="kg-nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Offices" ? "active" : "")"
+                   asp-controller="Offices" asp-action="Index">
+                    <i class="bi bi-hospital"></i>
+                    <span>@LayoutText.Get("Nav.Offices", "Salas y Consultorios")</span>
+                </a>
+            }
+            @if (User.IsInRole("Admin"))
+            {
+                <a class="kg-nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Equipments" ? "active" : "")"
+                   asp-controller="Equipments" asp-action="Index">
+                    <i class="bi bi-tools"></i>
+                    <span>Equipamiento</span>
+                </a>
+            }
 
             @if (User.IsInRole("Admin"))
             {

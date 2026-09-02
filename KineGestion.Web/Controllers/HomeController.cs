@@ -12,7 +12,7 @@ using Microsoft.Extensions.Caching.Memory;
 
 namespace KineGestion.Web.Controllers;
 
-[Authorize(Roles = "Admin,Kinesiologo")]
+[Authorize(Roles = "Admin,Kinesiologo,Asistente")]
 public class HomeController : Controller
 {
     private const string DashboardCacheKey = "HomeController.Index.Dashboard";

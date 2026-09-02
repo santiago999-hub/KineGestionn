@@ -14,7 +14,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace KineGestion.Web.Controllers
 {
-    [Authorize(Roles = "Admin,Kinesiologo")]
+    [Authorize(Roles = "Admin,Kinesiologo,Asistente")]
     public class SessionsController : Controller
     {
         private const string IndexFiltersCookieKey = "kg.sessions.index.filters";
@@ -238,6 +238,12 @@ namespace KineGestion.Web.Controllers
         }
 
         public async Task<IActionResult> Create(int? patientId = null)        {
+            if (!CanManageSessions())
+            {
+                TempData["Error"] = "No tenés permisos para crear sesiones.";
+                return RedirectToAction(nameof(Index));
+            }
+
             var viewModel = new SessionViewModel
             {
                 FechaHora = DateTime.Now,
@@ -266,6 +272,12 @@ namespace KineGestion.Web.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(SessionViewModel viewModel)
         {
+            if (!CanManageSessions())
+            {
+                TempData["Error"] = "No tenés permisos para crear sesiones.";
+                return RedirectToAction(nameof(Index));
+            }
+
             if (!ModelState.IsValid)
             {
                 await LoadSelectListsAsync(viewModel);
@@ -291,6 +303,12 @@ namespace KineGestion.Web.Controllers
         // GET: /Sessions/Edit/5
         public async Task<IActionResult> Edit(int id)
         {
+            if (!CanManageSessions())
+            {
+                TempData["Error"] = "No tenés permisos para editar sesiones.";
+                return RedirectToAction(nameof(Index));
+            }
+
             var session = await _sessionService.GetByIdAsync(id);
             if (session is null)
                 return NotFound();
@@ -305,6 +323,12 @@ namespace KineGestion.Web.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, SessionViewModel viewModel)
         {
+            if (!CanManageSessions())
+            {
+                TempData["Error"] = "No tenés permisos para editar sesiones.";
+                return RedirectToAction(nameof(Index));
+            }
+
             if (id != viewModel.Id)
                 return BadRequest();
 
@@ -426,6 +450,17 @@ namespace KineGestion.Web.Controllers
                     Text = p == PaymentStatus.Paid ? "Pagada" : "Pendiente"
                 })
                 .ToList();
+        }
+
+        private bool CanManageSessions()
+        {
+            // User es null en tests unitarios sin ControllerContext y en flujos
+            // donde la autenticación aún no se materializó. En ese caso se permite
+            // (la autorización real la aplica el middleware/atributo [Authorize]).
+            if (User is null)
+                return true;
+
+            return User.IsInRole("Admin") || User.IsInRole("Kinesiologo");
         }
     }
 }

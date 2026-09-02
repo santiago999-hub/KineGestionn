@@ -1,0 +1,51 @@
+@model KineGestion.Web.Models.ViewModels.EquipmentViewModel
+
+@{
+    ViewData["Title"] = "Detalle de Equipo";
+}
+
+<div class="kg-page-header">
+    <div>
+        <h2>Detalle de Equipo</h2>
+        <p class="text-muted mb-0">Información del equipamiento seleccionado</p>
+    </div>
+    <a asp-action="Index" class="btn-kg-outline">
+        <i class="bi bi-arrow-left"></i> Volver al listado
+    </a>
+</div>
+
+<div class="kg-card">
+    <div class="kg-card-header">
+        <h5 class="kg-card-header-title">
+            <i class="bi bi-tools"></i> @Model.Name
+        </h5>
+        <div style="display:flex;gap:6px">
+            <a asp-action="Edit" asp-route-id="@Model.Id" class="kg-action-btn edit" title="Editar"><i class="bi bi-pencil-fill"></i></a>
+            <a asp-action="Delete" asp-route-id="@Model.Id" class="kg-action-btn del" title="Eliminar"><i class="bi bi-trash-fill"></i></a>
+        </div>
+    </div>
+    <div class="kg-card-body">
+        <div class="row g-4">
+            <div class="col-md-6">
+                <div class="form-label small text-muted mb-1">Nombre</div>
+                <div style="font-weight:600">@Model.Name</div>
+            </div>
+            <div class="col-md-6">
+                <div class="form-label small text-muted mb-1">Consultorio asignado</div>
+                <div>
+                    @if (string.IsNullOrWhiteSpace(@Model.OfficeName))
+                    {
+                        <span class="kg-badge kg-badge-muted"><i class="bi bi-dash-circle"></i> Sin asignar</span>
+                    }
+                    else
+                    {
+                        @Model.OfficeName
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="kg-form-footer">
+        <a asp-action="Index" class="btn-kg-outline"><i class="bi bi-arrow-left"></i> Volver</a>
+    </div>
+</div>

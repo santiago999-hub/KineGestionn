@@ -1,0 +1,54 @@
+@model KineGestion.Web.Models.ViewModels.EquipmentViewModel
+
+@{
+    ViewData["Title"] = "Eliminar Equipo";
+}
+
+<div class="kg-page-header">
+    <div>
+        <h2>Eliminar Equipo</h2>
+        <p class="text-muted mb-0">Confirmá la eliminación del equipamiento</p>
+    </div>
+    <a asp-action="Index" class="btn-kg-outline">
+        <i class="bi bi-arrow-left"></i> Volver al listado
+    </a>
+</div>
+
+<div class="kg-form-card">
+    <div class="kg-form-header">
+        <div class="kg-form-header-icon danger"><i class="bi bi-trash-fill"></i></div>
+        <div>
+            <h4>¿Eliminar '@Model.Name'?</h4>
+            <p>Esta acción es definitiva y no se puede deshacer</p>
+        </div>
+    </div>
+    <div class="kg-form-body">
+        <div class="row g-3">
+            <div class="col-md-6">
+                <div class="form-label small text-muted mb-1">Nombre</div>
+                <div style="font-weight:600">@Model.Name</div>
+            </div>
+            <div class="col-md-6">
+                <div class="form-label small text-muted mb-1">Consultorio asignado</div>
+                <div>
+                    @if (string.IsNullOrWhiteSpace(@Model.OfficeName))
+                    {
+                        <span>Sin asignar</span>
+                    }
+                    else
+                    {
+                        @Model.OfficeName
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+    <form asp-action="Delete" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="Id" />
+        <div class="kg-form-footer">
+            <a asp-action="Index" class="btn-kg-outline"><i class="bi bi-x-lg"></i> Cancelar</a>
+            <button type="submit" class="btn-kg-danger"><i class="bi bi-trash-fill"></i> Eliminar definitivamente</button>
+        </div>
+    </form>
+</div>

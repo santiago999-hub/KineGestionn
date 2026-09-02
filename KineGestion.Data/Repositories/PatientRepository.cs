@@ -17,11 +17,23 @@ namespace KineGestion.Data.Repositories
     public class PatientRepository : IPatientRepository
     {
         private readonly AppDbContext _context;
+        private readonly ICurrentUserProvider? _currentUserProvider;
 
         public PatientRepository(AppDbContext context)
         {
             _context = context;
         }
+
+        public PatientRepository(AppDbContext context, ICurrentUserProvider currentUserProvider)
+        {
+            _context = context;
+            _currentUserProvider = currentUserProvider;
+        }
+
+        private bool CanViewContactData()
+            => _currentUserProvider?.IsInRole("Admin") == true
+            || _currentUserProvider?.IsInRole("Kinesiologo") == true
+            || _currentUserProvider?.IsInRole("Asistente") == true;
 
         /// <summary>
         /// AsNoTracking: las vistas de detalle y edición solo leen el registro.
@@ -29,9 +41,13 @@ namespace KineGestion.Data.Repositories
         /// Reduce el overhead del ChangeTracker bajo carga concurrente.
         /// </summary>
         public async Task<Patient?> GetByIdAsync(int id)
-            => await _context.Patients
+        {
+            var patient = await _context.Patients
                              .AsNoTracking()
                              .FirstOrDefaultAsync(p => p.Id == id);
+
+            return patient;
+        }
 
         /// <summary>OBSOLETO: carga la tabla completa en memoria. Usar GetPagedAsync o GetForSelectAsync.</summary>
         [Obsolete("Carga toda la tabla en memoria. Usar GetPagedAsync o GetForSelectAsync.")]

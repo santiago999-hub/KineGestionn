@@ -23,4 +23,16 @@ public class HttpContextCurrentUserProvider : ICurrentUserProvider
             ?? user.FindFirstValue(ClaimTypes.NameIdentifier)
             ?? "system";
     }
+
+    public bool IsInRole(string role)
+    {
+        var user = _httpContextAccessor.HttpContext?.User;
+        return user?.IsInRole(role) == true;
+    }
+
+    public string? GetClaimValue(string claimType)
+    {
+        var user = _httpContextAccessor.HttpContext?.User;
+        return user?.FindFirstValue(claimType);
+    }
 }

@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using System.Collections.Generic;
 using System;
 using System.Linq;
@@ -18,11 +20,16 @@ namespace KineGestion.Data.Context
         private sealed class FallbackCurrentUserProvider : ICurrentUserProvider
         {
             public string GetAuditIdentifier() => "system";
+            public bool IsInRole(string role) => false;
+            public string? GetClaimValue(string claimType) => null;
         }
 
         private readonly ICurrentUserProvider _currentUserProvider;
 
-        public AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUserProvider? currentUserProvider = null) : base(options)
+        public AppDbContext(
+            DbContextOptions<AppDbContext> options,
+            ICurrentUserProvider? currentUserProvider = null,
+            IEncryptionService? encryptionService = null) : base(options)
         {
             _currentUserProvider = currentUserProvider ?? new FallbackCurrentUserProvider();
         }
@@ -39,8 +46,7 @@ namespace KineGestion.Data.Context
         {
             base.OnModelCreating(modelBuilder);
 
-            // ─── GLOBAL QUERY FILTERS (Soft Delete) ──────────────────────────────
-            // Office no tiene dependencias inversas requeridas, filtro global seguro.
+            // ─── GLOBAL QUERY FILTERS (Soft Delete) ──────────────────────────────            // Office no tiene dependencias inversas requeridas, filtro global seguro.
             // Professional y Patient filtran IsActivo en sus repositorios
             // para evitar NullRef en las navigation properties de Session.
             modelBuilder.Entity<Office>().HasQueryFilter(o => o.IsActive);
@@ -60,6 +66,8 @@ namespace KineGestion.Data.Context
                 entity.HasIndex(p => new { p.IsActivo, p.Apellido, p.Nombre });
                 entity.Property(p => p.Nombre).IsRequired().HasMaxLength(100);
                 entity.Property(p => p.Apellido).IsRequired().HasMaxLength(100);
+                entity.Property(p => p.Telefono).HasMaxLength(512).HasConversion(EncryptionConverter());
+                entity.Property(p => p.Email).HasMaxLength(512).HasConversion(EncryptionConverter());
 
                 entity.ToTable(t =>
                 {
@@ -99,8 +107,9 @@ namespace KineGestion.Data.Context
             modelBuilder.Entity<Session>(entity =>
             {
                 entity.HasKey(s => s.Id);
-                entity.Property(s => s.Evolution).HasMaxLength(4000);
-                entity.Property(s => s.InternalNotes).HasMaxLength(2000);
+                entity.Property(s => s.Evolution).HasColumnType("nvarchar(max)").HasConversion(EncryptionConverter());
+                entity.Property(s => s.InternalNotes).HasColumnType("nvarchar(max)").HasConversion(EncryptionConverter());
+                entity.Property(s => s.Observaciones).HasColumnType("nvarchar(max)").HasConversion(EncryptionConverter());
                 entity.Property(s => s.Status).IsRequired();
                 entity.Property(s => s.PaymentStatus).IsRequired();
 
@@ -214,13 +223,39 @@ namespace KineGestion.Data.Context
             return AddAuditLogs();
         }
 
-        private static void ConfigureAuditableEntity<TEntity>(ModelBuilder modelBuilder)
+                private static void ConfigureAuditableEntity<TEntity>(ModelBuilder modelBuilder)
             where TEntity : BaseEntity
-        {
-            modelBuilder.Entity<TEntity>().Property(e => e.CreatedAt).IsRequired();
+        {            modelBuilder.Entity<TEntity>().Property(e => e.CreatedAt).IsRequired();
             modelBuilder.Entity<TEntity>().Property(e => e.UpdatedAt).IsRequired();
             modelBuilder.Entity<TEntity>().Property(e => e.CreatedBy).IsRequired().HasMaxLength(256).HasDefaultValue("system");
             modelBuilder.Entity<TEntity>().Property(e => e.UpdatedBy).IsRequired().HasMaxLength(256).HasDefaultValue("system");
+        }
+
+        private static ValueConverter<string?, string?>? _encryptionConverter;
+
+        /// <summary>
+        /// Inicializa el converter con el servicio de encriptación (debe llamarse una vez en startup).
+        /// DataProtectionEncryptionService es singleton y thread-safe, por lo que es seguro compartirlo.
+        /// </summary>
+        public static void SetEncryptionService(IEncryptionService encryptionService)
+        {
+            _encryptionConverter = new ValueConverter<string?, string?>(
+                v => v == null ? null : encryptionService.Encrypt(v),
+                v => v == null ? null : encryptionService.Decrypt(v));
+        }
+
+        private static ValueConverter<string?, string?> EncryptionConverter()
+        {
+            if (_encryptionConverter is null)
+            {
+                // Sin servicio de encriptación configurado, los datos pasan sin transformación
+                // (modo desarrollo / tests sin encriptación).
+                return new ValueConverter<string?, string?>(
+                    v => v,
+                    v => v);
+            }
+
+            return _encryptionConverter;
         }
 
         private void ApplyAuditInfo()

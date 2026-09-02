@@ -87,8 +87,8 @@ builder.Services.AddDbContextPool<AppDbContext>(options =>
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddSingleton<ICurrentUserProvider, HttpContextCurrentUserProvider>();
-builder.Services.AddMemoryCache();
-builder.Services.AddSingleton<RequestMetricsStore>();
+builder.Services.AddSingleton<IEncryptionService, DataProtectionEncryptionService>();
+builder.Services.AddMemoryCache();builder.Services.AddSingleton<RequestMetricsStore>();
 builder.Services.AddSingleton<IReminderDispatchQueue, ReminderDispatchQueue>();
 builder.Services.AddHostedService<ReminderDispatchBackgroundService>();
 builder.Services.AddHostedService<BillingOperationalAlertBackgroundService>();
@@ -126,6 +126,9 @@ builder.Services.AddScoped<ITreatmentService, TreatmentService>();
 builder.Services.AddScoped<IOfficeRepository, OfficeRepository>();
 builder.Services.AddScoped<IOfficeService, OfficeService>();
 
+builder.Services.AddScoped<IEquipmentRepository, EquipmentRepository>();
+builder.Services.AddScoped<IEquipmentService, EquipmentService>();
+
 builder.Services.AddScoped<IAuditLogRepository, AuditLogRepository>();
 builder.Services.AddScoped<IAuditLogService, AuditLogService>();
 builder.Services.AddHttpClient();
@@ -155,6 +158,14 @@ builder.Services.AddIdentity<IdentityUser, IdentityRole>(options =>
 .AddEntityFrameworkStores<AppDbContext>()
 .AddDefaultTokenProviders();
 
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("AdminOnly", policy => policy.RequireRole("Admin"));
+    options.AddPolicy("ClinicalStaff", policy => policy.RequireRole("Admin", "Kinesiologo", "Asistente"));
+    options.AddPolicy("SchedulingStaff", policy => policy.RequireRole("Admin", "Kinesiologo", "Asistente"));
+    options.AddPolicy("ClinicalNotes", policy => policy.RequireRole("Admin", "Kinesiologo"));
+});
+
 builder.Services.ConfigureApplicationCookie(options =>
 {
     options.LoginPath = "/Account/Login";
@@ -169,6 +180,10 @@ builder.Services.ConfigureApplicationCookie(options =>
 });
 
 var app = builder.Build();
+
+// Inicializa el converter de encriptación con el servicio singleton (thread-safe).
+// Necesario porque el DbContext usa AddDbContextPool y no recibe servicios por constructor.
+AppDbContext.SetEncryptionService(app.Services.GetRequiredService<IEncryptionService>());
 
 ValidateProductionSafetyConfiguration(app);
 
@@ -309,7 +324,7 @@ using (var scope = app.Services.CreateScope())
     var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
     var userManager = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
 
-    string[] roles = ["Admin", "Kinesiologo"];
+    string[] roles = ["Admin", "Kinesiologo", "Asistente"];
     foreach (var role in roles)
     {
         if (!await roleManager.RoleExistsAsync(role))

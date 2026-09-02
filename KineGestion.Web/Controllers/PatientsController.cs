@@ -9,7 +9,7 @@ using KineGestion.Web.Models.ViewModels;
 
 namespace KineGestion.Web.Controllers
 {
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,Kinesiologo,Asistente")]
     public class PatientsController : Controller
     {
         private readonly IPatientService _patientService;
@@ -46,14 +46,39 @@ namespace KineGestion.Web.Controllers
             return View(model);
         }
 
-        // GET: /Patients/Create
+        // GET: /Patients/Details/5
+        public async Task<IActionResult> Details(int id)
+        {
+            var patient = await _patientService.GetByIdAsync(id);
+            if (patient is null)
+                return NotFound();
+
+            var treatments = await _treatmentService.GetByPatientIdAsync(id);
+            var sessions = await _sessionService.GetByPatientIdAsync(id);
+
+            var model = new PatientDetailsViewModel
+            {
+                Patient = PatientViewModel.FromEntity(patient),
+                Treatments = treatments.Select(TreatmentViewModel.FromEntity).ToList(),
+                Sessions = sessions
+                    .OrderByDescending(s => s.FechaHora)
+                    .Select(s => SessionViewModel.FromEntityForAdmin(s))
+                    .ToList()
+            };
+
+            return View(model);
+        }
+
+        // GET: /Patients/Create — Solo Admin
+        [Authorize(Roles = "Admin")]
         public IActionResult Create()
         {
             return View(new PatientViewModel());
         }
 
-        // POST: /Patients/Create
+        // POST: /Patients/Create — Solo Admin
         [HttpPost]
+        [Authorize(Roles = "Admin")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(PatientViewModel viewModel)
         {
@@ -76,7 +101,8 @@ namespace KineGestion.Web.Controllers
             }
         }
 
-        // GET: /Patients/Edit/5
+        // GET: /Patients/Edit/5 — Solo Admin
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Edit(int id)
         {
             var patient = await _patientService.GetByIdAsync(id);
@@ -86,8 +112,9 @@ namespace KineGestion.Web.Controllers
             return View(PatientViewModel.FromEntity(patient));
         }
 
-        // POST: /Patients/Edit/5
+        // POST: /Patients/Edit/5 — Solo Admin
         [HttpPost]
+        [Authorize(Roles = "Admin")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, PatientViewModel viewModel)
         {
@@ -112,30 +139,8 @@ namespace KineGestion.Web.Controllers
             }
         }
 
-        // GET: /Patients/Details/5
-        public async Task<IActionResult> Details(int id)
-        {
-            var patient = await _patientService.GetByIdAsync(id);
-            if (patient is null)
-                return NotFound();
-
-            var treatments = await _treatmentService.GetByPatientIdAsync(id);
-            var sessions = await _sessionService.GetByPatientIdAsync(id);
-
-            var model = new PatientDetailsViewModel
-            {
-                Patient = PatientViewModel.FromEntity(patient),
-                Treatments = treatments.Select(TreatmentViewModel.FromEntity).ToList(),
-                Sessions = sessions
-                    .OrderByDescending(s => s.FechaHora)
-                    .Select(s => SessionViewModel.FromEntityForAdmin(s))
-                    .ToList()
-            };
-
-            return View(model);
-        }
-
-        // GET: /Patients/Delete/5
+        // GET: /Patients/Delete/5 — Solo Admin
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Delete(int id)
         {
             var patient = await _patientService.GetByIdAsync(id);
@@ -148,8 +153,9 @@ namespace KineGestion.Web.Controllers
             return View(PatientViewModel.FromEntity(patient));
         }
 
-        // POST: /Patients/Delete/5
+        // POST: /Patients/Delete/5 — Solo Admin
         [HttpPost, ActionName("Delete")]
+        [Authorize(Roles = "Admin")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
