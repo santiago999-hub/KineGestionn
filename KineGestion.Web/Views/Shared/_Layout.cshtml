@@ -113,6 +113,11 @@
                     <i class="bi bi-cash-coin"></i>
                     <span>Cobranzas</span>
                 </a>
+                <a class="kg-nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "BillingFollowUp" ? "active" : "")"
+                   asp-controller="BillingFollowUp" asp-action="Index">
+                    <i class="bi bi-cash-stack"></i>
+                    <span>Cobranza D+1</span>
+                </a>
                 <a class="kg-nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Audit" ? "active" : "")"
                    asp-controller="Audit" asp-action="Index">
                     <i class="bi bi-shield-check"></i>

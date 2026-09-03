@@ -344,5 +344,132 @@ namespace KineGestion.Tests
                 await cleanupContext.Database.EnsureDeletedAsync();
             }
         }
+
+        [Fact]
+        public async Task GetBillingFollowUpCandidatesAsync_ShouldReturnCompletedPendingSessionsInAgeWindow()
+        {
+            var databaseName = $"KineGestion_Integration_{Guid.NewGuid():N}";
+            var connectionString = $"Server=localhost\\SQLEXPRESS;Database={databaseName};Trusted_Connection=True;TrustServerCertificate=True";
+            var options = new DbContextOptionsBuilder<AppDbContext>()
+                .UseSqlServer(connectionString)
+                .Options;
+
+            var asOfUtc = new DateTime(2026, 7, 20, 12, 0, 0, DateTimeKind.Utc);
+
+            int inWindowId = 0;
+            int outsideWindowId = 0;
+            int paidId = 0;
+            int notCompletedId = 0;
+
+            await using (var setupContext = new AppDbContext(options))
+            {
+                await setupContext.Database.EnsureDeletedAsync();
+                await setupContext.Database.EnsureCreatedAsync();
+
+                var patient = new Patient
+                {
+                    Nombre = "Ana",
+                    Apellido = "Ruiz",
+                    DNI = "11222333",
+                    FechaNacimiento = new DateTime(1991, 6, 12)
+                };
+
+                var professional = new Professional
+                {
+                    Nombre = "Luis",
+                    Apellido = "Perez",
+                    Matricula = "MAT-301",
+                    Especialidad = "Kinesiologia"
+                };
+
+                setupContext.Patients.Add(patient);
+                setupContext.Professionals.Add(professional);
+                await setupContext.SaveChangesAsync();
+
+                var treatment = new Treatment
+                {
+                    PatientId = patient.Id,
+                    Descripcion = "Rehabilitación",
+                    CantidadSesionesTotales = 10,
+                    FechaInicio = asOfUtc.AddDays(-30)
+                };
+
+                setupContext.Treatments.Add(treatment);
+                await setupContext.SaveChangesAsync();
+
+                var inWindow = new Session
+                {
+                    FechaHora = asOfUtc.Date.AddDays(-2).AddHours(9),
+                    PatientId = patient.Id,
+                    ProfessionalId = professional.Id,
+                    TreatmentId = treatment.Id,
+                    NroSesionEnTratamiento = 1,
+                    Status = SessionStatus.Completed,
+                    PaymentStatus = PaymentStatus.Pending
+                };
+
+                var outsideWindow = new Session
+                {
+                    FechaHora = asOfUtc.Date.AddDays(-10).AddHours(9),
+                    PatientId = patient.Id,
+                    ProfessionalId = professional.Id,
+                    TreatmentId = treatment.Id,
+                    NroSesionEnTratamiento = 2,
+                    Status = SessionStatus.Completed,
+                    PaymentStatus = PaymentStatus.Pending
+                };
+
+                var paid = new Session
+                {
+                    FechaHora = asOfUtc.Date.AddDays(-3).AddHours(9),
+                    PatientId = patient.Id,
+                    ProfessionalId = professional.Id,
+                    TreatmentId = treatment.Id,
+                    NroSesionEnTratamiento = 3,
+                    Status = SessionStatus.Completed,
+                    PaymentStatus = PaymentStatus.Paid
+                };
+
+                var notCompleted = new Session
+                {
+                    FechaHora = asOfUtc.Date.AddDays(-1).AddHours(9),
+                    PatientId = patient.Id,
+                    ProfessionalId = professional.Id,
+                    TreatmentId = treatment.Id,
+                    NroSesionEnTratamiento = 4,
+                    Status = SessionStatus.Pending,
+                    PaymentStatus = PaymentStatus.Pending
+                };
+
+                setupContext.Sessions.AddRange(inWindow, outsideWindow, paid, notCompleted);
+                await setupContext.SaveChangesAsync();
+
+                inWindowId = inWindow.Id;
+                outsideWindowId = outsideWindow.Id;
+                paidId = paid.Id;
+                notCompletedId = notCompleted.Id;
+            }
+
+            await using (var testContext = new AppDbContext(options))
+            {
+                var repository = new SessionRepository(testContext);
+                var result = (await repository.GetBillingFollowUpCandidatesAsync(asOfUtc, minAgeDays: 1, maxAgeDays: 7)).ToList();
+
+                Assert.Single(result);
+                var candidate = result.Single();
+                Assert.Equal(inWindowId, candidate.SessionId);
+                Assert.Equal(2, candidate.PaymentAgeDays);
+                Assert.Contains("Ruiz", candidate.PacienteNombre, StringComparison.OrdinalIgnoreCase);
+
+                Assert.DoesNotContain(result, c => c.SessionId == outsideWindowId);
+                Assert.DoesNotContain(result, c => c.SessionId == paidId);
+                Assert.DoesNotContain(result, c => c.SessionId == notCompletedId);
+            }
+
+            await using (var cleanupContext = new AppDbContext(options))
+            {
+                await cleanupContext.Database.EnsureDeletedAsync();
+            }
+        }
     }
 }

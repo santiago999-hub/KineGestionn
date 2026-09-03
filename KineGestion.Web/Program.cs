@@ -134,6 +134,7 @@ builder.Services.AddScoped<IAuditLogService, AuditLogService>();
 builder.Services.AddHttpClient();
 builder.Services.AddScoped<IReminderDeliveryService, ReminderDeliveryService>();
 builder.Services.AddScoped<IBillingOperationalAlertService, BillingOperationalAlertService>();
+builder.Services.AddScoped<IBillingFollowUpService, BillingFollowUpService>();
 
 // ─── IDENTITY SERVICE (R5: desacoplamiento de UsersController) ────────────────
 // IIdentityService abstrae la lógica de UserManager/RoleManager del controlador.

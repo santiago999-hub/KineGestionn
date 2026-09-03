@@ -179,6 +179,9 @@ namespace KineGestion.Core.Services
             public async Task<IEnumerable<SessionReminderCandidateDto>> GetReminderCandidatesAsync(DateTime fromInclusiveUtc, DateTime toExclusiveUtc)
                 => await _repository.GetReminderCandidatesAsync(fromInclusiveUtc, toExclusiveUtc);
 
+            public async Task<IEnumerable<BillingFollowUpCandidateDto>> GetBillingFollowUpCandidatesAsync(DateTime asOfUtc, int minAgeDays, int maxAgeDays)
+                => await _repository.GetBillingFollowUpCandidatesAsync(asOfUtc, minAgeDays, maxAgeDays);
+
             public async Task ConfirmByReminderAsync(int sessionId)
             {
                 var session = await _repository.GetByIdAsync(sessionId);

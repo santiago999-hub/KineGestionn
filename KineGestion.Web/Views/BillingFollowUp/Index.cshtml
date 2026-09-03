@@ -1,0 +1,240 @@
+@model KineGestion.Web.Models.ViewModels.BillingFollowUpCampaignViewModel
+
+@{
+    ViewData["Title"] = "Cobranza D+1";
+}
+
+<div class="kg-page-header">
+    <div>
+        <h2><i class="bi bi-cash-stack"></i> Cobranza D+1 automatizada</h2>
+        <p class="text-muted mb-0">Sesiones completadas y pendientes de pago, con mensaje según antigüedad.</p>
+        <p class="text-muted mb-0">Referencia UTC: @Model.AsOfUtc.ToString("dd/MM/yyyy HH:mm") | Candidatos: @Model.TotalCandidates</p>
+    </div>
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert kg-alert-success mb-3">@TempData["Success"]</div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger mb-3">@TempData["Error"]</div>
+}
+
+@if (!Model.TierGroups.Any() || !Model.TierGroups.Any(g => g.Items.Any()))
+{
+    <div class="kg-card">
+        <div class="kg-card-body">
+            <div class="alert kg-alert-success mb-0">
+                No hay sesiones completadas y pendientes de pago dentro de la ventana de campaña configurada.
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    foreach (var group in Model.TierGroups)
+    {
+        <div class="kg-card mb-3">
+            <div class="kg-card-header d-flex justify-content-between align-items-center">
+                <h5 class="kg-card-header-title mb-0">
+                    <span class="badge @group.BadgeClass">@group.Label</span>
+                    <small class="text-muted">Días @group.MinAgeDays-@(group.MaxAgeDays >= 9999 ? "+" : group.MaxAgeDays.ToString())</small>
+                </h5>
+                <span class="kg-badge kg-badge-info">@group.Items.Count sesiones</span>
+            </div>
+            <div class="kg-card-body">
+                @if (!group.Items.Any())
+                {
+                    <div class="alert kg-alert-success mb-0">Sin sesiones en este nivel.</div>
+                }
+                else
+                {
+                    <div class="d-flex justify-content-end mb-3">
+                        <form asp-action="DispatchTier" method="post">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="minAgeDays" value="@group.MinAgeDays" />
+                            <input type="hidden" name="maxAgeDays" value="@group.MaxAgeDays" />
+                            <button type="submit" class="btn btn-success">
+                                <i class="bi bi-send"></i> Enviar todo el nivel
+                            </button>
+                        </form>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead>
+                                <tr>
+                                    <th style="width:48px;"><input type="checkbox" class="tier-select-all" data-tier="@(group.MinAgeDays)-@(group.MaxAgeDays)" /></th>
+                                    <th>Antigüedad</th>
+                                    <th>Fecha Sesión</th>
+                                    <th>Paciente</th>
+                                    <th>Contacto</th>
+                                    <th>Canales</th>
+                                    <th>Tratamiento</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in group.Items)
+                                {
+                                    <tr>
+                                        <td><input type="checkbox" name="selectedSessionIds" value="@item.SessionId" class="session-check tier-check" data-tier="@(group.MinAgeDays)-@(group.MaxAgeDays)" /></td>
+                                        <td><span class="badge @group.BadgeClass">D+@item.PaymentAgeDays</span></td>
+                                        <td>@item.FechaHora.ToString("dd/MM/yyyy")</td>
+                                        <td>@item.PacienteNombre</td>
+                                        <td>
+                                            <div>@(string.IsNullOrWhiteSpace(item.PacienteEmail) ? "Sin email" : item.PacienteEmail)</div>
+                                            <small class="text-muted">@(string.IsNullOrWhiteSpace(item.PacienteTelefono) ? "Sin telefono" : item.PacienteTelefono)</small>
+                                        </td>
+                                        <td>
+                                            @if (item.CanEmail)
+                                            {
+                                                <span class="badge text-bg-info">Email</span>
+                                            }
+                                            @if (item.CanWhatsApp)
+                                            {
+                                                <span class="badge text-bg-success">WhatsApp</span>
+                                            }
+                                            @if (!item.CanEmail && !item.CanWhatsApp)
+                                            {
+                                                <span class="badge text-bg-secondary">Sin canal</span>
+                                            }
+                                        </td>
+                                        <td>@(string.IsNullOrWhiteSpace(item.TratamientoDescripcion) ? "-" : item.TratamientoDescripcion)</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+}
+
+<div class="kg-card mb-3">
+    <div class="kg-card-body">
+        <form asp-action="DispatchSelected" method="post" id="dispatchSelectedForm">
+            @Html.AntiForgeryToken()
+            <div class="d-flex justify-content-end">
+                <button type="submit" class="btn btn-success">
+                    <i class="bi bi-send"></i> Enviar seleccionados
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="kg-card mb-3">
+    <div class="kg-card-header">
+        <h5 class="kg-card-header-title mb-0"><i class="bi bi-flask"></i> Prueba rápida de envío</h5>
+    </div>
+    <div class="kg-card-body">
+        <form asp-action="SendTest" method="post" class="row g-2 align-items-end">
+            @Html.AntiForgeryToken()
+            <div class="col-md-3">
+                <label class="form-label">Sesión de muestra</label>
+                <select name="sessionId" class="form-select">
+                    <option value="">Primera de la lista</option>
+                    @foreach (var group in Model.TierGroups)
+                    {
+                        foreach (var item in group.Items)
+                        {
+                            <option value="@item.SessionId">#@item.SessionId - @item.PacienteNombre (D+@item.PaymentAgeDays)</option>
+                        }
+                    }
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Email test (opcional)</label>
+                <input type="email" name="testEmail" class="form-control" placeholder="qa@tuclinica.com" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">WhatsApp test (opcional)</label>
+                <input type="text" name="testPhone" class="form-control" placeholder="54911..." />
+            </div>
+            <div class="col-md-3">
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" name="dryRun" value="true" checked id="dryRunCheck" />
+                    <input type="hidden" name="dryRun" value="false" />
+                    <label class="form-check-label" for="dryRunCheck">Dry-run (sin envío real)</label>
+                </div>
+                <button type="submit" class="btn btn-primary w-100">Ejecutar prueba</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="kg-card">
+    <div class="kg-card-header d-flex justify-content-between align-items-center">
+        <h5 class="kg-card-header-title mb-0"><i class="bi bi-clock-history"></i> Historial reciente de envíos</h5>
+        <span class="kg-badge kg-badge-info">@Model.History.Count eventos</span>
+    </div>
+    <div class="kg-card-body">
+        @if (!Model.History.Any())
+        {
+            <div class="alert kg-alert-success mb-0">Todavía no hay eventos de envío de cobranza registrados.</div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-sm table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>Fecha UTC</th>
+                            <th>Usuario</th>
+                            <th>Sesión</th>
+                            <th>Canal</th>
+                            <th>Estado</th>
+                            <th>Detalle</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var h in Model.History)
+                        {
+                            <tr>
+                                <td>@h.ChangedAt.ToString("dd/MM/yyyy HH:mm")</td>
+                                <td>@h.ChangedBy</td>
+                                <td>#@h.SessionId</td>
+                                <td>@h.ChannelSummary</td>
+                                <td>
+                                    @if (h.Status == "Enviado")
+                                    {
+                                        <span class="badge text-bg-success">Enviado</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge text-bg-danger">Error</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (!string.IsNullOrWhiteSpace(h.ErrorSummary))
+                                    {
+                                        <small class="text-muted">@h.ErrorSummary</small>
+                                    }
+                                    else
+                                    {
+                                        <small class="text-muted">-</small>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.querySelectorAll('.tier-select-all').forEach(function (all) {
+            all.addEventListener('change', function () {
+                const tier = this.dataset.tier;
+                document.querySelectorAll('.tier-check[data-tier="' + tier + '"]').forEach(
+                    cb => cb.checked = this.checked
+                );
+            });
+        });
+    </script>
+}

@@ -600,6 +600,39 @@ namespace KineGestion.Data.Repositories
                 ))
                 .ToListAsync();
 
+        public async Task<IEnumerable<BillingFollowUpCandidateDto>> GetBillingFollowUpCandidatesAsync(DateTime asOfUtc, int minAgeDays, int maxAgeDays)
+        {
+            var cutoffOldest = asOfUtc.Date.AddDays(-maxAgeDays);
+            var cutoffMostRecent = asOfUtc.Date.AddDays(-minAgeDays).AddDays(1);
+
+            var rows = await _context.Sessions
+                .AsNoTracking()
+                .Where(s => s.Status == SessionStatus.Completed
+                    && s.PaymentStatus == PaymentStatus.Pending
+                    && s.FechaHora >= cutoffOldest
+                    && s.FechaHora < cutoffMostRecent)
+                .Select(s => new
+                {
+                    s.Id,
+                    s.FechaHora,
+                    s.Patient,
+                    s.Professional,
+                    s.Treatment
+                })
+                .ToListAsync();
+
+            return rows.Select(s => new BillingFollowUpCandidateDto(
+                s.Id,
+                s.FechaHora,
+                s.Patient != null ? s.Patient.Apellido + ", " + s.Patient.Nombre : "Paciente",
+                s.Patient != null ? s.Patient.Email : null,
+                s.Patient != null ? s.Patient.Telefono : null,
+                s.Professional != null ? s.Professional.Apellido + ", " + s.Professional.Nombre : "Profesional",
+                s.Treatment != null ? s.Treatment.Descripcion : null,
+                Math.Max(0, (asOfUtc.Date - s.FechaHora.Date).Days)
+            ));
+        }
+
         public async Task<(int UpdatedCount, int SkippedCount)> MarkCompletedPendingAsPaidBatchAsync(IReadOnlyCollection<int> sessionIds, DateTime actionAtUtc)
         {
             var normalizedIds = sessionIds
