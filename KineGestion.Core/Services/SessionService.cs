@@ -229,6 +229,97 @@ namespace KineGestion.Core.Services
                 QueryCache.InvalidatePrefix("sessions:");
             }
 
+            /// <summary>
+            /// Recaptura: crea una nueva sesión a partir de una cancelada, con la misma
+            /// ficha clínica y tratamiento pero un nuevo horario.
+            /// </summary>
+            public async Task<Session> ReprogramAsync(int sourceSessionId, DateTime newFechaHora)
+            {
+                var source = await _repository.GetByIdAsync(sourceSessionId);
+                if (source is null)
+                    throw new BusinessValidationException("La sesión original no existe.", nameof(Session.Id));
+                if (source.Status != SessionStatus.Canceled)
+                    throw new BusinessValidationException("Solo se puede reprogramar una sesión cancelada.", nameof(Session.Status));
+
+                await ValidateProfessionalAvailabilityAsync(source.ProfessionalId, newFechaHora);
+
+                int sesionesEnTratamiento = await _repository.CountByTreatmentIdAsync(source.TreatmentId);
+                var treatment = await _treatmentRepository.GetByIdAsync(source.TreatmentId);
+
+                var nueva = new Session
+                {
+                    FechaHora = newFechaHora,
+                    PatientId = source.PatientId,
+                    ProfessionalId = source.ProfessionalId,
+                    TreatmentId = source.TreatmentId,
+                    OfficeId = source.OfficeId,
+                    Observaciones = source.Observaciones,
+                    Status = SessionStatus.Pending,
+                    PaymentStatus = PaymentStatus.Pending,
+                    NroSesionEnTratamiento = sesionesEnTratamiento + 1
+                };
+
+                if (treatment is not null && sesionesEnTratamiento >= treatment.CantidadSesionesTotales)
+                    throw new BusinessValidationException(
+                        $"El tratamiento ya alcanzó el límite de {treatment.CantidadSesionesTotales} sesiones.",
+                        nameof(Session.TreatmentId));
+
+                var created = await _repository.AddAsync(nueva);
+                QueryCache.InvalidatePrefix("sessions:");
+                return created;
+            }
+
+            /// <summary>
+            /// Sugiere turnos alternativos disponibles para un profesional, omitiendo horarios
+            /// ocupados (con la ventana de conflicto) y horarios pasados.
+            /// </summary>
+            public async Task<IReadOnlyList<AvailableSlotDto>> SuggestAvailableSlotsAsync(
+                int professionalId,
+                DateTime fromUtc,
+                int dayCount = 5,
+                int count = 3)
+            {
+                var normalizedFrom = fromUtc.Date;
+                var toExclusive = normalizedFrom.AddDays(Math.Max(1, Math.Min(dayCount, 30)));
+
+                var busyTimes = await _repository.GetProfessionalBusyTimesAsync(professionalId, normalizedFrom, toExclusive);
+                var isBusy = new HashSet<DateTime>(busyTimes);
+                var nowUtc = DateTime.UtcNow;
+
+                var slots = new List<AvailableSlotDto>();
+                for (var day = normalizedFrom;
+                     day < toExclusive && slots.Count < count;
+                     day = day.AddDays(1))
+                {
+                    if (isWeekend(day)) continue;
+
+                    for (var slot = day.AddHours(9); slot.Hour < 17 && slots.Count < count; slot = slot.AddHours(1))
+                    {
+                        if (slot <= nowUtc) continue;
+                        if (IsSlotOccupied(slot, isBusy, _professionalConflictWindowMinutes)) continue;
+
+                        slots.Add(new AvailableSlotDto(slot, $"{slot:dd/MM/yyyy} {slot:HH:mm} hs"));
+                        if (slots.Count >= count) break;
+                    }
+                }
+
+                return slots;
+            }
+
+            private static bool IsSlotOccupied(DateTime slot, HashSet<DateTime> busyTimes, int windowMinutes)
+            {
+                foreach (var busy in busyTimes)
+                {
+                    if (Math.Abs((busy - slot).TotalMinutes) <= windowMinutes)
+                        return true;
+                }
+                return false;
+            }
+
+            private static bool isWeekend(DateTime d)
+                => d.DayOfWeek == DayOfWeek.Saturday || d.DayOfWeek == DayOfWeek.Sunday;
+
+
             public async Task<int> CountByCancellationReasonAsync(CancellationReason reason)
                 => await QueryCache.GetOrCreateAsync(
                     $"sessions:count:cancelreason:{reason}",

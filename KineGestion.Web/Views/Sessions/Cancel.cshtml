@@ -3,12 +3,13 @@
 
 @{
     ViewData["Title"] = "Cancelar Sesión";
+    var professionalId = Model.ProfesionalId;
 }
 
 <div class="kg-page-header">
     <div>
         <h2>Cancelar Sesión</h2>
-        <p class="text-muted mb-0">Registrá el motivo para poder analizar las cancelaciones</p>
+        <p class="text-muted mb-0">Registrá el motivo y, si querés, recuperá el turno con una reprogramación</p>
     </div>
     <a asp-action="Index" class="btn-kg-outline">
         <i class="bi bi-arrow-left"></i> Volver
@@ -24,7 +25,7 @@
         </div>
     </div>
 
-    <form asp-action="Cancel" asp-route-id="@Model.Id" method="post" class="kg-form-body">
+    <form asp-action="Cancel" asp-route-id="@Model.Id" method="post" class="kg-form-body" id="cancel-form">
         @Html.AntiForgeryToken()
 
         <div class="row g-3">
@@ -37,7 +38,7 @@
             </div>
             <div class="col-12">
                 <label class="form-label small text-muted" asp-for="CancellationObs">Observación (opcional)</label>
-                <textarea asp-for="CancellationObs" class="form-control" rows="3" maxlength="2000" placeholder="Detalle del motivo, si corresponde"></textarea>
+                <textarea asp-for="CancellationObs" class="form-control" rows="2" maxlength="2000" placeholder="Detalle del motivo, si corresponde"></textarea>
                 <span asp-validation-for="CancellationObs" class="text-danger small"></span>
             </div>
         </div>
@@ -51,6 +52,125 @@
     </form>
 </div>
 
+<div class="kg-card mt-4" id="recapture-card">
+    <div class="kg-card-header">
+        <h5 class="kg-card-header-title">
+            <i class="bi bi-arrow-repeat"></i> Recuperar el turno (reprogramación)
+        </h5>
+        <button type="button" class="btn-kg-outline" id="btn-load-slots">
+            <i class="bi bi-calendar2-week-fill"></i> Sugerir turnos alternativos
+        </button>
+    </div>
+    <div class="kg-card-body">
+        <div class="text-muted small mb-2">Si cancelaste la sesión, podés ofrecer al paciente un nuevo turno en el acto con el mismo profesional y tratamiento.</div>
+
+        <div id="slots-loading" class="d-none text-muted">
+            <span class="spinner-border spinner-border-sm me-2" role="status"></span>Buscando horarios...
+        </div>
+
+        <div id="slots-empty" class="d-none kg-empty">
+            <div class="kg-empty-icon"><i class="bi bi-calendar2-x"></i></div>
+            <h5>Sin turnos disponibles</h5>
+            <p>No se encontraron horarios alternativos en los próximos días.</p>
+        </div>
+
+        <div class="row g-3" id="slots-list"></div>
+
+        <form asp-action="Reprogram" asp-route-id="@Model.Id" method="post" id="reprogram-form" class="d-none mt-3" style="border-top:1px solid var(--kg-border);padding-top:1rem">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="reason" id="reprogram-reason" />
+            <input type="hidden" name="observation" id="reprogram-observation" />
+            <input type="hidden" name="newFechaHora" id="reprogram-newfecha" />
+            <div class="d-flex justify-content-end gap-2">
+                <button type="button" class="btn-kg-outline" id="btn-cancel-reprogram"><i class="bi bi-x-lg"></i> Salir</button>
+                <button type="submit" class="btn-kg-primary">
+                    <i class="bi bi-arrow-repeat"></i> Reprogramar para <span id="reprogram-display"></span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script>
+        (function () {
+            var professionalId = @professionalId;
+            var antiForgeryToken = $('input[name="__RequestVerificationToken"]').first().val();
+
+            var reasonSelect = document.getElementById('CancellationReason');
+            var obsInput = document.getElementById('CancellationObs');
+
+            function currentReason() {
+                return reasonSelect ? reasonSelect.value : '';
+            }
+
+            function fillReprogramFields() {
+                var reason = currentReason();
+                var obs = obsInput ? obsInput.value : '';
+                document.getElementById('reprogram-reason').value = reason;
+                document.getElementById('reprogram-observation').value = obs;
+                if (!reason) {
+                    reasonSelect.setCustomValidity('Para reprogramar también necesitás elegir un motivo de cancelación.');
+                } else {
+                    reasonSelect.setCustomValidity('');
+                }
+            }
+
+            document.getElementById('btn-load-slots').addEventListener('click', function () {
+                fillReprogramFields();
+                var reason = currentReason();
+                if (!reason) {
+                    reasonSelect.focus();
+                    reasonSelect.reportValidity();
+                    return;
+                }
+
+                document.getElementById('slots-loading').classList.remove('d-none');
+                document.getElementById('slots-empty').classList.add('d-none');
+                document.getElementById('slots-list').innerHTML = '';
+                document.getElementById('reprogram-form').classList.add('d-none');
+
+                $.getJSON('@Url.Action("AvailableSlots", "Sessions")', { professionalId: professionalId, from: new Date().toISOString() })
+                    .done(function (data) {
+                        document.getElementById('slots-loading').classList.add('d-none');
+                        if (!data || data.length === 0) {
+                            document.getElementById('slots-empty').classList.remove('d-none');
+                            return;
+                        }
+                        var list = document.getElementById('slots-list');
+                        data.forEach(function (slot) {
+                            var col = document.createElement('div');
+                            col.className = 'col-md-4 col-lg-3';
+                            col.innerHTML =
+                                '<button type="button" class="btn-kg-outline w-100 py-2 kg-slot-option" data-fecha="' + slot.fecha + '" data-display="' + slot.display + '">' +
+                                    '<i class="bi bi-calendar2-plus"></i> ' + slot.display +
+                                '</button>';
+                            list.appendChild(col);
+                        });
+                    })
+                    .fail(function () {
+                        document.getElementById('slots-loading').classList.add('d-none');
+                        document.getElementById('slots-empty').classList.remove('d-none');
+                        document.getElementById('slots-empty').querySelector('h5').textContent = 'Error al buscar turnos';
+                    });
+            });
+
+            document.getElementById('slots-list').addEventListener('click', function (e) {
+                var btn = e.target.closest('.kg-slot-option');
+                if (!btn) return;
+                document.getElementById('reprogram-newfecha').value = btn.dataset.fecha;
+                document.getElementById('reprogram-display').textContent = btn.dataset.display;
+                document.getElementById('reprogram-form').classList.remove('d-none');
+                Array.prototype.forEach.call(document.querySelectorAll('.kg-slot-option'), function (b) {
+                    b.classList.remove('active');
+                });
+                btn.classList.add('active');
+            });
+
+            document.getElementById('btn-cancel-reprogram').addEventListener('click', function () {
+                document.getElementById('reprogram-form').classList.add('d-none');
+            });
+        })();
+    </script>
 }

@@ -409,6 +409,124 @@ namespace KineGestion.Tests
                 () => _service.CancelAsync(session.Id, Core.CancellationReason.MotivoClinico, null));
         }
 
+        // ─── ReprogramAsync / SuggestAvailableSlotsAsync ──────────────────────────
+
+        [Fact]
+        public async Task ReprogramAsync_ShouldCreateNewSession_WithSameClinicalData()
+        {
+            var source = BuildSession();
+            source.Id = 5;
+            source.Status = Core.SessionStatus.Canceled;
+
+            var newFechaHora = DateTime.UtcNow.AddDays(2).Date.AddHours(10);
+
+            _sessionRepositoryMock
+                .Setup(r => r.GetByIdAsync(source.Id))
+                .ReturnsAsync(source);
+
+            _sessionRepositoryMock
+                .Setup(r => r.ExistsProfessionalConflictAsync(source.ProfessionalId, newFechaHora, 45, null))
+                .ReturnsAsync(false);
+
+            _sessionRepositoryMock
+                .Setup(r => r.CountByTreatmentIdAsync(source.TreatmentId))
+                .ReturnsAsync(3);
+
+            _treatmentRepositoryMock
+                .Setup(r => r.GetByIdAsync(source.TreatmentId))
+                .ReturnsAsync(new Treatment { Id = source.TreatmentId, CantidadSesionesTotales = 10, Descripcion = "Plan" });
+
+            _sessionRepositoryMock
+                .Setup(r => r.AddAsync(It.IsAny<Session>()))
+                .ReturnsAsync((Session s) => s);
+
+            var result = await _service.ReprogramAsync(source.Id, newFechaHora);
+
+            Assert.Equal(source.PatientId, result.PatientId);
+            Assert.Equal(source.ProfessionalId, result.ProfessionalId);
+            Assert.Equal(source.TreatmentId, result.TreatmentId);
+            Assert.Equal(newFechaHora, result.FechaHora);
+            Assert.Equal(Core.SessionStatus.Pending, result.Status);
+            Assert.Equal(4, result.NroSesionEnTratamiento);
+        }
+
+        [Fact]
+        public async Task ReprogramAsync_ShouldThrow_WhenSourceNotCanceled()
+        {
+            var source = BuildSession();
+            source.Id = 6;
+            source.Status = Core.SessionStatus.Pending;
+
+            _sessionRepositoryMock
+                .Setup(r => r.GetByIdAsync(source.Id))
+                .ReturnsAsync(source);
+
+            await Assert.ThrowsAsync<BusinessValidationException>(
+                () => _service.ReprogramAsync(source.Id, DateTime.UtcNow.AddDays(1)));
+        }
+
+        [Fact]
+        public async Task ReprogramAsync_ShouldThrow_WhenProfessionalConflict()
+        {
+            var source = BuildSession();
+            source.Id = 7;
+            source.Status = Core.SessionStatus.Canceled;
+
+            var newFechaHora = DateTime.UtcNow.AddDays(2).Date.AddHours(10);
+
+            _sessionRepositoryMock
+                .Setup(r => r.GetByIdAsync(source.Id))
+                .ReturnsAsync(source);
+
+            _sessionRepositoryMock
+                .Setup(r => r.ExistsProfessionalConflictAsync(source.ProfessionalId, newFechaHora, 45, null))
+                .ReturnsAsync(true);
+
+            await Assert.ThrowsAsync<BusinessValidationException>(
+                () => _service.ReprogramAsync(source.Id, newFechaHora));
+        }
+
+        [Fact]
+        public async Task SuggestAvailableSlotsAsync_ShouldReturnOpenWeekdaySlots()
+        {
+            var from = new DateTime(2026, 9, 7, 0, 0, 0, DateTimeKind.Utc); // lunes
+            int professionalId = 3;
+
+            _sessionRepositoryMock
+                .Setup(r => r.GetProfessionalBusyTimesAsync(professionalId, It.IsAny<DateTime>(), It.IsAny<DateTime>()))
+                .ReturnsAsync(new List<DateTime>());
+
+            var slots = await _service.SuggestAvailableSlotsAsync(professionalId, from, dayCount: 2, count: 3);
+
+            Assert.Equal(3, slots.Count);
+            // lunes a las 9, 10 y 11
+            Assert.All(slots, s => Assert.False(s.FechaHora.DayOfWeek == DayOfWeek.Saturday || s.FechaHora.DayOfWeek == DayOfWeek.Sunday));
+        }
+
+        [Fact]
+        public async Task SuggestAvailableSlotsAsync_ShouldSkipBusySlots()
+        {
+            var from = new DateTime(2026, 9, 7, 0, 0, 0, DateTimeKind.Utc); // lunes
+            int professionalId = 3;
+
+            // Lunes a las 9 y 10 están ocupados → los primeros libres son 11, y martes 9, 10
+            _sessionRepositoryMock
+                .Setup(r => r.GetProfessionalBusyTimesAsync(professionalId, It.IsAny<DateTime>(), It.IsAny<DateTime>()))
+                .ReturnsAsync(new List<DateTime>
+                {
+                    new DateTime(2026, 9, 7, 9, 0, 0, DateTimeKind.Utc),
+                    new DateTime(2026, 9, 7, 10, 0, 0, DateTimeKind.Utc)
+                });
+
+            var slots = await _service.SuggestAvailableSlotsAsync(professionalId, from, dayCount: 2, count: 3);
+
+            Assert.Equal(3, slots.Count);
+            // Lunes 9 y 10 ocupados → los siguientes libres ese mismo día son 11, 12 y 13
+            Assert.Equal(new DateTime(2026, 9, 7, 11, 0, 0, DateTimeKind.Utc), slots[0].FechaHora);
+            Assert.Equal(new DateTime(2026, 9, 7, 12, 0, 0, DateTimeKind.Utc), slots[1].FechaHora);
+            Assert.Equal(new DateTime(2026, 9, 7, 13, 0, 0, DateTimeKind.Utc), slots[2].FechaHora);
+        }
+
         // ─── DeleteAsync ──────────────────────────────────────────────────────────
 
         [Fact]

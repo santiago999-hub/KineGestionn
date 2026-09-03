@@ -376,6 +376,17 @@ namespace KineGestion.Data.Repositories
                                              && s.FechaHora <= maxFecha);
         }
 
+        public async Task<IReadOnlyList<DateTime>> GetProfessionalBusyTimesAsync(int professionalId, DateTime fromInclusiveUtc, DateTime toExclusiveUtc)
+            => await _context.Sessions
+                             .AsNoTracking()
+                             .Where(s => s.ProfessionalId == professionalId
+                                 && s.Status != SessionStatus.Canceled
+                                 && s.FechaHora >= fromInclusiveUtc
+                                 && s.FechaHora < toExclusiveUtc)
+                             .Select(s => s.FechaHora)
+                             .ToListAsync();
+
+
         public async Task<int> CountByTreatmentIdAsync(int treatmentId)
             => await _context.Sessions
                              .AsNoTracking()

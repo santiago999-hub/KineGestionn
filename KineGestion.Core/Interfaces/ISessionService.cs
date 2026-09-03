@@ -49,6 +49,8 @@ namespace KineGestion.Core.Interfaces
         Task ConfirmByReminderAsync(int sessionId);
         Task CancelByReminderAsync(int sessionId);
         Task CancelAsync(int sessionId, CancellationReason reason, string? observation);
+        Task<Session> ReprogramAsync(int sourceSessionId, DateTime newFechaHora);
+        Task<IReadOnlyList<AvailableSlotDto>> SuggestAvailableSlotsAsync(int professionalId, DateTime fromUtc, int dayCount = 5, int count = 3);
         Task<int> CountByCancellationReasonAsync(CancellationReason reason);
         Task<IDictionary<CancellationReason, int>> CountByCancellationReasonInRangeAsync(DateTime fromInclusiveUtc, DateTime toExclusiveUtc);
         Task SetPaymentStatusAsync(int sessionId, PaymentStatus paymentStatus);

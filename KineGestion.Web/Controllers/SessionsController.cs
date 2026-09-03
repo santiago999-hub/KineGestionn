@@ -387,6 +387,52 @@ namespace KineGestion.Web.Controllers
             return RedirectToAction(nameof(Index));
         }
 
+        // GET: /Sessions/AvailableSlots?professionalId=X
+        [HttpGet]
+        public async Task<IActionResult> AvailableSlots(int professionalId, DateTime? from = null)
+        {
+            Response.Headers["Cache-Control"] = "no-store";
+
+            if (professionalId <= 0)
+                return Json(Array.Empty<object>());
+
+            var fromUtc = (from ?? DateTime.UtcNow).ToUniversalTime();
+            var slots = await _sessionService.SuggestAvailableSlotsAsync(professionalId, fromUtc);
+
+            return Json(slots.Select(s => new { fecha = s.FechaHora.ToString("yyyy-MM-ddTHH:mm:ss"), display = s.Display }));
+        }
+
+        // POST: /Sessions/Reprogram/5
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Reprogram(int id, DateTime newFechaHora, CancellationReason reason, string? observation)
+        {
+            if (!CanManageSessions())
+            {
+                TempData["Error"] = "No tenés permisos para reprogramar sesiones.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            if (newFechaHora == default)
+            {
+                TempData["Error"] = "Debés seleccionar un nuevo horario.";
+                return RedirectToAction(nameof(Cancel), new { id });
+            }
+
+            try
+            {
+                await _sessionService.CancelAsync(id, reason, observation);
+                await _sessionService.ReprogramAsync(id, newFechaHora);
+                TempData["Success"] = "Sesión cancelada y reprogramada correctamente (recaptura).";
+            }
+            catch (BusinessValidationException ex)
+            {
+                TempData["Error"] = ex.Message;
+            }
+
+            return RedirectToAction(nameof(Index));
+        }
+
         // GET: /Sessions/Cancel/5
         public async Task<IActionResult> Cancel(int id)
         {

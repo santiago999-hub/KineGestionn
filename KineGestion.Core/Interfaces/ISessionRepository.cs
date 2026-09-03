@@ -33,6 +33,7 @@ namespace KineGestion.Core.Interfaces
         Task<IEnumerable<Session>> GetByProfessionalIdAsync(int professionalId);
         Task<IEnumerable<Session>> GetByTreatmentIdAsync(int treatmentId);
         Task<bool> ExistsProfessionalConflictAsync(int professionalId, DateTime fechaHora, int windowInMinutes = 45, int? excludeSessionId = null);
+        Task<IReadOnlyList<DateTime>> GetProfessionalBusyTimesAsync(int professionalId, DateTime fromInclusiveUtc, DateTime toExclusiveUtc);
         Task<int> CountByTreatmentIdAsync(int treatmentId);
         Task<int> CountByPatientIdAsync(int patientId);
         Task<int> CountByProfessionalIdAsync(int professionalId);
