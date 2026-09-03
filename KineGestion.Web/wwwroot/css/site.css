@@ -770,6 +770,7 @@ body.kg-theme-dark .kg-alert-origin-badge:focus-visible {
 
 /* Reprogramación / sugerencias de turnos */
 .kg-slot-option.active { background: #e0f2fe !important; color: #0369a1 !important; border-color: #38bdf8 !important; font-weight: 600; }
+.kg-slot-day { font-size: .8rem; font-weight: 600; color: #475569; margin-bottom: .15rem; }
 
 /* ══════════════════════════════════════════════════════════
    FORMS

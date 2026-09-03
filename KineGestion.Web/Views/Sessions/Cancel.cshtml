@@ -57,11 +57,23 @@
         <h5 class="kg-card-header-title">
             <i class="bi bi-arrow-repeat"></i> Recuperar el turno (reprogramación)
         </h5>
-        <button type="button" class="btn-kg-outline" id="btn-load-slots">
-            <i class="bi bi-calendar2-week-fill"></i> Sugerir turnos alternativos
-        </button>
+        <div class="d-flex gap-2">
+            <button type="button" class="btn-kg-outline" id="btn-load-slots">
+                <i class="bi bi-calendar2-week-fill"></i> Sugerir turnos alternativos
+            </button>
+            <button type="button" class="btn-kg-outline" id="btn-load-agenda">
+                <i class="bi bi-calendar3"></i> Ver agenda libre
+            </button>
+        </div>
     </div>
     <div class="kg-card-body">
+        <div class="alert alert-info py-2 small mb-3">
+            <i class="bi bi-info-circle me-1"></i>
+            Las sugerencias y la agenda muestran turnos <strong>solo del profesional</strong> de esta sesión
+            (<strong>@Model.ProfesionalNombre</strong>). Para ver toda la diversidad de opciones y combinaciones,
+            consultá el menú principal de turnos.
+        </div>
+
         <div class="text-muted small mb-2">Si cancelaste la sesión, podés ofrecer al paciente un nuevo turno en el acto con el mismo profesional y tratamiento.</div>
 
         <div id="slots-loading" class="d-none text-muted">
@@ -74,6 +86,7 @@
             <p>No se encontraron horarios alternativos en los próximos días.</p>
         </div>
 
+        <div id="slots-label" class="d-none text-muted small mb-2"></div>
         <div class="row g-3" id="slots-list"></div>
 
         <form asp-action="Reprogram" asp-route-id="@Model.Id" method="post" id="reprogram-form" class="d-none mt-3" style="border-top:1px solid var(--kg-border);padding-top:1rem">
@@ -100,6 +113,8 @@
 
             var reasonSelect = document.getElementById('CancellationReason');
             var obsInput = document.getElementById('CancellationObs');
+            var slotsList = document.getElementById('slots-list');
+            var slotsLabel = document.getElementById('slots-label');
 
             function currentReason() {
                 return reasonSelect ? reasonSelect.value : '';
@@ -117,46 +132,100 @@
                 }
             }
 
-            document.getElementById('btn-load-slots').addEventListener('click', function () {
+            function canProceedWithReason() {
                 fillReprogramFields();
-                var reason = currentReason();
-                if (!reason) {
+                if (!currentReason()) {
                     reasonSelect.focus();
                     reasonSelect.reportValidity();
+                    return false;
+                }
+                return true;
+            }
+
+            function clearSlots() {
+                document.getElementById('slots-loading').classList.remove('d-none');
+                document.getElementById('slots-empty').classList.add('d-none');
+                document.getElementById('slots-label').classList.add('d-none');
+                slotsList.innerHTML = '';
+                document.getElementById('reprogram-form').classList.add('d-none');
+            }
+
+            function renderSuggested(data) {
+                document.getElementById('slots-loading').classList.add('d-none');
+                slotsLabel.classList.add('d-none');
+                if (!data || data.length === 0) {
+                    document.getElementById('slots-empty').classList.remove('d-none');
+                    return;
+                }
+                data.forEach(function (slot) {
+                    var col = document.createElement('div');
+                    col.className = 'col-md-4 col-lg-3';
+                    col.innerHTML =
+                        '<button type="button" class="btn-kg-outline w-100 py-2 kg-slot-option" data-fecha="' + slot.fecha + '" data-display="' + slot.display + '">' +
+                            '<i class="bi bi-calendar2-plus"></i> ' + slot.display +
+                        '</button>';
+                    slotsList.appendChild(col);
+                });
+            }
+
+            function renderAgenda(data) {
+                document.getElementById('slots-loading').classList.add('d-none');
+                if (!data || data.length === 0) {
+                    document.getElementById('slots-empty').classList.remove('d-none');
                     return;
                 }
 
-                document.getElementById('slots-loading').classList.remove('d-none');
-                document.getElementById('slots-empty').classList.add('d-none');
-                document.getElementById('slots-list').innerHTML = '';
-                document.getElementById('reprogram-form').classList.add('d-none');
+                var groups = {};
+                data.forEach(function (slot) {
+                    if (!groups[slot.day]) groups[slot.day] = [];
+                    groups[slot.day].push(slot);
+                });
 
-                $.getJSON('@Url.Action("AvailableSlots", "Sessions")', { professionalId: professionalId, from: new Date().toISOString() })
-                    .done(function (data) {
-                        document.getElementById('slots-loading').classList.add('d-none');
-                        if (!data || data.length === 0) {
-                            document.getElementById('slots-empty').classList.remove('d-none');
-                            return;
-                        }
-                        var list = document.getElementById('slots-list');
-                        data.forEach(function (slot) {
-                            var col = document.createElement('div');
-                            col.className = 'col-md-4 col-lg-3';
-                            col.innerHTML =
-                                '<button type="button" class="btn-kg-outline w-100 py-2 kg-slot-option" data-fecha="' + slot.fecha + '" data-display="' + slot.display + '">' +
-                                    '<i class="bi bi-calendar2-plus"></i> ' + slot.display +
-                                '</button>';
-                            list.appendChild(col);
-                        });
-                    })
+                Object.keys(groups).forEach(function (day) {
+                    var daySlots = groups[day];
+                    var fecha = new Date(day + 'T12:00:00');
+                    var dayLabel = fecha.toLocaleDateString('es-AR', { weekday: 'short', day: 'numeric', month: 'short' });
+
+                    var dayCol = document.createElement('div');
+                    dayCol.className = 'col-md-4 col-lg-3';
+                    dayCol.innerHTML =
+                        '<div class="kg-slot-day mb-1"><i class="bi bi-calendar-day"></i> ' + dayLabel + '</div>' +
+                        '<div class="d-flex flex-wrap gap-1 mb-3">' +
+                            daySlots.map(function (slot) {
+                                return '<button type="button" class="btn-kg-outline btn-sm kg-slot-option" data-fecha="' + slot.fecha + '" data-display="' + slot.display + '">' + slot.display.split(' ')[1] + '</button>';
+                            }).join('') +
+                        '</div>';
+                    slotsList.appendChild(dayCol);
+                });
+
+                slotsLabel.classList.remove('d-none');
+                slotsLabel.textContent = 'Agenda libre de ' + professionalIdName + ' (próximos ' + data.length + ' turnos). Tocá un horario para elegirlo.';
+            }
+
+            function loadSlots(url, renderer, label) {
+                if (!canProceedWithReason()) return;
+                clearSlots();
+                $.getJSON(url)
+                    .done(renderer)
                     .fail(function () {
                         document.getElementById('slots-loading').classList.add('d-none');
                         document.getElementById('slots-empty').classList.remove('d-none');
                         document.getElementById('slots-empty').querySelector('h5').textContent = 'Error al buscar turnos';
                     });
+            }
+
+            // Reemplazamos el id del profesional por el nombre para el label de agenda
+            var professionalIdName = '@Model.ProfesionalNombre';
+
+            document.getElementById('btn-load-slots').addEventListener('click', function () {
+                loadSlots('@Url.Action("AvailableSlots", "Sessions")?professionalId=' + professionalId, renderSuggested);
             });
 
-            document.getElementById('slots-list').addEventListener('click', function (e) {
+            document.getElementById('btn-load-agenda').addEventListener('click', function () {
+                loadSlots('@Url.Action("AgendaSlots", "Sessions")?professionalId=' + professionalId, renderAgenda);
+            });
+
+            slotsList.addEventListener('click', function (e) {
                 var btn = e.target.closest('.kg-slot-option');
                 if (!btn) return;
                 document.getElementById('reprogram-newfecha').value = btn.dataset.fecha;

@@ -402,6 +402,29 @@ namespace KineGestion.Web.Controllers
             return Json(slots.Select(s => new { fecha = s.FechaHora.ToString("yyyy-MM-ddTHH:mm:ss"), display = s.Display }));
         }
 
+        // GET: /Sessions/AgendaSlots?professionalId=X
+        [HttpGet]
+        public async Task<IActionResult> AgendaSlots(int professionalId, DateTime? from = null, int dayCount = 14)
+        {
+            Response.Headers["Cache-Control"] = "no-store";
+
+            if (professionalId <= 0)
+                return Json(Array.Empty<object>());
+
+            var fromUtc = (from ?? DateTime.UtcNow).ToUniversalTime();
+            dayCount = Math.Clamp(dayCount, 1, 30);
+            var slots = await _sessionService.SuggestAvailableSlotsAsync(professionalId, fromUtc, dayCount: dayCount, count: 500);
+
+            return Json(slots
+                .OrderBy(s => s.FechaHora)
+                .Select(s => new
+                {
+                    fecha = s.FechaHora.ToString("yyyy-MM-ddTHH:mm:ss"),
+                    display = s.Display,
+                    day = s.FechaHora.ToString("yyyy-MM-dd")
+                }));
+        }
+
         // POST: /Sessions/Reprogram/5
         [HttpPost]
         [ValidateAntiForgeryToken]
