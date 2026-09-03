@@ -82,6 +82,7 @@ public class HomeController : Controller
         var canceledLast30 = await MeasureStepAsync("Sessions.CanceledLast30", () => SafeCountAsync(() => _sessionService.CountByStatusInRangeAsync(SessionStatus.Canceled, rangeFrom, rangeTo), nameof(_sessionService.CountByStatusInRangeAsync)));
         var billingAlertSnapshot = await MeasureStepAsync("BillingAlert.Snapshot", SafeGetBillingAlertSnapshotAsync);
         var billingAlertSentToday = await MeasureStepAsync("BillingAlert.SentTodayCount", () => SafeCountAsync(() => CountOperationalAlertsTodayAsync(), nameof(CountOperationalAlertsTodayAsync)));
+        var cancellationReasonsLast30 = await MeasureStepAsync("Sessions.CancelReasonsLast30", SafeGetCancellationReasonsAsync);
         var recentBillingAlerts = await MeasureStepAsync("BillingAlert.RecentHistory", SafeGetRecentOperationalAlertsAsync);
         var lastBillingAlert = recentBillingAlerts.FirstOrDefault();
 
@@ -107,7 +108,8 @@ public class HomeController : Controller
             IsBillingOperationalAlertSentToday = billingAlertSentToday > 0,
             LastBillingOperationalAlertAtUtc = lastBillingAlert?.ChangedAtUtc,
             LastBillingOperationalAlertChangedBy = lastBillingAlert?.ChangedBy,
-            RecentBillingOperationalAlerts = recentBillingAlerts
+            RecentBillingOperationalAlerts = recentBillingAlerts,
+            TopCancellationReasons = cancellationReasonsLast30
         };
 
         if (hasErrors == 0)
@@ -237,7 +239,47 @@ public class HomeController : Controller
 
             return totalCount;
         }
+
+        async Task<List<CancellationReasonCountViewModel>> SafeGetCancellationReasonsAsync()
+        {
+            try
+            {
+                var counts = await _sessionService.CountByCancellationReasonInRangeAsync(rangeFrom, rangeTo);
+                if (counts is null) return new List<CancellationReasonCountViewModel>();
+                return counts
+                    .Select(kv => new CancellationReasonCountViewModel
+                    {
+                        Reason = kv.Key,
+                        Count = kv.Value,
+                        Label = CancellationReasonLabel(kv.Key)
+                    })
+                    .OrderByDescending(c => c.Count)
+                    .Take(5)
+                    .ToList();
+            }
+            catch (Exception ex)
+            {
+                Interlocked.Exchange(ref hasErrors, 1);
+                _logger.LogError(ex, "Error cargando motivos de cancelación del dashboard.");
+                return new List<CancellationReasonCountViewModel>();
+            }
+        }
     }
+
+    private static string CancellationReasonLabel(CancellationReason reason)
+        => reason switch
+        {
+            CancellationReason.PacienteNoPudoAsistir => "El paciente no pudo asistir",
+            CancellationReason.Impuntualidad => "Impuntualidad",
+            CancellationReason.MotivoClinico => "Motivo clínico",
+            CancellationReason.Traslado => "Traslado",
+            CancellationReason.ProblemaFamiliar => "Problema familiar",
+            CancellationReason.Laboral => "Laboral",
+            CancellationReason.Olvido => "Se olvidó",
+            CancellationReason.ConsultorioCierre => "Cierre del consultorio",
+            CancellationReason.Otro => "Otro",
+            _ => reason.ToString()
+        };
 
     [HttpPost]
     [Authorize(Roles = "Admin")]

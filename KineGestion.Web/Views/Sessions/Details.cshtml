@@ -101,6 +101,29 @@
                     <dd>@Model.Observaciones</dd>
                 </div>
             }
+            @if (Model.Status == SessionStatus.Canceled)
+            {
+                <div class="kg-detail-item">
+                    <dt>Motivo de cancelación</dt>
+                    <dd>
+                        @if (Model.CancellationReason.HasValue)
+                        {
+                            <span class="kg-badge kg-badge-danger">@Model.CancellationReason.Value.ToString()</span>
+                        }
+                        else
+                        {
+                            <span class="kg-badge kg-badge-muted">Sin motivo registrado</span>
+                        }
+                    </dd>
+                </div>
+                @if (!string.IsNullOrWhiteSpace(Model.CancellationObs))
+                {
+                    <div class="kg-detail-item" style="grid-column:1/-1">
+                        <dt>Observación de cancelación</dt>
+                        <dd>@Model.CancellationObs</dd>
+                    </div>
+                }
+            }
         </div>
 
         @* ── Evolución Clínica (dato sensible) ─────────────────────────────── *@
@@ -168,8 +191,16 @@
     </div>
     <div class="kg-form-footer">
         <a asp-action="Index" class="btn-kg-outline"><i class="bi bi-arrow-left"></i> Volver</a>
-        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn-kg-warning">
-            <i class="bi bi-pencil-fill"></i> Editar
-        </a>
+        <span class="d-inline-flex gap-2">
+            @if (Model.Status == SessionStatus.Pending)
+            {
+                <a asp-action="Cancel" asp-route-id="@Model.Id" class="btn-kg-danger">
+                    <i class="bi bi-x-circle-fill"></i> Cancelar
+                </a>
+            }
+            <a asp-action="Edit" asp-route-id="@Model.Id" class="btn-kg-warning">
+                <i class="bi bi-pencil-fill"></i> Editar
+            </a>
+        </span>
     </div>
 </div>

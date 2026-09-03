@@ -19,6 +19,8 @@ namespace KineGestion.Core.DTOs
         string ProfesionalNombre,
         string? TratamientoDescripcion,
         string? OfficeNombre,
-        bool EvolutionBloqueada
+        bool EvolutionBloqueada,
+        CancellationReason? CancellationReason = null,
+        string? CancellationObs = null
     );
 }

@@ -48,6 +48,9 @@ namespace KineGestion.Core.Interfaces
         Task<IEnumerable<SessionReminderCandidateDto>> GetReminderCandidatesAsync(DateTime fromInclusiveUtc, DateTime toExclusiveUtc);
         Task ConfirmByReminderAsync(int sessionId);
         Task CancelByReminderAsync(int sessionId);
+        Task CancelAsync(int sessionId, CancellationReason reason, string? observation);
+        Task<int> CountByCancellationReasonAsync(CancellationReason reason);
+        Task<IDictionary<CancellationReason, int>> CountByCancellationReasonInRangeAsync(DateTime fromInclusiveUtc, DateTime toExclusiveUtc);
         Task SetPaymentStatusAsync(int sessionId, PaymentStatus paymentStatus);
         Task<(int UpdatedCount, int SkippedCount)> MarkCompletedPendingAsPaidBatchAsync(IReadOnlyCollection<int> sessionIds);
         Task<(int UpdatedCount, int SkippedCount)> MarkPaidAsPendingBatchAsync(IReadOnlyCollection<int> sessionIds);

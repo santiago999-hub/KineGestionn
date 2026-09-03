@@ -1,0 +1,56 @@
+@model KineGestion.Web.Models.ViewModels.SessionViewModel
+@using KineGestion.Core
+
+@{
+    ViewData["Title"] = "Cancelar Sesión";
+}
+
+<div class="kg-page-header">
+    <div>
+        <h2>Cancelar Sesión</h2>
+        <p class="text-muted mb-0">Registrá el motivo para poder analizar las cancelaciones</p>
+    </div>
+    <a asp-action="Index" class="btn-kg-outline">
+        <i class="bi bi-arrow-left"></i> Volver
+    </a>
+</div>
+
+<div class="kg-form-card" style="border-top: 3px solid var(--kg-danger)">
+    <div class="kg-form-header" style="background:#fff5f5">
+        <div class="kg-form-header-icon" style="background:#fee2e2;color:#dc2626"><i class="bi bi-x-circle-fill"></i></div>
+        <div>
+            <h4>¿Cancelar esta sesión?</h4>
+            <p style="color:#dc2626">La sesión de <strong>@Model.PacienteNombre</strong> del <strong>@Model.FechaHora.ToString("dd/MM/yyyy HH:mm")</strong> será marcada como cancelada.</p>
+        </div>
+    </div>
+
+    <form asp-action="Cancel" asp-route-id="@Model.Id" method="post" class="kg-form-body">
+        @Html.AntiForgeryToken()
+
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label class="form-label small text-muted" asp-for="CancellationReason">Motivo de cancelación *</label>
+                <select asp-for="CancellationReason" asp-items="Model.MotivosCancelacion" class="form-select" required>
+                    <option value="">Seleccioná un motivo</option>
+                </select>
+                <span asp-validation-for="CancellationReason" class="text-danger small"></span>
+            </div>
+            <div class="col-12">
+                <label class="form-label small text-muted" asp-for="CancellationObs">Observación (opcional)</label>
+                <textarea asp-for="CancellationObs" class="form-control" rows="3" maxlength="2000" placeholder="Detalle del motivo, si corresponde"></textarea>
+                <span asp-validation-for="CancellationObs" class="text-danger small"></span>
+            </div>
+        </div>
+
+        <div class="kg-form-footer px-0 pb-0">
+            <a asp-action="Index" class="btn-kg-outline"><i class="bi bi-x-lg"></i> No cancelar</a>
+            <button type="submit" class="btn-kg-danger">
+                <i class="bi bi-x-circle-fill"></i> Confirmar cancelación
+            </button>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

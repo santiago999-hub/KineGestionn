@@ -387,6 +387,70 @@ namespace KineGestion.Web.Controllers
             return RedirectToAction(nameof(Index));
         }
 
+        // GET: /Sessions/Cancel/5
+        public async Task<IActionResult> Cancel(int id)
+        {
+            if (!CanManageSessions())
+            {
+                TempData["Error"] = "No tenés permisos para cancelar sesiones.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            var session = await _sessionService.GetByIdAsync(id);
+            if (session is null)
+                return NotFound();
+
+            var viewModel = SessionViewModel.FromEntity(session);
+            viewModel.MotivosCancelacion = Enum.GetValues<CancellationReason>()
+                .Select(r => new SelectListItem
+                {
+                    Value = r.ToString(),
+                    Text = CancellationReasonText(r)
+                })
+                .ToList();
+
+            return View(viewModel);
+        }
+
+        // POST: /Sessions/Cancel/5
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Cancel(int id, CancellationReason reason, string? observation)
+        {
+            if (!CanManageSessions())
+            {
+                TempData["Error"] = "No tenés permisos para cancelar sesiones.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            try
+            {
+                await _sessionService.CancelAsync(id, reason, observation);
+                TempData["Success"] = "La sesión fue cancelada correctamente.";
+            }
+            catch (BusinessValidationException ex)
+            {
+                TempData["Error"] = ex.Message;
+            }
+
+            return RedirectToAction(nameof(Index));
+        }
+
+        private static string CancellationReasonText(CancellationReason reason)
+            => reason switch
+            {
+                CancellationReason.PacienteNoPudoAsistir => "El paciente no pudo asistir",
+                CancellationReason.Impuntualidad => "Impuntualidad del paciente",
+                CancellationReason.MotivoClinico => "Motivo clínico",
+                CancellationReason.Traslado => "Problema de traslado",
+                CancellationReason.ProblemaFamiliar => "Problema familiar",
+                CancellationReason.Laboral => "Motivo laboral",
+                CancellationReason.Olvido => "El paciente se olvidó",
+                CancellationReason.ConsultorioCierre => "Cierre del consultorio",
+                CancellationReason.Otro => "Otro",
+                _ => reason.ToString()
+            };
+
         private async Task LoadSelectListsAsync(SessionViewModel viewModel)
         {
             // Se ejecuta de forma secuencial para evitar operaciones concurrentes

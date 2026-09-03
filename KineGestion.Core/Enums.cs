@@ -30,4 +30,17 @@ namespace KineGestion.Core
         Pending = 0,
         Paid = 1
     }
+
+    public enum CancellationReason
+    {
+        PacienteNoPudoAsistir = 0,
+        Impuntualidad = 1,
+        MotivoClinico = 2,
+        Traslado = 3,
+        ProblemaFamiliar = 4,
+        Laboral = 5,
+        Olvido = 6,
+        ConsultorioCierre = 7,
+        Otro = 8
+    }
 }

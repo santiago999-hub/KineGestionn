@@ -112,11 +112,13 @@ namespace KineGestion.Data.Context
                 entity.Property(s => s.Observaciones).HasColumnType("nvarchar(max)").HasConversion(EncryptionConverter());
                 entity.Property(s => s.Status).IsRequired();
                 entity.Property(s => s.PaymentStatus).IsRequired();
+                entity.Property(s => s.CancellationObs).HasMaxLength(2000);
 
                 entity.ToTable(t =>
                 {
                     t.HasCheckConstraint("CK_Sessions_Status_Valid", "[Status] IN (0, 1, 2)");
                     t.HasCheckConstraint("CK_Sessions_PaymentStatus_Valid", "[PaymentStatus] IN (0, 1)");
+                    t.HasCheckConstraint("CK_Sessions_CancellationReason_Valid", "[CancellationReason] IS NULL OR [CancellationReason] IN (0, 1, 2, 3, 4, 5, 6, 7, 8)");
                     t.HasCheckConstraint("CK_Sessions_NroSesionEnTratamiento_Positive", "[NroSesionEnTratamiento] >= 1");
                 });
 
@@ -128,6 +130,7 @@ namespace KineGestion.Data.Context
                 entity.HasIndex(s => new { s.TreatmentId, s.NroSesionEnTratamiento }).IsUnique();
                 entity.HasIndex(s => new { s.Status, s.FechaHora });
                 entity.HasIndex(s => new { s.PaymentStatus, s.FechaHora });
+                entity.HasIndex(s => new { s.CancellationReason, s.FechaHora });
 
                 entity.HasOne(s => s.Patient)
                     .WithMany(p => p.Sesiones)

@@ -208,6 +208,39 @@ namespace KineGestion.Core.Services
                 QueryCache.InvalidatePrefix("sessions:");
             }
 
+            public async Task CancelAsync(int sessionId, CancellationReason reason, string? observation)
+            {
+                var session = await _repository.GetByIdAsync(sessionId);
+                if (session is null)
+                    throw new BusinessValidationException("La sesión no existe.", nameof(Session.Id));
+
+                if (session.Status == SessionStatus.Canceled)
+                    throw new BusinessValidationException("La sesión ya está cancelada.", nameof(Session.Status));
+
+                if (session.Status == SessionStatus.Completed)
+                    throw new BusinessValidationException("No se puede cancelar una sesión completada.", nameof(Session.Status));
+
+                session.Status = SessionStatus.Canceled;
+                session.CancellationReason = reason;
+                session.CancellationObs = string.IsNullOrWhiteSpace(observation) ? null : observation.Trim();
+                session.CancelledAt = DateTime.UtcNow;
+                AppendSystemNote(session, $"CANCELADA_MOTIVO_{reason}");
+                await _repository.UpdateAsync(session);
+                QueryCache.InvalidatePrefix("sessions:");
+            }
+
+            public async Task<int> CountByCancellationReasonAsync(CancellationReason reason)
+                => await QueryCache.GetOrCreateAsync(
+                    $"sessions:count:cancelreason:{reason}",
+                    () => _repository.CountByCancellationReasonAsync(reason),
+                    TimeSpan.FromSeconds(10));
+
+            public async Task<IDictionary<CancellationReason, int>> CountByCancellationReasonInRangeAsync(DateTime fromInclusiveUtc, DateTime toExclusiveUtc)
+                => await QueryCache.GetOrCreateAsync(
+                    $"sessions:count:cancelreason:range:{fromInclusiveUtc:yyyyMMddHHmmss}:{toExclusiveUtc:yyyyMMddHHmmss}",
+                    () => _repository.CountByCancellationReasonInRangeAsync(fromInclusiveUtc, toExclusiveUtc),
+                    TimeSpan.FromSeconds(10));
+
             public async Task SetPaymentStatusAsync(int sessionId, PaymentStatus paymentStatus)
             {
                 var session = await _repository.GetByIdAsync(sessionId);

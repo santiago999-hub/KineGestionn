@@ -24,6 +24,19 @@ namespace KineGestion.Core.Entities
 
         public PaymentStatus PaymentStatus { get; set; } = PaymentStatus.Pending;
 
+        /// <summary>
+        /// Motivo obligatorio cuando la sesión se cancela por acción del usuario.
+        /// Es null para sesiones no canceladas o canceladas por flujos automáticos
+        /// (recordatorios) que no registran un motivo.
+        /// </summary>
+        public CancellationReason? CancellationReason { get; set; }
+
+        [StringLength(2000)]
+        public string? CancellationObs { get; set; }
+
+        /// <summary>Momento en que se registró la cancelación (UTC).</summary>
+        public DateTime? CancelledAt { get; set; }
+
         public int NroSesionEnTratamiento { get; set; }
 
         [Required]

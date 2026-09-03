@@ -327,6 +327,88 @@ namespace KineGestion.Tests
             await Assert.ThrowsAsync<BusinessValidationException>(() => _service.UpdateAsync(session));
         }
 
+        // ─── CancelAsync ──────────────────────────────────────────────────────────
+
+        [Fact]
+        public async Task CancelAsync_ShouldCancelAndSetReason()
+        {
+            var session = BuildSession();
+            session.Status = Core.SessionStatus.Pending;
+
+            _sessionRepositoryMock
+                .Setup(r => r.GetByIdAsync(session.Id))
+                .ReturnsAsync(session);
+
+            _sessionRepositoryMock
+                .Setup(r => r.UpdateAsync(It.IsAny<Session>()))
+                .ReturnsAsync((Session s) => s);
+
+            await _service.CancelAsync(session.Id, Core.CancellationReason.PacienteNoPudoAsistir, "turno laboral");
+
+            Assert.Equal(Core.SessionStatus.Canceled, session.Status);
+            Assert.Equal(Core.CancellationReason.PacienteNoPudoAsistir, session.CancellationReason);
+            Assert.Equal("turno laboral", session.CancellationObs);
+            Assert.NotNull(session.CancelledAt);
+        }
+
+        [Fact]
+        public async Task CancelAsync_ShouldTrimAndNullifyBlankObservation()
+        {
+            var session = BuildSession();
+            session.Status = Core.SessionStatus.Pending;
+
+            _sessionRepositoryMock
+                .Setup(r => r.GetByIdAsync(session.Id))
+                .ReturnsAsync(session);
+
+            _sessionRepositoryMock
+                .Setup(r => r.UpdateAsync(It.IsAny<Session>()))
+                .ReturnsAsync((Session s) => s);
+
+            await _service.CancelAsync(session.Id, Core.CancellationReason.Otro, "   ");
+
+            Assert.Null(session.CancellationObs);
+        }
+
+        [Fact]
+        public async Task CancelAsync_ShouldThrow_WhenSessionNotFound()
+        {
+            _sessionRepositoryMock
+                .Setup(r => r.GetByIdAsync(999))
+                .ReturnsAsync((Session?)null);
+
+            await Assert.ThrowsAsync<BusinessValidationException>(
+                () => _service.CancelAsync(999, Core.CancellationReason.Otro, null));
+        }
+
+        [Fact]
+        public async Task CancelAsync_ShouldThrow_WhenAlreadyCanceled()
+        {
+            var session = BuildSession();
+            session.Status = Core.SessionStatus.Canceled;
+
+            _sessionRepositoryMock
+                .Setup(r => r.GetByIdAsync(session.Id))
+                .ReturnsAsync(session);
+
+            await Assert.ThrowsAsync<BusinessValidationException>(
+                () => _service.CancelAsync(session.Id, Core.CancellationReason.Otro, null));
+        }
+
+        [Fact]
+        public async Task CancelAsync_ShouldThrow_WhenSessionCompleted()
+        {
+            var session = BuildSession();
+            session.Status = Core.SessionStatus.Completed;
+
+            _sessionRepositoryMock
+                .Setup(r => r.GetByIdAsync(session.Id))
+                .ReturnsAsync(session);
+
+            await Assert.ThrowsAsync<BusinessValidationException>(
+                () => _service.CancelAsync(session.Id, Core.CancellationReason.MotivoClinico, null));
+        }
+
         // ─── DeleteAsync ──────────────────────────────────────────────────────────
 
         [Fact]

@@ -60,6 +60,15 @@ namespace KineGestion.Web.Models.ViewModels
         [Display(Name = "Consultorio")]
         public int? OfficeId { get; set; }
 
+        [Display(Name = "Motivo de cancelación")]
+        public CancellationReason? CancellationReason { get; set; }
+
+        [StringLength(2000)]
+        [Display(Name = "Observación de cancelación")]
+        public string? CancellationObs { get; set; }
+
+        public DateTime? CancelledAt { get; set; }
+
         public string? PacienteNombre { get; set; }
         public string? ProfesionalNombre { get; set; }
         public string? TratamientoDescripcion { get; set; }
@@ -76,6 +85,7 @@ namespace KineGestion.Web.Models.ViewModels
         public IEnumerable<SelectListItem> Consultorios { get; set; } = new List<SelectListItem>();
         public IEnumerable<SelectListItem> EstadosSesion { get; set; } = new List<SelectListItem>();
         public IEnumerable<SelectListItem> EstadosPago { get; set; } = new List<SelectListItem>();
+        public IEnumerable<SelectListItem> MotivosCancelacion { get; set; } = new List<SelectListItem>();
 
         public static SessionViewModel FromEntity(Session session)
             => MappingHelper.ToSessionViewModel(session, includeEvolution: true);
@@ -98,7 +108,9 @@ namespace KineGestion.Web.Models.ViewModels
             ProfesionalNombre      = dto.ProfesionalNombre,
             TratamientoDescripcion = dto.TratamientoDescripcion,
             OfficeNombre           = dto.OfficeNombre,
-            EvolutionBloqueada     = dto.EvolutionBloqueada
+            EvolutionBloqueada     = dto.EvolutionBloqueada,
+            CancellationReason     = dto.CancellationReason,
+            CancellationObs        = dto.CancellationObs
         };
 
         public Session ToEntity() => MappingHelper.ToSessionEntity(this);

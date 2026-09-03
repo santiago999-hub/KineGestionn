@@ -216,7 +216,9 @@ namespace KineGestion.Data.Repositories
                     s.Professional != null ? s.Professional.Apellido + ", " + s.Professional.Nombre : string.Empty,
                     s.Treatment != null ? s.Treatment.Descripcion : null,
                     s.Office != null ? s.Office.Name : null,
-                    s.EvolutionLockedAt.HasValue
+                    s.EvolutionLockedAt.HasValue,
+                    s.CancellationReason,
+                    s.CancellationObs
                 ))
                 .ToListAsync();
 
@@ -316,7 +318,9 @@ namespace KineGestion.Data.Repositories
                     string.Empty,   // el profesional ya es el usuario actual
                     s.Treatment != null ? s.Treatment.Descripcion : null,
                     s.Office != null ? s.Office.Name : null,
-                    s.EvolutionLockedAt.HasValue
+                    s.EvolutionLockedAt.HasValue,
+                    s.CancellationReason,
+                    s.CancellationObs
                 ))
                 .ToListAsync();
 
@@ -442,6 +446,38 @@ namespace KineGestion.Data.Repositories
             return await _context.Sessions
                 .AsNoTracking()
                 .CountAsync(s => s.Status == status);
+        }
+
+        public async Task<int> CountByCancellationReasonAsync(CancellationReason reason)
+        {
+            var profFilter = GetProfessionalIdFilter();
+            if (profFilter.HasValue)
+                return await _context.Sessions
+                    .AsNoTracking()
+                    .CountAsync(s => s.ProfessionalId == profFilter.Value
+                        && s.CancellationReason == reason);
+
+            return await _context.Sessions
+                .AsNoTracking()
+                .CountAsync(s => s.CancellationReason == reason);
+        }
+
+        public async Task<IDictionary<CancellationReason, int>> CountByCancellationReasonInRangeAsync(DateTime fromInclusiveUtc, DateTime toExclusiveUtc)
+        {
+            var profFilter = GetProfessionalIdFilter();
+            var query = _context.Sessions.AsNoTracking();
+            if (profFilter.HasValue)
+                query = query.Where(s => s.ProfessionalId == profFilter.Value);
+            query = query.Where(s => s.CancellationReason.HasValue
+                && s.FechaHora >= fromInclusiveUtc
+                && s.FechaHora < toExclusiveUtc);
+
+            var groups = await query
+                .GroupBy(s => s.CancellationReason!.Value)
+                .Select(g => new { Reason = g.Key, Count = g.Count() })
+                .ToListAsync();
+
+            return groups.ToDictionary(g => g.Reason, g => g.Count);
         }
 
         public async Task<int> CountByStatusAndPaymentStatusAsync(SessionStatus status, PaymentStatus paymentStatus)

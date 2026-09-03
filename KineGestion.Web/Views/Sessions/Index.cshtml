@@ -203,6 +203,12 @@
                                 else if (s.Status == SessionStatus.Canceled)
                                 {
                                     <span class="kg-badge kg-badge-danger">Cancelada</span>
+                                    if (s.CancellationReason.HasValue)
+                                    {
+                                        <div class="kg-cell-meta mt-1" title="Motivo de cancelación">
+                                            <i class="bi bi-info-circle"></i> @s.CancellationReason.Value.ToString()
+                                        </div>
+                                    }
                                 }
                                 else
                                 {
@@ -223,6 +229,10 @@
                                 <div class="kg-action-btns kg-action-btns-end">
                                     <a asp-action="Details" asp-route-id="@s.Id" class="kg-action-btn view" title="Ver detalle" aria-label="Ver detalle de sesión de @s.PacienteNombre"><i class="bi bi-eye-fill"></i></a>
                                     <a asp-action="Edit" asp-route-id="@s.Id" class="kg-action-btn edit" title="Editar" aria-label="Editar sesión de @s.PacienteNombre"><i class="bi bi-pencil-fill"></i></a>
+                                    @if (s.Status == SessionStatus.Pending)
+                                    {
+                                        <a asp-action="Cancel" asp-route-id="@s.Id" class="kg-action-btn cancel" title="Cancelar sesión" aria-label="Cancelar sesión de @s.PacienteNombre"><i class="bi bi-x-circle-fill"></i></a>
+                                    }
                                     <a asp-action="Delete" asp-route-id="@s.Id" class="kg-action-btn del" title="Eliminar" aria-label="Eliminar sesión de @s.PacienteNombre"><i class="bi bi-trash-fill"></i></a>
                                 </div>
                             </td>

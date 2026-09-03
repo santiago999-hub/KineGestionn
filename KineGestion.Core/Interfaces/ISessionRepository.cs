@@ -41,6 +41,8 @@ namespace KineGestion.Core.Interfaces
         Task<int> CountTodayAsync(DateTime utcToday);
         Task<int> CountByPaymentStatusAsync(PaymentStatus paymentStatus);
         Task<int> CountByStatusAsync(SessionStatus status);
+        Task<int> CountByCancellationReasonAsync(CancellationReason reason);
+        Task<IDictionary<CancellationReason, int>> CountByCancellationReasonInRangeAsync(DateTime fromInclusiveUtc, DateTime toExclusiveUtc);
         Task<int> CountByStatusAndPaymentStatusAsync(SessionStatus status, PaymentStatus paymentStatus);
         Task<int> CountByStatusOnDateAsync(SessionStatus status, DateTime utcDay);
         Task<int> CountInRangeAsync(DateTime fromInclusiveUtc, DateTime toExclusiveUtc);
