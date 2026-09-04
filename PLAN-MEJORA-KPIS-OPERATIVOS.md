@@ -162,3 +162,20 @@ Para la siguiente iteracion, queda como pendiente explicito afinar tiempos de re
 2. Revisar variabilidad de p95 en frio vs caliente y registrar outliers.
 3. Priorizar mejoras de consulta/indices donde p95 supere +20% del baseline estable.
 4. Revalidar impacto luego de cada ajuste con la misma metodologia de medicion.
+
+## Registro de avance P2-1: Segmentacion por profesional y franja (2026-09-03)
+Estado: IMPLEMENTADO y commiteado (commit 17cf5ea). Falta solo verificar funcional en navegador.
+
+Que se hizo:
+- Panel "Segmentacion KPIs" (solo Admin) en /Segmentacion: desglosa cobranza, cumplimiento y cancelacion por profesional y por franja horaria, con rango de fechas.
+- 2 consultas de agregacion unica (no N consultas): GetKpiSegmentsByProfessionalAsync y GetKpiSegmentsByTimeSlotAsync, con QueryCache de 10s.
+- DTO KpiSegmentDto con KPIs calculados (CumplimientoPct, CobranzaPct, CancelacionPct).
+- Tests: 4 unit (DTO) + 2 integracion (repositorio). Suites verdes: Core 97, Web 134.
+
+Siguientes pasos al retomar:
+1. Verificar /Segmentacion autenticado en navegador (la app se levanto OK, puerto 5138, pero no se cerro la verificacion visual completa).
+2. Filtro por profesional seria opcional de mejora (hoy muestra todos agrupados).
+3. Despues de P2-1: P2-2 politica de cancelacion tardia o P2-3 experimentacion de mensajes.
+
+Nota infraestructura:
+- El 2026-09-03 tambien se commiteo (af7d43b) la baja de logs de requests normales a Debug para reducir overhead de logging en hot path (REQUEST-METRICS + pipeline profile).
