@@ -555,5 +555,49 @@ namespace KineGestion.Tests
                 PaymentStatus = Core.PaymentStatus.Pending
             };
         }
+
+        [Fact]
+        public void GetCancellationTiming_ShouldReturnLate_WhenCancelledLessThan24hBefore()
+        {
+            var session = BuildSession();
+            session.Status = Core.SessionStatus.Canceled;
+            session.FechaHora = new DateTime(2026, 5, 10, 9, 0, 0, DateTimeKind.Utc);
+            session.CancelledAt = new DateTime(2026, 5, 10, 7, 0, 0, DateTimeKind.Utc); // 2h antes
+
+            Assert.Equal(Core.CancellationTiming.Late, _service.GetCancellationTiming(session));
+        }
+
+        [Fact]
+        public void GetCancellationTiming_ShouldReturnEarly_WhenCancelled24hOrMoreBefore()
+        {
+            var session = BuildSession();
+            session.Status = Core.SessionStatus.Canceled;
+            session.FechaHora = new DateTime(2026, 5, 15, 9, 0, 0, DateTimeKind.Utc);
+            session.CancelledAt = new DateTime(2026, 5, 13, 9, 0, 0, DateTimeKind.Utc); // 48h antes
+
+            Assert.Equal(Core.CancellationTiming.Early, _service.GetCancellationTiming(session));
+        }
+
+        [Fact]
+        public void GetCancellationTiming_ShouldReturnEarly_WhenSessionIsNotCancelledAndFarInFuture()
+        {
+            var session = BuildSession();
+            session.Status = Core.SessionStatus.Pending;
+            session.CancelledAt = null;
+            session.FechaHora = DateTime.UtcNow.AddDays(5); // cancelar "ahora" sería temprana (>24h)
+
+            Assert.Equal(Core.CancellationTiming.Early, _service.GetCancellationTiming(session));
+        }
+
+        [Fact]
+        public void GetCancellationTiming_ShouldReturnLate_ForPendingSessionWithin24h()
+        {
+            var session = BuildSession();
+            session.Status = Core.SessionStatus.Pending;
+            session.CancelledAt = null;
+            session.FechaHora = DateTime.UtcNow.AddHours(3); // cancelar "ahora" sería tardía (<24h)
+
+            Assert.Equal(Core.CancellationTiming.Late, _service.GetCancellationTiming(session));
+        }
     }
 }

@@ -679,5 +679,94 @@ namespace KineGestion.Tests
                 await cleanupContext.Database.EnsureDeletedAsync();
             }
         }
+
+        [Fact]
+        public async Task CountLateCancellationsInRangeAsync_ShouldCountOnlyCancelationsWithLessThan24hLead()
+        {
+            var databaseName = $"KineGestion_Integration_{Guid.NewGuid():N}";
+            var connectionString = $"Server=localhost\\SQLEXPRESS;Database={databaseName};Trusted_Connection=True;TrustServerCertificate=True";
+            var options = new DbContextOptionsBuilder<AppDbContext>()
+                .UseSqlServer(connectionString)
+                .Options;
+
+            var from = new DateTime(2026, 5, 1);
+            var to = new DateTime(2026, 6, 1);
+
+            await using (var setupContext = new AppDbContext(options))
+            {
+                await setupContext.Database.EnsureDeletedAsync();
+                await setupContext.Database.EnsureCreatedAsync();
+
+                var patient = new Patient
+                {
+                    Nombre = "Maria",
+                    Apellido = "Lopez",
+                    DNI = "87654321",
+                    FechaNacimiento = new DateTime(1989, 4, 10)
+                };
+
+                var professional = new Professional
+                {
+                    Nombre = "Jose",
+                    Apellido = "Diaz",
+                    Matricula = "MAT-200",
+                    Especialidad = "Kinesiologia"
+                };
+
+                setupContext.Patients.Add(patient);
+                setupContext.Professionals.Add(professional);
+                await setupContext.SaveChangesAsync();
+
+                var treatment = new Treatment
+                {
+                    PatientId = patient.Id,
+                    Descripcion = "Postoperatorio",
+                    CantidadSesionesTotales = 12,
+                    FechaInicio = from
+                };
+                setupContext.Treatments.Add(treatment);
+                await setupContext.SaveChangesAsync();
+
+                int counter = 1;
+                void AddCancelled(DateTime fechaHora, DateTime? cancelledAt)
+                {
+                    setupContext.Sessions.Add(new Session
+                    {
+                        FechaHora = fechaHora,
+                        PatientId = patient.Id,
+                        ProfessionalId = professional.Id,
+                        TreatmentId = treatment.Id,
+                        NroSesionEnTratamiento = counter++,
+                        Status = SessionStatus.Canceled,
+                        CancellationReason = CancellationReason.Olvido,
+                        CancelledAt = cancelledAt
+                    });
+                }
+
+                // Tardía: cancelada 2h antes del turno -> dentro de 24h
+                AddCancelled(new DateTime(2026, 5, 10, 9, 0, 0), new DateTime(2026, 5, 10, 7, 0, 0));
+                // Tardía: cancelada 23h antes del turno -> dentro de 24h
+                AddCancelled(new DateTime(2026, 5, 12, 9, 0, 0), new DateTime(2026, 5, 11, 10, 0, 0));
+                // Temprana: cancelada 48h antes del turno -> fuera de 24h
+                AddCancelled(new DateTime(2026, 5, 15, 9, 0, 0), new DateTime(2026, 5, 13, 9, 0, 0));
+                // Fuera de rango (junio)
+                AddCancelled(new DateTime(2026, 6, 5, 9, 0, 0), new DateTime(2026, 6, 5, 7, 0, 0));
+
+                await setupContext.SaveChangesAsync();
+            }
+
+            await using (var testContext = new AppDbContext(options))
+            {
+                var repository = new SessionRepository(testContext);
+                var count = await repository.CountLateCancellationsInRangeAsync(from, to);
+
+                Assert.Equal(2, count);
+            }
+
+            await using (var cleanupContext = new AppDbContext(options))
+            {
+                await cleanupContext.Database.EnsureDeletedAsync();
+            }
+        }
     }
 }

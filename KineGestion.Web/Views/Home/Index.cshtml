@@ -234,7 +234,7 @@
             <div>
                 <div class="kg-stat-label">Tasa de cancelación (30d)</div>
                 <div class="kg-stat-value">@Model.CancellationRateLast30Days.ToString("N2")%</div>
-                <small class="text-muted">Canceladas sobre total de sesiones</small>
+                <small class="text-muted">Canceladas sobre total de sesiones · tardías: @Model.LateCancellationRateLast30.ToString("N2")% (@Model.LateCancellationsLast30)</small>
             </div>
         </div>
     </div>

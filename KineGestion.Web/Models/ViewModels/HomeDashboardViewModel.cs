@@ -29,6 +29,8 @@ namespace KineGestion.Web.Models.ViewModels
         public decimal CompletionRateToday { get; set; }
         public decimal CollectionRateLast30Days { get; set; }
         public decimal CancellationRateLast30Days { get; set; }
+        public int LateCancellationsLast30 { get; set; }
+        public decimal LateCancellationRateLast30 { get; set; }
         public List<CancellationReasonCountViewModel> TopCancellationReasons { get; set; } = new();
         public bool IsBillingOperationalAlertActive { get; set; }
         public bool IsBillingOperationalAlertSentToday { get; set; }

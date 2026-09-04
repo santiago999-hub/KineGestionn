@@ -347,6 +347,21 @@ namespace KineGestion.Core.Services
                     () => _repository.CountByCancellationReasonInRangeAsync(fromInclusiveUtc, toExclusiveUtc),
                     TimeSpan.FromSeconds(10));
 
+            private static readonly TimeSpan LateCancellationThreshold = TimeSpan.FromHours(24);
+
+            public CancellationTiming GetCancellationTiming(Session session)
+            {
+                var cancelledAt = session.CancelledAt ?? DateTime.UtcNow;
+                var leadTime = session.FechaHora - cancelledAt;
+                return leadTime < LateCancellationThreshold ? CancellationTiming.Late : CancellationTiming.Early;
+            }
+
+            public async Task<int> CountLateCancellationsInRangeAsync(DateTime fromInclusiveUtc, DateTime toExclusiveUtc)
+                => await QueryCache.GetOrCreateAsync(
+                    $"sessions:count:cancellate:range:{fromInclusiveUtc:yyyyMMddHHmmss}:{toExclusiveUtc:yyyyMMddHHmmss}",
+                    () => _repository.CountLateCancellationsInRangeAsync(fromInclusiveUtc, toExclusiveUtc),
+                    TimeSpan.FromSeconds(10));
+
             public async Task SetPaymentStatusAsync(int sessionId, PaymentStatus paymentStatus)
             {
                 var session = await _repository.GetByIdAsync(sessionId);

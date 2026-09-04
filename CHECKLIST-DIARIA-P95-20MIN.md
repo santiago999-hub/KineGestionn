@@ -99,3 +99,12 @@ Completar esta tabla por día:
 | 2026-09-03 | / | 176.82 | 73.32 | 81.14 | 0 | Verde | Post-opt logging (3/3, warmup4); warm p95 ~81ms sólidamente verde; cold 177ms primer hit. |
 | 2026-09-03 | /Sessions | 61.88 | 56.61 | 97.18 | 0 | Amarillo | Post-opt logging (3/3, warmup4); outlier transitorio en corrida conjunta con Home. |
 | 2026-09-03 | /Sessions | 66.68 | 53.52 | 74.21 | 0 | Verde | Post-opt logging (aislado, warmup4); warm p95 ~74ms confirmado en verde sin interferencia. |
+
+| 2026-09-04 | / | 83.48 | 80.84 | 217.10 | 0 | Rojo | Corrida1 (20 iter); outlier transitorio de warm p95; p50 estable. |
+| 2026-09-04 | /Sessions | 74.10 | 74.93 | 256.52 | 0 | Rojo | Corrida1 (20 iter); outlier transitorio aislado; p50 estable. |
+| 2026-09-04 | / | 97.87 | 89.29 | 173.45 | 0 | Rojo | Corrida2 (30-60 iter); p95 arrastrado por 1-2 outliers (~288ms); p50 sólido ~89ms; 0 errores. |
+| 2026-09-04 | /Sessions | 69.35 | 68.33 | 95.98 | 0 | Amarillo | Corrida2 (30 iter); outlier transitorio max 248ms; p50 sólido en baseline. |
+| 2026-09-04 | / | 97.33 | 81.74 | 357.32 | 0 | Rojo | Corrida3 (40 iter, warmup5); único outlier 358ms de 40 arrastra p95; p50 81.74. |
+| 2026-09-04 | /Sessions | 88.46 | 75.79 | 165.25 | 0 | Rojo | Corrida3 (40 iter, warmup5); outlier transitorio 305ms; p50 75.79 sólido. |
+| 2026-09-04 | / | 72.38 | 72.09 | 102.45 | 0 | Verde | Corrida4 (40 iter, warmup5); p95 dentro de baseline+15%, sin outliers; p50 72.09. |
+| 2026-09-04 | /ops/metrics | 36.57 | 35.77 | 49.01 | 0 | Verde | Control SQL no es cuello: p95 49ms con consultas reales a base de datos. |

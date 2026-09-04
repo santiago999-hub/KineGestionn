@@ -56,6 +56,8 @@ namespace KineGestion.Core.Interfaces
         Task<IReadOnlyList<AvailableSlotDto>> SuggestAvailableSlotsAsync(int professionalId, DateTime fromUtc, int dayCount = 5, int count = 3);
         Task<int> CountByCancellationReasonAsync(CancellationReason reason);
         Task<IDictionary<CancellationReason, int>> CountByCancellationReasonInRangeAsync(DateTime fromInclusiveUtc, DateTime toExclusiveUtc);
+        CancellationTiming GetCancellationTiming(Session session);
+        Task<int> CountLateCancellationsInRangeAsync(DateTime fromInclusiveUtc, DateTime toExclusiveUtc);
         Task SetPaymentStatusAsync(int sessionId, PaymentStatus paymentStatus);
         Task<(int UpdatedCount, int SkippedCount)> MarkCompletedPendingAsPaidBatchAsync(IReadOnlyCollection<int> sessionIds);
         Task<(int UpdatedCount, int SkippedCount)> MarkPaidAsPendingBatchAsync(IReadOnlyCollection<int> sessionIds);

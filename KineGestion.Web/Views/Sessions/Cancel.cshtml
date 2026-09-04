@@ -25,6 +25,21 @@
         </div>
     </div>
 
+    @if (Model.CancellationTiming == CancellationTiming.Late)
+    {
+        <div class="alert alert-warning py-2 small mb-3" style="border-left:4px solid #f59e0b">
+            <i class="bi bi-exclamation-triangle-fill me-1"></i>
+            <strong>@Model.CancellationPolicyMessage</strong>
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-info py-2 small mb-3" style="border-left:4px solid #0ea5e9">
+            <i class="bi bi-info-circle me-1"></i>
+            <strong>@Model.CancellationPolicyMessage</strong>
+        </div>
+    }
+
     <form asp-action="Cancel" asp-route-id="@Model.Id" method="post" class="kg-form-body" id="cancel-form">
         @Html.AntiForgeryToken()
 

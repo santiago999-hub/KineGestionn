@@ -491,6 +491,23 @@ namespace KineGestion.Data.Repositories
             return groups.ToDictionary(g => g.Reason, g => g.Count);
         }
 
+        public async Task<int> CountLateCancellationsInRangeAsync(DateTime fromInclusiveUtc, DateTime toExclusiveUtc)
+        {
+            var profFilter = GetProfessionalIdFilter();
+            var query = _context.Sessions.AsNoTracking();
+            if (profFilter.HasValue)
+                query = query.Where(s => s.ProfessionalId == profFilter.Value);
+            query = query.Where(s => s.Status == SessionStatus.Canceled
+                && s.CancelledAt.HasValue
+                && s.FechaHora >= fromInclusiveUtc
+                && s.FechaHora < toExclusiveUtc);
+
+            // Clasificación tardía = menos de 24h de antelación (FechaHora - CancelledAt < 24h).
+            // Forma traducible por EF: CancelledAt > FechaHora - 24h. Se resuelve en SQL sin materializar.
+            return await query
+                .CountAsync(s => s.CancelledAt!.Value > s.FechaHora.AddHours(-24));
+        }
+
         public async Task<int> CountByStatusAndPaymentStatusAsync(SessionStatus status, PaymentStatus paymentStatus)
         {
             var profFilter = GetProfessionalIdFilter();

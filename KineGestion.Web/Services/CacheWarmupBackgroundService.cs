@@ -108,6 +108,7 @@ namespace KineGestion.Web.Services
                     (() => SafeRunAsync(() => sessionService.CountByStatusInRangeAsync(SessionStatus.Completed, rangeFrom, rangeTo), "sessions:count:status:completed:last30"), "sessions:count:status:completed:last30"),
                     (() => SafeRunAsync(() => sessionService.CountByStatusAndPaymentStatusInRangeAsync(SessionStatus.Completed, PaymentStatus.Paid, rangeFrom, rangeTo), "sessions:count:status:completed:payment:paid:last30"), "sessions:count:status:completed:payment:paid:last30"),
                     (() => SafeRunAsync(() => sessionService.CountByStatusInRangeAsync(SessionStatus.Canceled, rangeFrom, rangeTo), "sessions:count:status:canceled:last30"), "sessions:count:status:canceled:last30"),
+                    (() => SafeRunAsync(() => sessionService.CountLateCancellationsInRangeAsync(rangeFrom, rangeTo), "sessions:count:cancellate:last30"), "sessions:count:cancellate:last30"),
                     (() => SafeRunAsync(() => sessionService.GetPagedListForAdminAsync(1, 10, null, null, null, null, null, "fecha", "desc"), "sessions:admin:paged:first"), "sessions:admin:paged:first")
                 };
 

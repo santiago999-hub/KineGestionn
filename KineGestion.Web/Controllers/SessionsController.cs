@@ -478,6 +478,9 @@ namespace KineGestion.Web.Controllers
                 })
                 .ToList();
 
+            viewModel.CancellationTiming = _sessionService.GetCancellationTiming(session);
+            viewModel.CancellationPolicyMessage = CancellationPolicyMessage(viewModel.CancellationTiming);
+
             return View(viewModel);
         }
 
@@ -519,6 +522,12 @@ namespace KineGestion.Web.Controllers
                 CancellationReason.Otro => "Otro",
                 _ => reason.ToString()
             };
+
+        public static string CancellationPolicyMessage(CancellationTiming timing)
+            => timing == CancellationTiming.Late
+                ? "Cancelación tardía (menos de 24h antes del turno): se aplica la política de aviso. "
+                  + "Esta cancelación deja poco margen para reasignar el turno a otro paciente."
+                : "Cancelación temprana (24h o más antes del turno): tiene margen para reasignar el turno sin afectar la agenda.";
 
         private async Task LoadSelectListsAsync(SessionViewModel viewModel)
         {

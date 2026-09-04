@@ -69,6 +69,17 @@ namespace KineGestion.Web.Models.ViewModels
 
         public DateTime? CancelledAt { get; set; }
 
+        /// <summary>
+        /// Clasificación de la cancelación según la antelación respecto al turno.
+        /// Tardía = menos de 24h antes del horario; Temprana = 24h o más.
+        /// </summary>
+        public CancellationTiming CancellationTiming { get; set; } = CancellationTiming.Early;
+
+        /// <summary>
+        /// Mensaje estándar de política según la clasificación de cancelación.
+        /// </summary>
+        public string CancellationPolicyMessage { get; set; } = string.Empty;
+
         public string? PacienteNombre { get; set; }
         public string? ProfesionalNombre { get; set; }
         public string? TratamientoDescripcion { get; set; }

@@ -177,5 +177,50 @@ Siguientes pasos al retomar:
 2. Filtro por profesional seria opcional de mejora (hoy muestra todos agrupados).
 3. Despues de P2-1: P2-2 politica de cancelacion tardia o P2-3 experimentacion de mensajes.
 
+## Registro de avance P2-2: Politica de cancelacion tardia (2026-09-03)
+Estado: IMPLEMENTADO y verificado en navegador. Pendiente de commit.
+
+Que se hizo:
+- Clasificacion CancellationTiming (Early/Late) en SessionService.GetCancellationTiming; tardia = menos de 24h de antelacion.
+- Banner en /Sessions/Cancel (warning si tardia, info si temprana) con mensaje estandar en SessionsController.CancellationPolicyMessage.
+- Metricas de tardias (conteo y % en ultimos 30d) en Home dashboard.
+- CountLateCancellationsInRangeAsync en repositorio con clasificacion en SQL (forma traducible por EF: CancelledAt > FechaHora - 24h), sin materializar en memoria.
+- Paso extra de warmup para el conteo de tardias en CacheWarmupBackgroundService.
+- Tests: unit (GetCancellationTiming) + Web (mensaje) + integracion (count). Suites verdes: Core 102, Web 137.
+
+Siguientes pasos al retomar:
+1. Commit del avance P2-2 + mejoras de "Quienes Somos" (5 modulos, tarjetas verticales) una vez cerrada la revision p95.
+2. Limpiar sesiones de prueba creadas para verificar banners (ids 1 y 2 en KineGestionDB).
+3. P2-3 experimentacion A/B de mensajes de recordatorio/cobranza.
+
+## Registro revision P95 (2026-09-04)
+Estado: REVISADO, sin cambios de codigo de rendimiento pendientes; outliers transitorios conocidos. Registro completo en CHECKLIST-DIARIA-P95-20MIN.md.
+
+- /ops/metrics p50 35.77ms / p95 49.01ms: el SQL no es el cuello (control con consultas reales).
+- / p50 estable 72-89ms (baseline 89.08): corrida 4 (40 iter, warmup5) con p95 102ms verde; corridas 1-3 con 1-2 outliers aislados (~280-358ms) que arrastran p95.
+- /Sessions p50 estable 68-76ms (baseline 71.52): outliers transitorios aislados igual que /.
+- 0 errores en todas las corridas. Patron identico al documentado en 06-01 y 09-03: outliers de primer hit no sostenidos.
+- Accion: mantener benchmark diario segun checklist; no se abre incidente (sin errores y sin rojo sostenido en 2 mediciones consecutivas para el mismo endpoint).
+
 Nota infraestructura:
 - El 2026-09-03 tambien se commiteo (af7d43b) la baja de logs de requests normales a Debug para reducir overhead de logging en hot path (REQUEST-METRICS + pipeline profile).
+
+## Registro de avance P2-2: Politica de cancelacion tardia (2026-09-04)
+Estado: IMPLEMENTADO y VERIFICADO en app. Suites verdes. Falta solo commit.
+
+Regla interna definida:
+- Cancelacion TARDIA = cancelada con menos de 24h de antelacion respecto al turno (FechaHora - CancelledAt < 24h).
+- Cancelacion TEMPRANA = 24h o mas de antelacion.
+
+Que se hizo:
+- Enum `CancellationTiming { Early, Late }` en Core/Enums.cs.
+- `GetCancellationTiming(Session)` en ISessionService/SessionService: clasifica segun antelacion usando CancelledAt (por defecto Early si no es cancelada o falta timestamp).
+- `CountLateCancellationsInRangeAsync` (servicio + repositorio): consulta SQL en una sola pasada que cuenta canceladas con <24h de antelacion en un rango.
+- Vista Cancel: banner de politica con mensaje estandar segun clasificacion (aviso si tardia, informativo si temprana), sugiere ofrecer reprogramacion en el acto.
+- Home/Index del dashboard: nueva metrica "tardias: X% (n)" junto a la tasa de cancelacion de 30 dias.
+- Tests: 3 unit (GetCancellationTiming) + 2 Web (mensaje estandar) + 1 integracion (CountLateCancellations). Suites verdes: Core 101, Web 137.
+- Correccion de diseno detectada en verificacion: GetCancellationTiming para sesion sin cancelar usaba el timestamp registrado; se ajusto a "cancelar ahora" (UtcNow) cuando CancelledAt es null, asi el banner refleja la antelacion real de la accion. Tests actualizados a 4 unit. Suites finales verdes: Core 102, Web 137.
+
+Siguientes pasos al retomar:
+1. Commit del avance P2-2 (cambios sin commitear).
+2. Luego falta P2-3 experimentacion de mensajes (A/B de plantillas de recordatorio y cobranza).

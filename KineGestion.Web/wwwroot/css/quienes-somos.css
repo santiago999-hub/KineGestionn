@@ -217,12 +217,12 @@
     gap: 12px;
 }
 .qs-action-card {
-    display: grid;
-    grid-template-columns: 42px 1fr;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
     gap: 12px;
-    align-items: center;
     text-decoration: none;
-    padding: 16px 18px;
+    padding: 20px 18px;
     border-radius: 14px;
     border: 1px solid var(--qs-gray-300);
     background: #FFFFFF;
@@ -247,6 +247,7 @@
     color: #FFFFFF;
     background: linear-gradient(135deg, var(--qs-blue-mid), var(--qs-blue-dark));
     box-shadow: 0 8px 18px rgba(31,78,121,.15);
+    flex-shrink: 0;
 }
 .qs-action-card strong {
     display: block;
@@ -260,6 +261,8 @@
     font-size: .8rem;
     color: var(--qs-text-muted);
     line-height: 1.45;
+    /* Garantiza que la descripción ocupe el resto y las tarjetas queden parejas */
+    flex: 1;
 }
 
 /* ── Contenedor genérico ────────────────────────────── */
@@ -385,12 +388,13 @@
 .qs-project-section { background: linear-gradient(180deg, var(--qs-gray-100) 0%, var(--qs-gray-200) 100%); }
 .qs-project-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 22px;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 18px;
     margin-top: 40px;
 }
-@media (max-width: 900px) { .qs-project-grid { grid-template-columns: 1fr 1fr; } }
-@media (max-width: 560px) { .qs-project-grid { grid-template-columns: 1fr; } }
+@media (max-width: 900px) { .qs-project-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 700px) { .qs-project-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 460px) { .qs-project-grid { grid-template-columns: 1fr; } }
 .qs-project-card {
     background: var(--qs-white);
     border-radius: var(--qs-radius);

@@ -83,12 +83,14 @@ public class HomeController : Controller
         var billingAlertSnapshot = await MeasureStepAsync("BillingAlert.Snapshot", SafeGetBillingAlertSnapshotAsync);
         var billingAlertSentToday = await MeasureStepAsync("BillingAlert.SentTodayCount", () => SafeCountAsync(() => CountOperationalAlertsTodayAsync(), nameof(CountOperationalAlertsTodayAsync)));
         var cancellationReasonsLast30 = await MeasureStepAsync("Sessions.CancelReasonsLast30", SafeGetCancellationReasonsAsync);
+        var lateCancellationsLast30 = await MeasureStepAsync("Sessions.LateCancellationsLast30", () => SafeCountAsync(() => _sessionService.CountLateCancellationsInRangeAsync(rangeFrom, rangeTo), nameof(_sessionService.CountLateCancellationsInRangeAsync)));
         var recentBillingAlerts = await MeasureStepAsync("BillingAlert.RecentHistory", SafeGetRecentOperationalAlertsAsync);
         var lastBillingAlert = recentBillingAlerts.FirstOrDefault();
 
         var completionRateToday = countToday == 0 ? 0m : Math.Round((decimal)countCompletedToday * 100m / countToday, 2);
         var collectionRateLast30 = completedLast30 == 0 ? 0m : Math.Round((decimal)paidCompletedLast30 * 100m / completedLast30, 2);
         var cancellationRateLast30 = totalLast30 == 0 ? 0m : Math.Round((decimal)canceledLast30 * 100m / totalLast30, 2);
+        var lateCancellationRateLast30 = canceledLast30 == 0 ? 0m : Math.Round((decimal)lateCancellationsLast30 * 100m / canceledLast30, 2);
 
         var model = new HomeDashboardViewModel
         {
@@ -104,6 +106,8 @@ public class HomeController : Controller
             CompletionRateToday = completionRateToday,
             CollectionRateLast30Days = collectionRateLast30,
             CancellationRateLast30Days = cancellationRateLast30,
+            LateCancellationsLast30 = lateCancellationsLast30,
+            LateCancellationRateLast30 = lateCancellationRateLast30,
             IsBillingOperationalAlertActive = billingAlertSnapshot?.HasConsecutiveLowWeeks ?? false,
             IsBillingOperationalAlertSentToday = billingAlertSentToday > 0,
             LastBillingOperationalAlertAtUtc = lastBillingAlert?.ChangedAtUtc,

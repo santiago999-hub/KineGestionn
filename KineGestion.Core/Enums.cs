@@ -43,4 +43,10 @@ namespace KineGestion.Core
         ConsultorioCierre = 7,
         Otro = 8
     }
+
+    public enum CancellationTiming
+    {
+        Early = 0,
+        Late = 1
+    }
 }
