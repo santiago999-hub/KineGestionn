@@ -49,6 +49,7 @@ namespace KineGestion.Core.Interfaces
         Task<IReadOnlyList<KpiSegmentDto>> GetKpiSegmentsByTimeSlotAsync(DateTime fromInclusiveUtc, DateTime toExclusiveUtc);
         Task<IEnumerable<SessionReminderCandidateDto>> GetReminderCandidatesAsync(DateTime fromInclusiveUtc, DateTime toExclusiveUtc);
         Task<IEnumerable<BillingFollowUpCandidateDto>> GetBillingFollowUpCandidatesAsync(DateTime asOfUtc, int minAgeDays, int maxAgeDays);
+        Task<ReminderFunnelDto> BuildReminderFunnelAsync(IReadOnlyCollection<int> sentSessionIds, DateTime fromSentUtc, DateTime toSentUtc);
         Task ConfirmByReminderAsync(int sessionId);
         Task CancelByReminderAsync(int sessionId);
         Task CancelAsync(int sessionId, CancellationReason reason, string? observation);

@@ -768,5 +768,104 @@ namespace KineGestion.Tests
                 await cleanupContext.Database.EnsureDeletedAsync();
             }
         }
+
+        [Fact]
+        public async Task GetSessionFunnelOutcomesAsync_ShouldClassifyConfirmedAndCanceled_WithinSentRange()
+        {
+            var databaseName = $"KineGestion_Integration_{Guid.NewGuid():N}";
+            var connectionString = $"Server=localhost\\SQLEXPRESS;Database={databaseName};Trusted_Connection=True;TrustServerCertificate=True";
+            var options = new DbContextOptionsBuilder<AppDbContext>()
+                .UseSqlServer(connectionString)
+                .Options;
+
+            var fromSent = new DateTime(2026, 5, 1);
+            var toSent = new DateTime(2026, 6, 1);
+
+            await using (var setupContext = new AppDbContext(options))
+            {
+                await setupContext.Database.EnsureDeletedAsync();
+                await setupContext.Database.EnsureCreatedAsync();
+
+                var patient = new Patient
+                {
+                    Nombre = "Ana",
+                    Apellido = "Garcia",
+                    DNI = "11222333",
+                    FechaNacimiento = new DateTime(1990, 6, 15)
+                };
+
+                var professional = new Professional
+                {
+                    Nombre = "Luis",
+                    Apellido = "Perez",
+                    Matricula = "MAT-300",
+                    Especialidad = "Kinesiologia"
+                };
+
+                setupContext.Patients.Add(patient);
+                setupContext.Professionals.Add(professional);
+                await setupContext.SaveChangesAsync();
+
+                var treatment = new Treatment
+                {
+                    PatientId = patient.Id,
+                    Descripcion = "Cervicalgia",
+                    CantidadSesionesTotales = 10,
+                    FechaInicio = fromSent
+                };
+                setupContext.Treatments.Add(treatment);
+                await setupContext.SaveChangesAsync();
+
+                int counter = 1;
+                void AddSession(DateTime fechaHora, SessionStatus status, string? internalNotes, CancellationReason? reason = null, DateTime? cancelledAt = null)
+                {
+                    setupContext.Sessions.Add(new Session
+                    {
+                        FechaHora = fechaHora,
+                        PatientId = patient.Id,
+                        ProfessionalId = professional.Id,
+                        TreatmentId = treatment.Id,
+                        NroSesionEnTratamiento = counter++,
+                        Status = status,
+                        InternalNotes = internalNotes,
+                        CancellationReason = reason,
+                        CancelledAt = cancelledAt
+                    });
+                }
+
+                // Enviada + confirmada + asistida
+                AddSession(new DateTime(2026, 5, 10, 9, 0, 0), SessionStatus.Completed, $"[2026-05-09] CONFIRMADA_PACIENTE");
+                // Enviada + confirmada, aún pendiente
+                AddSession(new DateTime(2026, 5, 12, 9, 0, 0), SessionStatus.Pending, "[2026-05-11] CONFIRMADA_PACIENTE");
+                // Enviada + cancelada vía paciente
+                AddSession(new DateTime(2026, 5, 14, 9, 0, 0), SessionStatus.Canceled, "[2026-05-13] CANCELADA_PACIENTE",
+                    reason: CancellationReason.Olvido, cancelledAt: new DateTime(2026, 5, 13, 10, 0, 0));
+                // Enviada sin responder, en rango
+                AddSession(new DateTime(2026, 5, 16, 9, 0, 0), SessionStatus.Completed, null);
+                // Fuera de rango de envío (sesión en junio) - no debería contarse
+                AddSession(new DateTime(2026, 6, 5, 9, 0, 0), SessionStatus.Completed, "[2026-06-04] CONFIRMADA_PACIENTE");
+
+                await setupContext.SaveChangesAsync();
+            }
+
+            await using (var testContext = new AppDbContext(options))
+            {
+                var repository = new SessionRepository(testContext);
+                var allIds = await testContext.Sessions.Select(s => s.Id).ToListAsync();
+
+                var outcomes = await repository.GetSessionFunnelOutcomesAsync(allIds, fromSent, toSent);
+
+                Assert.Equal(4, outcomes.Count);
+                Assert.Equal(2, outcomes.Count(o => o.ConfirmedByPatient));
+                Assert.Equal(1, outcomes.Count(o => o.CanceledByPatient));
+                Assert.Equal(2, outcomes.Count(o => o.Status == SessionStatus.Completed));
+                Assert.DoesNotContain(outcomes, o => o.SessionId == 5);
+            }
+
+            await using (var cleanupContext = new AppDbContext(options))
+            {
+                await cleanupContext.Database.EnsureDeletedAsync();
+            }
+        }
     }
 }

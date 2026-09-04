@@ -194,6 +194,21 @@ namespace KineGestion.Core.Services
             public async Task<IEnumerable<BillingFollowUpCandidateDto>> GetBillingFollowUpCandidatesAsync(DateTime asOfUtc, int minAgeDays, int maxAgeDays)
                 => await _repository.GetBillingFollowUpCandidatesAsync(asOfUtc, minAgeDays, maxAgeDays);
 
+            public async Task<ReminderFunnelDto> BuildReminderFunnelAsync(IReadOnlyCollection<int> sentSessionIds, DateTime fromSentUtc, DateTime toSentUtc)
+            {
+                var outcomes = await _repository.GetSessionFunnelOutcomesAsync(sentSessionIds, fromSentUtc, toSentUtc);
+                var sent = outcomes.Count;
+                var confirmed = outcomes.Count(o => o.ConfirmedByPatient);
+                var attended = outcomes.Count(o => o.Status == SessionStatus.Completed);
+                var canceled = outcomes.Count(o => o.Status == SessionStatus.Canceled
+                    || o.CanceledByPatient);
+
+                return new ReminderFunnelDto(sent, confirmed, attended)
+                {
+                    Canceled = canceled
+                };
+            }
+
             public async Task ConfirmByReminderAsync(int sessionId)
             {
                 var session = await _repository.GetByIdAsync(sessionId);

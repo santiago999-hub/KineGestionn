@@ -599,5 +599,53 @@ namespace KineGestion.Tests
 
             Assert.Equal(Core.CancellationTiming.Late, _service.GetCancellationTiming(session));
         }
+
+        [Fact]
+        public async Task BuildReminderFunnelAsync_ShouldCountConfirmations_ConfirmedAndAttendance()
+        {
+            var from = new DateTime(2026, 8, 1);
+            var to = new DateTime(2026, 9, 1);
+            var outcomes = new[]
+            {
+                new KineGestion.Core.DTOs.SessionFunnelOutcomeDto(1, Core.SessionStatus.Completed, true, false, null),
+                new KineGestion.Core.DTOs.SessionFunnelOutcomeDto(2, Core.SessionStatus.Completed, true, false, null),
+                new KineGestion.Core.DTOs.SessionFunnelOutcomeDto(3, Core.SessionStatus.Pending, true, false, null),
+                new KineGestion.Core.DTOs.SessionFunnelOutcomeDto(4, Core.SessionStatus.Canceled, false, true, DateTime.UtcNow),
+                new KineGestion.Core.DTOs.SessionFunnelOutcomeDto(5, Core.SessionStatus.Completed, false, false, null)
+            };
+
+            _sessionRepositoryMock
+                .Setup(r => r.GetSessionFunnelOutcomesAsync(It.IsAny<IReadOnlyCollection<int>>(), from, to))
+                .ReturnsAsync(outcomes);
+
+            var funnel = await _service.BuildReminderFunnelAsync(new[] { 1, 2, 3, 4, 5 }, from, to);
+
+            Assert.Equal(5, funnel.Sent);
+            Assert.Equal(3, funnel.Confirmed);
+            Assert.Equal(3, funnel.Attended);
+            Assert.Equal(1, funnel.Canceled);
+            Assert.Equal(60m, funnel.ConfirmationRate);
+            Assert.Equal(60m, funnel.AttendanceRate);
+            Assert.Equal(20m, funnel.CancellationRate);
+        }
+
+        [Fact]
+        public async Task BuildReminderFunnelAsync_ShouldReturnZeros_WhenNoSentinRange()
+        {
+            var from = new DateTime(2026, 8, 1);
+            var to = new DateTime(2026, 9, 1);
+
+            _sessionRepositoryMock
+                .Setup(r => r.GetSessionFunnelOutcomesAsync(It.IsAny<IReadOnlyCollection<int>>(), from, to))
+                .ReturnsAsync(Array.Empty<KineGestion.Core.DTOs.SessionFunnelOutcomeDto>());
+
+            var funnel = await _service.BuildReminderFunnelAsync(Array.Empty<int>(), from, to);
+
+            Assert.Equal(0, funnel.Sent);
+            Assert.Equal(0, funnel.Confirmed);
+            Assert.Equal(0, funnel.Attended);
+            Assert.Equal(0m, funnel.ConfirmationRate);
+            Assert.Equal(0m, funnel.AttendanceRate);
+        }
     }
 }

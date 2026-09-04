@@ -1,0 +1,90 @@
+@model KineGestion.Web.Models.ViewModels.ReminderFunnelDashboardViewModel
+
+@{
+    ViewData["Title"] = "Embudo de recordatorios";
+    var dateFrom = Model.DateFrom.ToString("yyyy-MM-dd");
+    var dateTo = Model.DateToExclusive.AddDays(-1).ToString("yyyy-MM-dd");
+    var funnel = Model.Funnel;
+}
+
+<div class="kg-page-header">
+    <div>
+        <h2>Embudo de recordatorios</h2>
+        <p class="text-muted mb-0">Enviados → confirmados → asistidos. Baseline para experimentar variantes de mensajes.</p>
+    </div>
+</div>
+
+<div class="kg-card mb-4">
+    <div class="kg-card-body">
+        <form asp-action="Index" method="get" class="row g-2 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label">Desde (fecha de envío)</label>
+                <input type="date" name="dateFrom" class="form-control" value="@dateFrom" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Hasta</label>
+                <input type="date" name="dateTo" class="form-control" value="@dateTo" />
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">Aplicar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-lg-3">
+        <div class="kg-stat-card">
+            <div class="kg-stat-label">Enviados</div>
+            <div class="kg-stat-value">@funnel.Sent</div>
+            <small class="text-muted">Sesiones con recordatorio enviado</small>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="kg-stat-card">
+            <div class="kg-stat-label">Confirmados</div>
+            <div class="kg-stat-value">@funnel.Confirmed</div>
+            <small class="text-muted">Confirmación vía link · @funnel.ConfirmationRate.ToString("N2")%</small>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="kg-stat-card">
+            <div class="kg-stat-label">Asistidos</div>
+            <div class="kg-stat-value">@funnel.Attended</div>
+            <small class="text-muted">Sesiones completadas · @funnel.AttendanceRate.ToString("N2")%</small>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="kg-stat-card">
+            <div class="kg-stat-label">Cancelados vía recordatorio</div>
+            <div class="kg-stat-value">@funnel.Canceled</div>
+            <small class="text-muted">@funnel.CancellationRate.ToString("N2")% sobre enviados</small>
+        </div>
+    </div>
+</div>
+
+<div class="kg-card">
+    <div class="kg-card-body">
+        <h6 class="mb-3"><i class="bi bi-funnel-fill me-2"></i>Embudo @dateFrom → @dateTo</h6>
+        @if (funnel.Sent == 0)
+        {
+            <div class="text-muted">Sin envíos en el periodo seleccionado. Los datos empiezan a acumularse desde hoy: este es el instrumento de baseline para el A/B de P2-3.</div>
+        }
+        else
+        {
+            var confirmW = funnel.Sent > 0 ? Math.Round(100m * funnel.Confirmed / funnel.Sent) : 0m;
+            var attendW = funnel.Sent > 0 ? Math.Round(100m * funnel.Attended / funnel.Sent) : 0m;
+            var cancelW = funnel.Sent > 0 ? Math.Round(100m * funnel.Canceled / funnel.Sent) : 0m;
+            var pendingW = 100m - confirmW - cancelW;
+            if (pendingW < 0m) pendingW = 0m;
+            <div class="mb-2">
+                <div class="progress" style="height: 28px;">
+                    <div class="progress-bar bg-info" role="progressbar" style="width: @confirmW%">Confirmados @confirmW%</div>
+                    <div class="progress-bar bg-danger" role="progressbar" style="width: @cancelW%">Cancelados @cancelW%</div>
+                    <div class="progress-bar bg-secondary" role="progressbar" style="width: @pendingW%">Sin respuesta @pendingW%</div>
+                </div>
+            </div>
+            <small class="text-muted">Asistencia final: @funnel.AttendanceRate.ToString("N2")% de los enviados (@funnel.Attended de @funnel.Sent).</small>
+        }
+    </div>
+</div>

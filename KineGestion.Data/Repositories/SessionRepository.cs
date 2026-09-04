@@ -704,6 +704,44 @@ namespace KineGestion.Data.Repositories
             ));
         }
 
+        /// <summary>
+        /// Embudo de recordatorios: para las sesiones que recibieron al menos un envío,
+        /// devuelve su estado y si tienen nota de confirmación/cancelación del paciente.
+        /// InternalNotes se lee descifrada por EF; la clasificación se hace en memoria
+        /// sobre el volumen acotado de sesiones enviadas (evita Memory Bomb).
+        /// </summary>
+        public async Task<IReadOnlyList<SessionFunnelOutcomeDto>> GetSessionFunnelOutcomesAsync(
+            IReadOnlyCollection<int> sessionIds,
+            DateTime fromSentUtc,
+            DateTime toSentUtc)
+        {
+            var ids = sessionIds.Where(id => id > 0).Distinct().ToList();
+            if (ids.Count == 0)
+                return Array.Empty<SessionFunnelOutcomeDto>();
+
+            var sessions = await _context.Sessions
+                .AsNoTracking()
+                .Where(s => ids.Contains(s.Id)
+                    && s.FechaHora >= fromSentUtc
+                    && s.FechaHora < toSentUtc)
+                .Select(s => new
+                {
+                    s.Id,
+                    s.Status,
+                    s.CancelledAt,
+                    s.InternalNotes
+                })
+                .ToListAsync();
+
+            return sessions.Select(s => new SessionFunnelOutcomeDto(
+                s.Id,
+                s.Status,
+                s.InternalNotes != null && s.InternalNotes.Contains("CONFIRMADA_PACIENTE", StringComparison.OrdinalIgnoreCase),
+                s.InternalNotes != null && s.InternalNotes.Contains("CANCELADA_PACIENTE", StringComparison.OrdinalIgnoreCase),
+                s.CancelledAt))
+                .ToList();
+        }
+
         public async Task<(int UpdatedCount, int SkippedCount)> MarkCompletedPendingAsPaidBatchAsync(IReadOnlyCollection<int> sessionIds, DateTime actionAtUtc)
         {
             var normalizedIds = sessionIds

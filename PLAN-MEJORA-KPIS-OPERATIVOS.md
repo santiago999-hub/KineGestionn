@@ -178,7 +178,7 @@ Siguientes pasos al retomar:
 3. Despues de P2-1: P2-2 politica de cancelacion tardia o P2-3 experimentacion de mensajes.
 
 ## Registro de avance P2-2: Politica de cancelacion tardia (2026-09-03)
-Estado: IMPLEMENTADO y verificado en navegador. Pendiente de commit.
+Estado: IMPLEMENTADO y verificado en navegador. Commit realizado el 2026-09-04 (db32079).
 
 Que se hizo:
 - Clasificacion CancellationTiming (Early/Late) en SessionService.GetCancellationTiming; tardia = menos de 24h de antelacion.
@@ -187,11 +187,6 @@ Que se hizo:
 - CountLateCancellationsInRangeAsync en repositorio con clasificacion en SQL (forma traducible por EF: CancelledAt > FechaHora - 24h), sin materializar en memoria.
 - Paso extra de warmup para el conteo de tardias en CacheWarmupBackgroundService.
 - Tests: unit (GetCancellationTiming) + Web (mensaje) + integracion (count). Suites verdes: Core 102, Web 137.
-
-Siguientes pasos al retomar:
-1. Commit del avance P2-2 + mejoras de "Quienes Somos" (5 modulos, tarjetas verticales) una vez cerrada la revision p95.
-2. Limpiar sesiones de prueba creadas para verificar banners (ids 1 y 2 en KineGestionDB).
-3. P2-3 experimentacion A/B de mensajes de recordatorio/cobranza.
 
 ## Registro revision P95 (2026-09-04)
 Estado: REVISADO, sin cambios de codigo de rendimiento pendientes; outliers transitorios conocidos. Registro completo en CHECKLIST-DIARIA-P95-20MIN.md.
@@ -224,3 +219,28 @@ Que se hizo:
 Siguientes pasos al retomar:
 1. Commit del avance P2-2 (cambios sin commitear).
 2. Luego falta P2-3 experimentacion de mensajes (A/B de plantillas de recordatorio y cobranza).
+
+Actualizacion 2026-09-04:
+- Commit realizado (db32079) incluyendo P2-2 + mejoras de "Quienes Somos" + fix SQL CountLateCancellations + registro P95.
+- Sesiones de prueba creadas para verificar banners (ids 1 y 2) ELIMINADAS de KineGestionDB. DB de sesiones queda en 0.
+- Push a origin/main (15faa91..db32079).
+- Baseline p95 post-limpieza registrado en CHECKLIST (corrida 2: / p95 98.68 amarillo, /Sessions p95 55.7 verde, 0 errores).
+
+## Registro de avance P2-3 paso 1: Embudo de recordatorios (2026-09-04)
+Estado: IMPLEMENTADO y verificado en navegador (/ReminderFunnel). Suites verdes: Core 105, Web 138. Pendiente de commit.
+
+Que se hizo (instrumento de baseline para el A/B; sin tocar plantillas todavia):
+- Reporte /ReminderFunnel (solo Admin) que muestra el embudo de recordatorios por rango de fecha de envio:
+  Enviados (AuditLogs ReminderDispatch con EmailSent/WhatsAppSent y DispatchType=PatientReminder) ->
+  Confirmados (nota CONFIRMADA_PACIENTE) -> Asistidos (Status Completed), mas Cancelados (CANCELADA_PACIENTE o canceladas).
+- DTO ReminderFunnelDto (con rates Confirmation/Attendance/Cancellation) y SessionFunnelOutcomeDto.
+- GetSessionFunnelOutcomesAsync en repositorio: proyeccion SQL limitada a sesiones enviadas (evita Memory Bomb);
+  InternalNotes se lee descifrada por EF y la clasificacion se hace en memoria sobre volumen acotado.
+- BuildReminderFunnelAsync en servicio; ReminderFunnelController orquesta AuditLog+JSON+sesiones.
+- Vista con tarjetas de KPI y barra de embudo; link en la navegacion (seccion Seguridad y Control).
+- Tests: 2 unit (BuildReminderFunnel) + 1 integracion (GetSessionFunnelOutcomes) + 1 Web (controller).
+
+Siguientes pasos al retomar (P2-3 paso 2):
+1. Commit de este avance.
+2. Cuando haya volumen real de recordatorios, usar /ReminderFunnel como baseline de tasa de confirmacion/asistencia.
+3. Solo entonces: variantes de plantilla (email/WhatsApp) con seleccion manual y comparacion contra el baseline.

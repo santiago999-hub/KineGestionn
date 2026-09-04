@@ -108,3 +108,7 @@ Completar esta tabla por día:
 | 2026-09-04 | /Sessions | 88.46 | 75.79 | 165.25 | 0 | Rojo | Corrida3 (40 iter, warmup5); outlier transitorio 305ms; p50 75.79 sólido. |
 | 2026-09-04 | / | 72.38 | 72.09 | 102.45 | 0 | Verde | Corrida4 (40 iter, warmup5); p95 dentro de baseline+15%, sin outliers; p50 72.09. |
 | 2026-09-04 | /ops/metrics | 36.57 | 35.77 | 49.01 | 0 | Verde | Control SQL no es cuello: p95 49ms con consultas reales a base de datos. |
+| 2026-09-04 | / | 113.90 | 85.78 | 192.37 | 0 | Rojo | Baseline post-limpieza DB (0 sesiones) corrida1 (30 iter); outlier transitorio 309ms; p50 en baseline. |
+| 2026-09-04 | /Sessions | 49.50 | 61.46 | 90.48 | 0 | Amarillo | Baseline post-limpieza DB corrida1 (30 iter); outlier transitorio 254ms. |
+| 2026-09-04 | / | 93.87 | 70.05 | 98.68 | 0 | Amarillo | Baseline post-limpieza DB corrida2 (30 iter, warmup5); p50 70 mejor que baseline historico 89; p95 justo en limite +10%. |
+| 2026-09-04 | /Sessions | 50.38 | 47.02 | 55.70 | 0 | Verde | Baseline post-limpieza DB corrida2 (30 iter, warmup5); p95 55.7 solido verde, mejor que baseline 71.5. |

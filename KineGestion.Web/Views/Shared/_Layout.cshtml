@@ -123,6 +123,11 @@
                     <i class="bi bi-bar-chart-steps"></i>
                     <span>Segmentación KPIs</span>
                 </a>
+                <a class="kg-nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "ReminderFunnel" ? "active" : "")"
+                   asp-controller="ReminderFunnel" asp-action="Index">
+                    <i class="bi bi-funnel"></i>
+                    <span>Embudo recordatorios</span>
+                </a>
                 <a class="kg-nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Audit" ? "active" : "")"
                    asp-controller="Audit" asp-action="Index">
                     <i class="bi bi-shield-check"></i>
