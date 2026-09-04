@@ -270,7 +270,7 @@ if (pipelineProfileEnabled)
         }
         else
         {
-            app.Logger.LogInformation(
+            app.Logger.LogDebug(
                 "Pipeline profile: path={Path}, totalAfterRouting={TotalMs}ms, authAndPreEndpoint={AuthMs}ms, endpoint={EndpointMs}ms, action={ActionMs}ms, renderApprox={RenderMs}ms",
                 context.Request.Path,
                 totalAfterRouting.ElapsedMilliseconds,

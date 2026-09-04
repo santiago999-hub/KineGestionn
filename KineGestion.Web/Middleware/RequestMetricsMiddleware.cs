@@ -73,7 +73,7 @@ namespace KineGestion.Web.Middleware
                 return;
             }
 
-            _logger.LogInformation(
+            _logger.LogDebug(
                 "Request {Method} {Path} completed with {StatusCode} in {ElapsedMs} ms",
                 method,
                 path,

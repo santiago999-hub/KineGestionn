@@ -85,3 +85,17 @@ Completar esta tabla por día:
 
 | 2026-06-01 | / | 63.43 | 53.92 | 55.61 | 0 | Verde | Corrida2; variación vs corrida1: 2.41%; server run2 avg~1.62ms max=306ms req=8; server run1 avg~1.75ms |
 | 2026-06-01 | /Sessions | 41.35 | 41.35 | 52.64 | 0 | Verde | Corrida2; variación vs corrida1: -87.63%; posible variabilidad transitoria (>20%); server run2 avg~1.71ms max=136ms req=7; server run1 avg~5.43ms |
+
+| 2026-09-03 | / | 89.51 | 76.70 | 290.12 | 0 | Rojo | Corrida1 (20 iter); outlier inicial en warm p95 de Home, no reproducido en corridas siguientes. |
+| 2026-09-03 | /Sessions | 65.53 | 56.60 | 66.38 | 0 | Verde | Corrida1 (20 iter); estable y dentro de baseline. |
+| 2026-09-03 | / | 78.09 | 74.99 | 116.40 | 0 | Rojo | Corrida2 (20 iter); p95 aún sobre baseline+20%, variabilidad transitoria con pocas muestras. |
+| 2026-09-03 | /Sessions | 356.94 | 56.91 | 88.89 | 0 | Amarillo | Corrida2 (20 iter); cold alto transitorio, warm p95 dentro de zona amarilla. |
+| 2026-09-03 | / | 257.54 | 67.17 | 90.49 | 0 | Verde | Corrida3 (25 iter) referencia estable; warm p95 ~91ms dentro de baseline+10%; cold outlier de primer hit. |
+| 2026-09-03 | /Sessions | 61.97 | 50.19 | 55.79 | 0 | Verde | Corrida3 (25 iter) referencia estable; warm p95 ~56ms, sólidamente en verde. |
+| 2026-09-03 | / | 95.78 | 79.44 | 273.57 | 0 | Rojo | Post-opt logging (1/3); outlier transitorio en warm p95 de Home por cold path sin cache, no sostenido. |
+| 2026-09-03 | /Sessions | 78.59 | 63.62 | 73.53 | 0 | Verde | Post-opt logging (1/3); estable dentro de baseline. |
+| 2026-09-03 | / | 83.37 | 75.86 | 93.79 | 0 | Verde | Post-opt logging (2/3); warm p95 ~94ms dentro de baseline+10%; max outlier de cold path. |
+| 2026-09-03 | /Sessions | 52.22 | 59.86 | 108.14 | 0 | Amarillo | Post-opt logging (2/3); outlier transitorio; max 259ms de primer hit. |
+| 2026-09-03 | / | 176.82 | 73.32 | 81.14 | 0 | Verde | Post-opt logging (3/3, warmup4); warm p95 ~81ms sólidamente verde; cold 177ms primer hit. |
+| 2026-09-03 | /Sessions | 61.88 | 56.61 | 97.18 | 0 | Amarillo | Post-opt logging (3/3, warmup4); outlier transitorio en corrida conjunta con Home. |
+| 2026-09-03 | /Sessions | 66.68 | 53.52 | 74.21 | 0 | Verde | Post-opt logging (aislado, warmup4); warm p95 ~74ms confirmado en verde sin interferencia. |
