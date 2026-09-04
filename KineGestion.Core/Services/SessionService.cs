@@ -176,6 +176,18 @@ namespace KineGestion.Core.Services
                     () => _repository.CountByStatusAndPaymentStatusInRangeAsync(status, paymentStatus, fromInclusiveUtc, toExclusiveUtc),
                     TimeSpan.FromSeconds(10));
 
+            public async Task<IReadOnlyList<KpiSegmentDto>> GetKpiSegmentsByProfessionalAsync(DateTime fromInclusiveUtc, DateTime toExclusiveUtc)
+                => await QueryCache.GetOrCreateAsync(
+                    $"sessions:kpi:prof:{fromInclusiveUtc:yyyyMMddHHmmss}:{toExclusiveUtc:yyyyMMddHHmmss}",
+                    () => _repository.GetKpiSegmentsByProfessionalAsync(fromInclusiveUtc, toExclusiveUtc),
+                    TimeSpan.FromSeconds(10));
+
+            public async Task<IReadOnlyList<KpiSegmentDto>> GetKpiSegmentsByTimeSlotAsync(DateTime fromInclusiveUtc, DateTime toExclusiveUtc)
+                => await QueryCache.GetOrCreateAsync(
+                    $"sessions:kpi:timeslot:{fromInclusiveUtc:yyyyMMddHHmmss}:{toExclusiveUtc:yyyyMMddHHmmss}",
+                    () => _repository.GetKpiSegmentsByTimeSlotAsync(fromInclusiveUtc, toExclusiveUtc),
+                    TimeSpan.FromSeconds(10));
+
             public async Task<IEnumerable<SessionReminderCandidateDto>> GetReminderCandidatesAsync(DateTime fromInclusiveUtc, DateTime toExclusiveUtc)
                 => await _repository.GetReminderCandidatesAsync(fromInclusiveUtc, toExclusiveUtc);
 

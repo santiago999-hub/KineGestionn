@@ -582,6 +582,60 @@ namespace KineGestion.Data.Repositories
                     && s.FechaHora < toExclusiveUtc);
         }
 
+        public async Task<IReadOnlyList<KpiSegmentDto>> GetKpiSegmentsByProfessionalAsync(DateTime fromInclusiveUtc, DateTime toExclusiveUtc)
+        {
+            var profFilter = GetProfessionalIdFilter();
+
+            IQueryable<Session> query = _context.Sessions.AsNoTracking();
+            if (profFilter.HasValue)
+                query = query.Where(s => s.ProfessionalId == profFilter.Value);
+            query = query.Where(s => s.FechaHora >= fromInclusiveUtc && s.FechaHora < toExclusiveUtc);
+
+            var groups = await query
+                .GroupBy(s => s.Professional)
+                .Select(g => new KpiSegmentDto(
+                    g.Key != null ? g.Key.Id.ToString() : "?",
+                    g.Key != null ? (g.Key.Apellido + ", " + g.Key.Nombre) : "Sin profesional",
+                    g.Count(),
+                    g.Count(s => s.Status == SessionStatus.Pending),
+                    g.Count(s => s.Status == SessionStatus.Completed),
+                    g.Count(s => s.Status == SessionStatus.Canceled),
+                    g.Count(s => s.Status == SessionStatus.Completed && s.PaymentStatus == PaymentStatus.Pending),
+                    g.Count(s => s.Status == SessionStatus.Completed && s.PaymentStatus == PaymentStatus.Paid)))
+                .ToListAsync();
+
+            return groups
+                .OrderByDescending(g => g.Canceled + g.CompletedPending)
+                .ToList();
+        }
+
+        public async Task<IReadOnlyList<KpiSegmentDto>> GetKpiSegmentsByTimeSlotAsync(DateTime fromInclusiveUtc, DateTime toExclusiveUtc)
+        {
+            var profFilter = GetProfessionalIdFilter();
+
+            IQueryable<Session> query = _context.Sessions.AsNoTracking();
+            if (profFilter.HasValue)
+                query = query.Where(s => s.ProfessionalId == profFilter.Value);
+            query = query.Where(s => s.FechaHora >= fromInclusiveUtc && s.FechaHora < toExclusiveUtc);
+
+            var groups = await query
+                .GroupBy(s => s.FechaHora.Hour)
+                .Select(g => new KpiSegmentDto(
+                    g.Key.ToString("00"),
+                    g.Key.ToString("00") + ":00",
+                    g.Count(),
+                    g.Count(s => s.Status == SessionStatus.Pending),
+                    g.Count(s => s.Status == SessionStatus.Completed),
+                    g.Count(s => s.Status == SessionStatus.Canceled),
+                    g.Count(s => s.Status == SessionStatus.Completed && s.PaymentStatus == PaymentStatus.Pending),
+                    g.Count(s => s.Status == SessionStatus.Completed && s.PaymentStatus == PaymentStatus.Paid)))
+                .ToListAsync();
+
+            return groups
+                .OrderBy(g => g.SegmentKey)
+                .ToList();
+        }
+
         public async Task<IEnumerable<SessionReminderCandidateDto>> GetReminderCandidatesAsync(DateTime fromInclusiveUtc, DateTime toExclusiveUtc)
             => await _context.Sessions
                 .AsNoTracking()

@@ -471,5 +471,213 @@ namespace KineGestion.Tests
                 await cleanupContext.Database.EnsureDeletedAsync();
             }
         }
+
+        [Fact]
+        public async Task GetKpiSegmentsByProfessionalAsync_ShouldAggregateKpisPerProfessional()
+        {
+            var databaseName = $"KineGestion_Integration_{Guid.NewGuid():N}";
+            var connectionString = $"Server=localhost\\SQLEXPRESS;Database={databaseName};Trusted_Connection=True;TrustServerCertificate=True";
+            var options = new DbContextOptionsBuilder<AppDbContext>()
+                .UseSqlServer(connectionString)
+                .Options;
+
+            var from = new DateTime(2026, 6, 1);
+            var to = new DateTime(2026, 7, 1);
+
+            await using (var setupContext = new AppDbContext(options))
+            {
+                await setupContext.Database.EnsureDeletedAsync();
+                await setupContext.Database.EnsureCreatedAsync();
+
+                var patient = new Patient
+                {
+                    Nombre = "Maria",
+                    Apellido = "Lopez",
+                    DNI = "87654321",
+                    FechaNacimiento = new DateTime(1989, 4, 10)
+                };
+
+                var prof1 = new Professional
+                {
+                    Nombre = "Jose",
+                    Apellido = "Diaz",
+                    Matricula = "MAT-200",
+                    Especialidad = "Kinesiologia"
+                };
+
+                var prof2 = new Professional
+                {
+                    Nombre = "Ana",
+                    Apellido = "Gomez",
+                    Matricula = "MAT-201",
+                    Especialidad = "Kinesiologia"
+                };
+
+                setupContext.Patients.Add(patient);
+                setupContext.Professionals.AddRange(prof1, prof2);
+                await setupContext.SaveChangesAsync();
+
+                var treatment = new Treatment
+                {
+                    PatientId = patient.Id,
+                    Descripcion = "Postoperatorio",
+                    CantidadSesionesTotales = 12,
+                    FechaInicio = from
+                };
+                setupContext.Treatments.Add(treatment);
+                await setupContext.SaveChangesAsync();
+
+                int counter = 1;
+
+                void AddSession(Professional prof, DateTime fechaHora, SessionStatus status, PaymentStatus pay)
+                {
+                    setupContext.Sessions.Add(new Session
+                    {
+                        FechaHora = fechaHora,
+                        PatientId = patient.Id,
+                        ProfessionalId = prof.Id,
+                        TreatmentId = treatment.Id,
+                        NroSesionEnTratamiento = counter++,
+                        Status = status,
+                        PaymentStatus = pay
+                    });
+                }
+
+                // Prof1: 1 completada pagada + 1 completada pendiente + 1 pendiente
+                AddSession(prof1, from.AddDays(1).AddHours(9), SessionStatus.Completed, PaymentStatus.Paid);
+                AddSession(prof1, from.AddDays(2).AddHours(10), SessionStatus.Completed, PaymentStatus.Pending);
+                AddSession(prof1, from.AddDays(3).AddHours(11), SessionStatus.Pending, PaymentStatus.Pending);
+                // Prof2: 1 cancelada + 1 completada pendiente
+                AddSession(prof2, from.AddDays(1).AddHours(15), SessionStatus.Canceled, PaymentStatus.Pending);
+                AddSession(prof2, from.AddDays(2).AddHours(16), SessionStatus.Completed, PaymentStatus.Pending);
+                // Fuera de rango
+                AddSession(prof1, to.AddDays(5).AddHours(9), SessionStatus.Completed, PaymentStatus.Paid);
+
+                await setupContext.SaveChangesAsync();
+            }
+
+            await using (var testContext = new AppDbContext(options))
+            {
+                var repository = new SessionRepository(testContext);
+                var result = (await repository.GetKpiSegmentsByProfessionalAsync(from, to)).ToList();
+
+                Assert.Equal(2, result.Count);
+
+                var prof1Row = result.Single(r => r.SegmentKey == "1");
+                Assert.Equal(3, prof1Row.Total);
+                Assert.Equal(2, prof1Row.Completed);
+                Assert.Equal(0, prof1Row.Canceled);
+                Assert.Equal(1, prof1Row.CompletedPending);
+                Assert.Equal(1, prof1Row.CompletedPaid);
+                Assert.Contains("Diaz", prof1Row.SegmentLabel, StringComparison.OrdinalIgnoreCase);
+
+                var prof2Row = result.Single(r => r.SegmentKey == "2");
+                Assert.Equal(2, prof2Row.Total);
+                Assert.Equal(1, prof2Row.Completed);
+                Assert.Equal(1, prof2Row.Canceled);
+                Assert.Equal(1, prof2Row.CompletedPending);
+            }
+
+            await using (var cleanupContext = new AppDbContext(options))
+            {
+                await cleanupContext.Database.EnsureDeletedAsync();
+            }
+        }
+
+        [Fact]
+        public async Task GetKpiSegmentsByTimeSlotAsync_ShouldAggregateKpisByHour()
+        {
+            var databaseName = $"KineGestion_Integration_{Guid.NewGuid():N}";
+            var connectionString = $"Server=localhost\\SQLEXPRESS;Database={databaseName};Trusted_Connection=True;TrustServerCertificate=True";
+            var options = new DbContextOptionsBuilder<AppDbContext>()
+                .UseSqlServer(connectionString)
+                .Options;
+
+            var from = new DateTime(2026, 6, 1);
+            var to = new DateTime(2026, 7, 1);
+
+            await using (var setupContext = new AppDbContext(options))
+            {
+                await setupContext.Database.EnsureDeletedAsync();
+                await setupContext.Database.EnsureCreatedAsync();
+
+                var patient = new Patient
+                {
+                    Nombre = "Maria",
+                    Apellido = "Lopez",
+                    DNI = "87654321",
+                    FechaNacimiento = new DateTime(1989, 4, 10)
+                };
+
+                var prof = new Professional
+                {
+                    Nombre = "Jose",
+                    Apellido = "Diaz",
+                    Matricula = "MAT-200",
+                    Especialidad = "Kinesiologia"
+                };
+
+                setupContext.Patients.Add(patient);
+                setupContext.Professionals.Add(prof);
+                await setupContext.SaveChangesAsync();
+
+                var treatment = new Treatment
+                {
+                    PatientId = patient.Id,
+                    Descripcion = "Postoperatorio",
+                    CantidadSesionesTotales = 12,
+                    FechaInicio = from
+                };
+                setupContext.Treatments.Add(treatment);
+                await setupContext.SaveChangesAsync();
+
+                int counter = 1;
+                void AddSession(DateTime fechaHora, SessionStatus status, PaymentStatus pay)
+                {
+                    setupContext.Sessions.Add(new Session
+                    {
+                        FechaHora = fechaHora,
+                        PatientId = patient.Id,
+                        ProfessionalId = prof.Id,
+                        TreatmentId = treatment.Id,
+                        NroSesionEnTratamiento = counter++,
+                        Status = status,
+                        PaymentStatus = pay
+                    });
+                }
+
+                // 2 en la hora 9 (1 pagada, 1 pendiente)
+                AddSession(from.AddDays(1).AddHours(9), SessionStatus.Completed, PaymentStatus.Paid);
+                AddSession(from.AddDays(2).AddHours(9), SessionStatus.Completed, PaymentStatus.Pending);
+                // 1 en la hora 15 (cancelada)
+                AddSession(from.AddDays(1).AddHours(15), SessionStatus.Canceled, PaymentStatus.Pending);
+
+                await setupContext.SaveChangesAsync();
+            }
+
+            await using (var testContext = new AppDbContext(options))
+            {
+                var repository = new SessionRepository(testContext);
+                var result = (await repository.GetKpiSegmentsByTimeSlotAsync(from, to)).ToList();
+
+                Assert.Equal(2, result.Count);
+
+                var hour9 = result.Single(r => r.SegmentKey == "09");
+                Assert.Equal(2, hour9.Total);
+                Assert.Equal(2, hour9.Completed);
+                Assert.Equal(1, hour9.CompletedPaid);
+                Assert.Equal(1, hour9.CompletedPending);
+                Assert.Equal("09:00", hour9.SegmentLabel);
+
+                var hour15 = result.Single(r => r.SegmentKey == "15");
+                Assert.Equal(1, hour15.Total);
+                Assert.Equal(1, hour15.Canceled);
+            }
+
+            await using (var cleanupContext = new AppDbContext(options))
+            {
+                await cleanupContext.Database.EnsureDeletedAsync();
+            }
+        }
     }
 }

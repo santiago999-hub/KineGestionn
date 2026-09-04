@@ -1,0 +1,129 @@
+@using KineGestion.Core.DTOs
+@{
+    ViewData["Title"] = "Segmentación de KPIs";
+    var byProfessional = (IReadOnlyList<KpiSegmentDto>)ViewBag.ByProfessional;
+    var byTimeSlot = (IReadOnlyList<KpiSegmentDto>)ViewBag.ByTimeSlot;
+    var dateFrom = ((DateTime)ViewBag.DateFrom).ToString("yyyy-MM-dd");
+    var dateTo = ((DateTime)ViewBag.DateTo).ToString("yyyy-MM-dd");
+}
+
+<div class="kg-page-header">
+    <div>
+        <h2>Segmentación de KPIs</h2>
+        <p class="text-muted mb-0">Dónde se fuga cumplimiento y cobranza: desglose por profesional y franja horaria.</p>
+    </div>
+</div>
+
+<div class="kg-card mb-4">
+    <div class="kg-card-body">
+        <form asp-action="Index" method="get" class="row g-2 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label">Desde</label>
+                <input type="date" name="dateFrom" class="form-control" value="@dateFrom" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Hasta</label>
+                <input type="date" name="dateTo" class="form-control" value="@dateTo" />
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">Aplicar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Por profesional -->
+<div class="kg-card mb-4">
+    <div class="kg-card-body">
+        <h6 class="mb-3"><i class="bi bi-person-workspace me-2"></i>Por profesional</h6>
+        @if (byProfessional.Count == 0)
+        {
+            <div class="text-muted">Sin datos en el periodo seleccionado.</div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>Profesional</th>
+                            <th class="text-center">Agendadas</th>
+                            <th class="text-center">Completadas</th>
+                            <th class="text-center">Canceladas</th>
+                            <th class="text-center">Pend. Cobro</th>
+                            <th class="text-center">Cumplimiento</th>
+                            <th class="text-center">Cobranza</th>
+                            <th class="text-center">Cancelación</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var row in byProfessional)
+                        {
+                            var cumplClass = row.CumplimientoPct >= 80 ? "text-success" : row.CumplimientoPct >= 60 ? "text-warning" : "text-danger";
+                            var cobrClass = row.CobranzaPct >= 80 ? "text-success" : row.CobranzaPct >= 60 ? "text-warning" : "text-danger";
+                            var cancClass = row.CancelacionPct <= 15 ? "text-success" : row.CancelacionPct <= 30 ? "text-warning" : "text-danger";
+                            <tr>
+                                <td>@row.SegmentLabel</td>
+                                <td class="text-center">@row.Total</td>
+                                <td class="text-center">@row.Completed</td>
+                                <td class="text-center">@row.Canceled</td>
+                                <td class="text-center">@row.CompletedPending</td>
+                                <td class="text-center fw-semibold @cumplClass">@row.CumplimientoPct%</td>
+                                <td class="text-center fw-semibold @cobrClass">@row.CobranzaPct%</td>
+                                <td class="text-center fw-semibold @cancClass">@row.CancelacionPct%</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- Por franja horaria -->
+<div class="kg-card mb-4">
+    <div class="kg-card-body">
+        <h6 class="mb-3"><i class="bi bi-clock me-2"></i>Por franja horaria</h6>
+        @if (byTimeSlot.Count == 0)
+        {
+            <div class="text-muted">Sin datos en el periodo seleccionado.</div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>Horario</th>
+                            <th class="text-center">Agendadas</th>
+                            <th class="text-center">Completadas</th>
+                            <th class="text-center">Canceladas</th>
+                            <th class="text-center">Pend. Cobro</th>
+                            <th class="text-center">Cumplimiento</th>
+                            <th class="text-center">Cobranza</th>
+                            <th class="text-center">Cancelación</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var row in byTimeSlot)
+                        {
+                            var cumplClass = row.CumplimientoPct >= 80 ? "text-success" : row.CumplimientoPct >= 60 ? "text-warning" : "text-danger";
+                            var cobrClass = row.CobranzaPct >= 80 ? "text-success" : row.CobranzaPct >= 60 ? "text-warning" : "text-danger";
+                            var cancClass = row.CancelacionPct <= 15 ? "text-success" : row.CancelacionPct <= 30 ? "text-warning" : "text-danger";
+                            <tr>
+                                <td>@row.SegmentLabel hs</td>
+                                <td class="text-center">@row.Total</td>
+                                <td class="text-center">@row.Completed</td>
+                                <td class="text-center">@row.Canceled</td>
+                                <td class="text-center">@row.CompletedPending</td>
+                                <td class="text-center fw-semibold @cumplClass">@row.CumplimientoPct%</td>
+                                <td class="text-center fw-semibold @cobrClass">@row.CobranzaPct%</td>
+                                <td class="text-center fw-semibold @cancClass">@row.CancelacionPct%</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
