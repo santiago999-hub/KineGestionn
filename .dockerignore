@@ -1,0 +1,13 @@
+.git
+.github
+.vs
+**/bin
+**/obj
+**/App_Data
+*.user
+*.log
+*.nettrace
+*.etlx
+*.nupkg
+**/.idea
+**/.vs

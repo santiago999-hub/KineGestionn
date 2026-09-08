@@ -1,0 +1,59 @@
+# Despliegue local/on-premise: SQL Server 2022 + KineGestion.Web.
+#
+# Uso:
+#   docker compose up -d
+#   -> la web queda en http://localhost:8080
+#
+# Variables de entorno opcionales (defaults solo para demo; en producción definirlas):
+#   MSSQL_SA_PASSWORD            contraseña del usuario sa de SQL Server
+#   KINEGESTION_ADMIN_EMAIL      email del admin inicial (seed)
+#   KINEGESTION_ADMIN_PASSWORD   contraseña del admin inicial (seed)
+
+name: kinegestion
+
+services:
+  mssql:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      ACCEPT_EULA: 'Y'
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:-KineGestion_Prod_2026!}
+    ports:
+      - "1433:1433"
+    volumes:
+      - kinegestion-sql:/var/opt/mssql
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -C -Q 'SELECT 1' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      mssql:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__DefaultConnection: Server=mssql;Database=KineGestionDB;User Id=sa;Password=${MSSQL_SA_PASSWORD:-KineGestion_Prod_2026!};TrustServerCertificate=True;MultipleActiveResultSets=True
+      Database__ApplyMigrationsOnStartup: "true"
+      Seed__AdminEmail: ${KINEGESTION_ADMIN_EMAIL:-admin@kinegestion.com}
+      Seed__AdminPassword: ${KINEGESTION_ADMIN_PASSWORD:-KineGestion_Prod_2026!01}
+      Seed__ResetAdminPasswordOnStartup: "false"
+    volumes:
+      - kinegestion-keys:/app/keyring
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health/live"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  kinegestion-sql:
+  kinegestion-keys:

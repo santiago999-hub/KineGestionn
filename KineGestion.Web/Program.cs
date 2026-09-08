@@ -349,6 +349,19 @@ app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
 
+// ─── MIGRACIONES AL ARRANQUE (contenedores) ──────────────────────────────────
+// En un contenedor no existe Update-Database. Cuando Database:ApplyMigrationsOnStartup
+// es true, se aplican las migraciones pendientes antes del seed. Por defecto false:
+// el desarrollo local sigue usando Update-Database y así no se migra por accidente.
+if (builder.Configuration.GetValue<bool>("Database:ApplyMigrationsOnStartup"))
+{
+    app.Logger.LogInformation("Aplicando migraciones de base de datos al arranque...");
+    using var migrateScope = app.Services.CreateScope();
+    var migrateContext = migrateScope.ServiceProvider.GetRequiredService<AppDbContext>();
+    await migrateContext.Database.MigrateAsync();
+    app.Logger.LogInformation("Migraciones de base de datos aplicadas.");
+}
+
 // ─── SEED: roles y usuario admin inicial ─────────────────────────────────────
 using (var scope = app.Services.CreateScope())
 {
