@@ -13,16 +13,28 @@ namespace KineGestion.Core.Services
     public class SessionService : ISessionService
     {
         private readonly ISessionRepository _repository;
+        private readonly ISessionMetricsRepository _metricsRepository;
+        private readonly ISessionQueryRepository _queryRepository;
+        private readonly ISessionBatchRepository _batchRepository;
         private readonly ITreatmentRepository _treatmentRepository;
+        private readonly ICurrentUserProvider _currentUserProvider;
         private readonly int _professionalConflictWindowMinutes;
 
         public SessionService(
             ISessionRepository repository,
+            ISessionMetricsRepository metricsRepository,
+            ISessionQueryRepository queryRepository,
+            ISessionBatchRepository batchRepository,
             ITreatmentRepository treatmentRepository,
+            ICurrentUserProvider? currentUserProvider = null,
             int professionalConflictWindowMinutes = 45)
         {
             _repository = repository;
+            _metricsRepository = metricsRepository;
+            _queryRepository = queryRepository;
+            _batchRepository = batchRepository;
             _treatmentRepository = treatmentRepository;
+            _currentUserProvider = currentUserProvider ?? new AnonymousCurrentUserProvider();
             _professionalConflictWindowMinutes = professionalConflictWindowMinutes > 0
                 ? professionalConflictWindowMinutes
                 : 45;
@@ -31,72 +43,23 @@ namespace KineGestion.Core.Services
         public async Task<Session?> GetByIdAsync(int id)
             => await _repository.GetByIdAsync(id);
 
-        /// <summary>OBSOLETO: borra Evolution pero sigue cargando todas las sesiones en memoria. Ver interfaz.</summary>
-        [Obsolete("Peligro de Memory Bomb. Usar GetPagedListForAdminAsync.")]
-        public async Task<IEnumerable<Session>> GetAllForAdminAsync()
-        {
-            var sessions = await _repository.GetAllAsync();
-            foreach (var s in sessions)
-                s.Evolution = null;
-            return sessions;
-        }
-
-        /// <summary>OBSOLETO: delega al método obsoleto del repo. Usar GetPagedListForAdminAsync.</summary>
-        [Obsolete("Carga entidades completas con 4 JOINs. Usar GetPagedListForAdminAsync.")]
-        public async Task<(IEnumerable<Session> Sessions, int TotalCount)> GetPagedForAdminAsync(
-            int page,
-            int pageSize,
-            string? search,
-            SessionStatus? status,
-            PaymentStatus? paymentStatus,
-            DateTime? dateFrom,
-            DateTime? dateTo,
-            string? sortBy,
-            string? sortDir)
-        {
-            var (sessions, totalCount) = await _repository.GetPagedForAdminAsync(page, pageSize, search, status, paymentStatus, dateFrom, dateTo, sortBy, sortDir);
-            foreach (var s in sessions)
-                s.Evolution = null;
-            return (sessions, totalCount);
-        }
-
         public async Task<(IEnumerable<SessionListDto> Items, int TotalCount)> GetPagedListForAdminAsync(
             int page, int pageSize, string? search,
             SessionStatus? status, PaymentStatus? paymentStatus,
             DateTime? dateFrom, DateTime? dateTo,
             string? sortBy, string? sortDir)
             => await QueryCache.GetOrCreateAsync(
-                $"sessions:admin:paged:{page}:{pageSize}:{NormalizeSearch(search)}:{status?.ToString() ?? "_"}:{paymentStatus?.ToString() ?? "_"}:{NormalizeDate(dateFrom)}:{NormalizeDate(dateTo)}:{NormalizeSort(sortBy)}:{NormalizeSort(sortDir)}",
-                () => _repository.GetPagedListForAdminAsync(page, pageSize, search, status, paymentStatus, dateFrom, dateTo, sortBy, sortDir),
+                $"sessions:admin:paged:{page}:{pageSize}:{NormalizeSearch(search)}:{status?.ToString() ?? "_"}:{paymentStatus?.ToString() ?? "_"}:{NormalizeDate(dateFrom)}:{NormalizeDate(dateTo)}:{NormalizeSort(sortBy)}:{NormalizeSort(sortDir)}" + GetCacheScope(),
+                () => _queryRepository.GetPagedListForAdminAsync(page, pageSize, search, status, paymentStatus, dateFrom, dateTo, sortBy, sortDir),
                 TimeSpan.FromSeconds(8));
-
-        [Obsolete("Carga entidades completas con 3 JOINs. Usar GetPagedListByProfessionalAsync.")]
-        public async Task<(IEnumerable<Session> Sessions, int TotalCount)> GetPagedByProfessionalAsync(
-            int professionalId,
-            int page,
-            int pageSize,
-            string? search,
-            SessionStatus? status,
-            PaymentStatus? paymentStatus)
-        {
-            // No se borra Evolution: el profesional ve sus propias evoluciones
-#pragma warning disable CS0618
-            return await _repository.GetPagedByProfessionalAsync(professionalId, page, pageSize, search, status, paymentStatus);
-#pragma warning restore CS0618
-        }
 
         public async Task<(IEnumerable<SessionListDto> Items, int TotalCount)> GetPagedListByProfessionalAsync(
             int professionalId, int page, int pageSize, string? search,
             SessionStatus? status, PaymentStatus? paymentStatus, DateTime? dateFrom, DateTime? dateTo)
             => await QueryCache.GetOrCreateAsync(
                 $"sessions:professional:{professionalId}:paged:{page}:{pageSize}:{NormalizeSearch(search)}:{status?.ToString() ?? "_"}:{paymentStatus?.ToString() ?? "_"}:{NormalizeDate(dateFrom)}:{NormalizeDate(dateTo)}",
-                () => _repository.GetPagedListByProfessionalAsync(professionalId, page, pageSize, search, status, paymentStatus, dateFrom, dateTo),
+                () => _queryRepository.GetPagedListByProfessionalAsync(professionalId, page, pageSize, search, status, paymentStatus, dateFrom, dateTo),
                 TimeSpan.FromSeconds(8));
-
-        /// <summary>OBSOLETO: carga todas las sesiones sin filtro. Ver interfaz para detalles.</summary>
-        [Obsolete("Peligro de Memory Bomb. Usar GetPagedListForAdminAsync o GetPagedListByProfessionalAsync.")]
-        public async Task<IEnumerable<Session>> GetAllAsync()
-            => await _repository.GetAllAsync();
 
         public async Task<IEnumerable<Session>> GetByPatientIdAsync(int patientId)
             => await _repository.GetByPatientIdAsync(patientId);
@@ -106,8 +69,8 @@ namespace KineGestion.Core.Services
 
         public async Task<int> CountAsync()
             => await QueryCache.GetOrCreateAsync(
-                "sessions:count:all",
-                () => _repository.CountAsync(),
+                "sessions:count:all" + GetCacheScope(),
+                () => _metricsRepository.CountAsync(),
                 TimeSpan.FromSeconds(10));
 
         public async Task<int> CountByTreatmentIdAsync(int treatmentId)
@@ -122,309 +85,308 @@ namespace KineGestion.Core.Services
         public async Task<int> CountByOfficeIdAsync(int officeId)
             => await _repository.CountByOfficeIdAsync(officeId);
 
-            public async Task<int> CountTodayAsync(DateTime utcToday)
-                => await QueryCache.GetOrCreateAsync(
-                    $"sessions:count:today:{utcToday:yyyyMMdd}",
-                    () => _repository.CountTodayAsync(utcToday),
-                    TimeSpan.FromSeconds(10));
+        public async Task<int> CountTodayAsync(DateTime utcToday)
+            => await QueryCache.GetOrCreateAsync(
+                $"sessions:count:today:{utcToday:yyyyMMdd}" + GetCacheScope(),
+                () => _metricsRepository.CountTodayAsync(utcToday),
+                TimeSpan.FromSeconds(10));
 
-            public async Task<int> CountByPaymentStatusAsync(PaymentStatus paymentStatus)
-                => await QueryCache.GetOrCreateAsync(
-                    $"sessions:count:payment:{paymentStatus}",
-                    () => _repository.CountByPaymentStatusAsync(paymentStatus),
-                    TimeSpan.FromSeconds(10));
+        public async Task<int> CountByPaymentStatusAsync(PaymentStatus paymentStatus)
+            => await QueryCache.GetOrCreateAsync(
+                $"sessions:count:payment:{paymentStatus}" + GetCacheScope(),
+                () => _metricsRepository.CountByPaymentStatusAsync(paymentStatus),
+                TimeSpan.FromSeconds(10));
 
-            public async Task<int> CountByStatusAsync(SessionStatus status)
-                => await QueryCache.GetOrCreateAsync(
-                    $"sessions:count:status:{status}",
-                    () => _repository.CountByStatusAsync(status),
-                    TimeSpan.FromSeconds(10));
+        public async Task<int> CountByStatusAsync(SessionStatus status)
+            => await QueryCache.GetOrCreateAsync(
+                $"sessions:count:status:{status}" + GetCacheScope(),
+                () => _metricsRepository.CountByStatusAsync(status),
+                TimeSpan.FromSeconds(10));
 
-            public async Task<int> CountByStatusAndPaymentStatusAsync(SessionStatus status, PaymentStatus paymentStatus)
-                => await QueryCache.GetOrCreateAsync(
-                    $"sessions:count:status:{status}:payment:{paymentStatus}",
-                    () => _repository.CountByStatusAndPaymentStatusAsync(status, paymentStatus),
-                    TimeSpan.FromSeconds(10));
+        public async Task<int> CountByStatusAndPaymentStatusAsync(SessionStatus status, PaymentStatus paymentStatus)
+            => await QueryCache.GetOrCreateAsync(
+                $"sessions:count:status:{status}:payment:{paymentStatus}" + GetCacheScope(),
+                () => _metricsRepository.CountByStatusAndPaymentStatusAsync(status, paymentStatus),
+                TimeSpan.FromSeconds(10));
 
-            public async Task<int> CountByStatusOnDateAsync(SessionStatus status, DateTime utcDay)
-                => await QueryCache.GetOrCreateAsync(
-                    $"sessions:count:status:{status}:day:{utcDay:yyyyMMdd}",
-                    () => _repository.CountByStatusOnDateAsync(status, utcDay),
-                    TimeSpan.FromSeconds(10));
+        public async Task<int> CountByStatusOnDateAsync(SessionStatus status, DateTime utcDay)
+            => await QueryCache.GetOrCreateAsync(
+                $"sessions:count:status:{status}:day:{utcDay:yyyyMMdd}" + GetCacheScope(),
+                () => _metricsRepository.CountByStatusOnDateAsync(status, utcDay),
+                TimeSpan.FromSeconds(10));
 
-            public async Task<int> CountInRangeAsync(DateTime fromInclusiveUtc, DateTime toExclusiveUtc)
-                => await QueryCache.GetOrCreateAsync(
-                    $"sessions:count:range:{fromInclusiveUtc:yyyyMMddHHmmss}:{toExclusiveUtc:yyyyMMddHHmmss}",
-                    () => _repository.CountInRangeAsync(fromInclusiveUtc, toExclusiveUtc),
-                    TimeSpan.FromSeconds(10));
+        public async Task<int> CountInRangeAsync(DateTime fromInclusiveUtc, DateTime toExclusiveUtc)
+            => await QueryCache.GetOrCreateAsync(
+                $"sessions:count:range:{fromInclusiveUtc:yyyyMMddHHmmss}:{toExclusiveUtc:yyyyMMddHHmmss}" + GetCacheScope(),
+                () => _metricsRepository.CountInRangeAsync(fromInclusiveUtc, toExclusiveUtc),
+                TimeSpan.FromSeconds(10));
 
-            public async Task<int> CountByStatusInRangeAsync(SessionStatus status, DateTime fromInclusiveUtc, DateTime toExclusiveUtc)
-                => await QueryCache.GetOrCreateAsync(
-                    $"sessions:count:status:{status}:range:{fromInclusiveUtc:yyyyMMddHHmmss}:{toExclusiveUtc:yyyyMMddHHmmss}",
-                    () => _repository.CountByStatusInRangeAsync(status, fromInclusiveUtc, toExclusiveUtc),
-                    TimeSpan.FromSeconds(10));
+        public async Task<int> CountByStatusInRangeAsync(SessionStatus status, DateTime fromInclusiveUtc, DateTime toExclusiveUtc)
+            => await QueryCache.GetOrCreateAsync(
+                $"sessions:count:status:{status}:range:{fromInclusiveUtc:yyyyMMddHHmmss}:{toExclusiveUtc:yyyyMMddHHmmss}" + GetCacheScope(),
+                () => _metricsRepository.CountByStatusInRangeAsync(status, fromInclusiveUtc, toExclusiveUtc),
+                TimeSpan.FromSeconds(10));
 
-            public async Task<int> CountByPaymentStatusInRangeAsync(PaymentStatus paymentStatus, DateTime fromInclusiveUtc, DateTime toExclusiveUtc)
-                => await QueryCache.GetOrCreateAsync(
-                    $"sessions:count:payment:{paymentStatus}:range:{fromInclusiveUtc:yyyyMMddHHmmss}:{toExclusiveUtc:yyyyMMddHHmmss}",
-                    () => _repository.CountByPaymentStatusInRangeAsync(paymentStatus, fromInclusiveUtc, toExclusiveUtc),
-                    TimeSpan.FromSeconds(10));
+        public async Task<int> CountByPaymentStatusInRangeAsync(PaymentStatus paymentStatus, DateTime fromInclusiveUtc, DateTime toExclusiveUtc)
+            => await QueryCache.GetOrCreateAsync(
+                $"sessions:count:payment:{paymentStatus}:range:{fromInclusiveUtc:yyyyMMddHHmmss}:{toExclusiveUtc:yyyyMMddHHmmss}" + GetCacheScope(),
+                () => _metricsRepository.CountByPaymentStatusInRangeAsync(paymentStatus, fromInclusiveUtc, toExclusiveUtc),
+                TimeSpan.FromSeconds(10));
 
-            public async Task<int> CountByStatusAndPaymentStatusInRangeAsync(SessionStatus status, PaymentStatus paymentStatus, DateTime fromInclusiveUtc, DateTime toExclusiveUtc)
-                => await QueryCache.GetOrCreateAsync(
-                    $"sessions:count:status:{status}:payment:{paymentStatus}:range:{fromInclusiveUtc:yyyyMMddHHmmss}:{toExclusiveUtc:yyyyMMddHHmmss}",
-                    () => _repository.CountByStatusAndPaymentStatusInRangeAsync(status, paymentStatus, fromInclusiveUtc, toExclusiveUtc),
-                    TimeSpan.FromSeconds(10));
+        public async Task<int> CountByStatusAndPaymentStatusInRangeAsync(SessionStatus status, PaymentStatus paymentStatus, DateTime fromInclusiveUtc, DateTime toExclusiveUtc)
+            => await QueryCache.GetOrCreateAsync(
+                $"sessions:count:status:{status}:payment:{paymentStatus}:range:{fromInclusiveUtc:yyyyMMddHHmmss}:{toExclusiveUtc:yyyyMMddHHmmss}" + GetCacheScope(),
+                () => _metricsRepository.CountByStatusAndPaymentStatusInRangeAsync(status, paymentStatus, fromInclusiveUtc, toExclusiveUtc),
+                TimeSpan.FromSeconds(10));
 
-            public async Task<IReadOnlyList<KpiSegmentDto>> GetKpiSegmentsByProfessionalAsync(DateTime fromInclusiveUtc, DateTime toExclusiveUtc)
-                => await QueryCache.GetOrCreateAsync(
-                    $"sessions:kpi:prof:{fromInclusiveUtc:yyyyMMddHHmmss}:{toExclusiveUtc:yyyyMMddHHmmss}",
-                    () => _repository.GetKpiSegmentsByProfessionalAsync(fromInclusiveUtc, toExclusiveUtc),
-                    TimeSpan.FromSeconds(10));
+        public async Task<IReadOnlyList<KpiSegmentDto>> GetKpiSegmentsByProfessionalAsync(DateTime fromInclusiveUtc, DateTime toExclusiveUtc)
+            => await QueryCache.GetOrCreateAsync(
+                $"sessions:kpi:prof:{fromInclusiveUtc:yyyyMMddHHmmss}:{toExclusiveUtc:yyyyMMddHHmmss}" + GetCacheScope(),
+                () => _metricsRepository.GetKpiSegmentsByProfessionalAsync(fromInclusiveUtc, toExclusiveUtc),
+                TimeSpan.FromSeconds(10));
 
-            public async Task<IReadOnlyList<KpiSegmentDto>> GetKpiSegmentsByTimeSlotAsync(DateTime fromInclusiveUtc, DateTime toExclusiveUtc)
-                => await QueryCache.GetOrCreateAsync(
-                    $"sessions:kpi:timeslot:{fromInclusiveUtc:yyyyMMddHHmmss}:{toExclusiveUtc:yyyyMMddHHmmss}",
-                    () => _repository.GetKpiSegmentsByTimeSlotAsync(fromInclusiveUtc, toExclusiveUtc),
-                    TimeSpan.FromSeconds(10));
+        public async Task<IReadOnlyList<KpiSegmentDto>> GetKpiSegmentsByTimeSlotAsync(DateTime fromInclusiveUtc, DateTime toExclusiveUtc)
+            => await QueryCache.GetOrCreateAsync(
+                $"sessions:kpi:timeslot:{fromInclusiveUtc:yyyyMMddHHmmss}:{toExclusiveUtc:yyyyMMddHHmmss}" + GetCacheScope(),
+                () => _metricsRepository.GetKpiSegmentsByTimeSlotAsync(fromInclusiveUtc, toExclusiveUtc),
+                TimeSpan.FromSeconds(10));
 
-            public async Task<IEnumerable<SessionReminderCandidateDto>> GetReminderCandidatesAsync(DateTime fromInclusiveUtc, DateTime toExclusiveUtc)
-                => await _repository.GetReminderCandidatesAsync(fromInclusiveUtc, toExclusiveUtc);
+        public async Task<IEnumerable<SessionReminderCandidateDto>> GetReminderCandidatesAsync(DateTime fromInclusiveUtc, DateTime toExclusiveUtc)
+            => await _queryRepository.GetReminderCandidatesAsync(fromInclusiveUtc, toExclusiveUtc);
 
-            public async Task<IEnumerable<BillingFollowUpCandidateDto>> GetBillingFollowUpCandidatesAsync(DateTime asOfUtc, int minAgeDays, int maxAgeDays)
-                => await _repository.GetBillingFollowUpCandidatesAsync(asOfUtc, minAgeDays, maxAgeDays);
+        public async Task<IEnumerable<BillingFollowUpCandidateDto>> GetBillingFollowUpCandidatesAsync(DateTime asOfUtc, int minAgeDays, int maxAgeDays)
+            => await _queryRepository.GetBillingFollowUpCandidatesAsync(asOfUtc, minAgeDays, maxAgeDays);
 
-            public async Task<ReminderFunnelDto> BuildReminderFunnelAsync(IReadOnlyCollection<int> sentSessionIds, DateTime fromSentUtc, DateTime toSentUtc)
+        public async Task<ReminderFunnelDto> BuildReminderFunnelAsync(IReadOnlyCollection<int> sentSessionIds, DateTime fromSentUtc, DateTime toSentUtc)
+        {
+            var outcomes = await _queryRepository.GetSessionFunnelOutcomesAsync(sentSessionIds, fromSentUtc, toSentUtc);
+            var sent = outcomes.Count;
+            var confirmed = outcomes.Count(o => o.ConfirmedByPatient);
+            var attended = outcomes.Count(o => o.Status == SessionStatus.Completed);
+            var canceled = outcomes.Count(o => o.Status == SessionStatus.Canceled
+                || o.CanceledByPatient);
+
+            return new ReminderFunnelDto(sent, confirmed, attended)
             {
-                var outcomes = await _repository.GetSessionFunnelOutcomesAsync(sentSessionIds, fromSentUtc, toSentUtc);
-                var sent = outcomes.Count;
-                var confirmed = outcomes.Count(o => o.ConfirmedByPatient);
-                var attended = outcomes.Count(o => o.Status == SessionStatus.Completed);
-                var canceled = outcomes.Count(o => o.Status == SessionStatus.Canceled
-                    || o.CanceledByPatient);
+                Canceled = canceled
+            };
+        }
 
-                return new ReminderFunnelDto(sent, confirmed, attended)
+        public async Task ConfirmByReminderAsync(int sessionId)
+        {
+            var session = await _repository.GetByIdAsync(sessionId);
+            if (session is null)
+                throw new BusinessValidationException("La sesión no existe.", nameof(Session.Id));
+
+            if (session.Status == SessionStatus.Canceled)
+                throw new BusinessValidationException("La sesión ya está cancelada.", nameof(Session.Status));
+
+            AppendSystemNote(session, "CONFIRMADA_PACIENTE");
+            await _repository.UpdateAsync(session);
+            QueryCache.InvalidatePrefix("sessions:");
+        }
+
+        public async Task CancelByReminderAsync(int sessionId)
+        {
+            var session = await _repository.GetByIdAsync(sessionId);
+            if (session is null)
+                throw new BusinessValidationException("La sesión no existe.", nameof(Session.Id));
+
+            if (session.Status == SessionStatus.Canceled)
+                return;
+
+            session.Status = SessionStatus.Canceled;
+            AppendSystemNote(session, "CANCELADA_PACIENTE");
+            await _repository.UpdateAsync(session);
+            QueryCache.InvalidatePrefix("sessions:");
+        }
+
+        public async Task CancelAsync(int sessionId, CancellationReason reason, string? observation)
+        {
+            var session = await _repository.GetByIdAsync(sessionId);
+            if (session is null)
+                throw new BusinessValidationException("La sesión no existe.", nameof(Session.Id));
+
+            if (session.Status == SessionStatus.Canceled)
+                throw new BusinessValidationException("La sesión ya está cancelada.", nameof(Session.Status));
+
+            if (session.Status == SessionStatus.Completed)
+                throw new BusinessValidationException("No se puede cancelar una sesión completada.", nameof(Session.Status));
+
+            session.Status = SessionStatus.Canceled;
+            session.CancellationReason = reason;
+            session.CancellationObs = string.IsNullOrWhiteSpace(observation) ? null : observation.Trim();
+            session.CancelledAt = DateTime.UtcNow;
+            AppendSystemNote(session, $"CANCELADA_MOTIVO_{reason}");
+            await _repository.UpdateAsync(session);
+            QueryCache.InvalidatePrefix("sessions:");
+        }
+
+        /// <summary>
+        /// Recaptura: crea una nueva sesión a partir de una cancelada, con la misma
+        /// ficha clínica y tratamiento pero un nuevo horario.
+        /// </summary>
+        public async Task<Session> ReprogramAsync(int sourceSessionId, DateTime newFechaHora)
+        {
+            var source = await _repository.GetByIdAsync(sourceSessionId);
+            if (source is null)
+                throw new BusinessValidationException("La sesión original no existe.", nameof(Session.Id));
+            if (source.Status != SessionStatus.Canceled)
+                throw new BusinessValidationException("Solo se puede reprogramar una sesión cancelada.", nameof(Session.Status));
+
+            await ValidateProfessionalAvailabilityAsync(source.ProfessionalId, newFechaHora);
+
+            int sesionesEnTratamiento = await _repository.CountByTreatmentIdAsync(source.TreatmentId);
+            var treatment = await _treatmentRepository.GetByIdAsync(source.TreatmentId);
+
+            var nueva = new Session
+            {
+                FechaHora = newFechaHora,
+                PatientId = source.PatientId,
+                ProfessionalId = source.ProfessionalId,
+                TreatmentId = source.TreatmentId,
+                OfficeId = source.OfficeId,
+                Observaciones = source.Observaciones,
+                Status = SessionStatus.Pending,
+                PaymentStatus = PaymentStatus.Pending,
+                NroSesionEnTratamiento = sesionesEnTratamiento + 1
+            };
+
+            if (treatment is not null && sesionesEnTratamiento >= treatment.CantidadSesionesTotales)
+                throw new BusinessValidationException(
+                    $"El tratamiento ya alcanzó el límite de {treatment.CantidadSesionesTotales} sesiones.",
+                    nameof(Session.TreatmentId));
+
+            var created = await _repository.AddAsync(nueva);
+            QueryCache.InvalidatePrefix("sessions:");
+            return created;
+        }
+
+        /// <summary>
+        /// Sugiere turnos alternativos disponibles para un profesional, omitiendo horarios
+        /// ocupados (con la ventana de conflicto) y horarios pasados.
+        /// </summary>
+        public async Task<IReadOnlyList<AvailableSlotDto>> SuggestAvailableSlotsAsync(
+            int professionalId,
+            DateTime fromUtc,
+            int dayCount = 5,
+            int count = 3)
+        {
+            var normalizedFrom = fromUtc.Date;
+            var toExclusive = normalizedFrom.AddDays(Math.Max(1, Math.Min(dayCount, 30)));
+
+            var busyTimes = await _repository.GetProfessionalBusyTimesAsync(professionalId, normalizedFrom, toExclusive);
+            var isBusy = new HashSet<DateTime>(busyTimes);
+            var nowUtc = DateTime.UtcNow;
+
+            var slots = new List<AvailableSlotDto>();
+            for (var day = normalizedFrom;
+                 day < toExclusive && slots.Count < count;
+                 day = day.AddDays(1))
+            {
+                if (isWeekend(day)) continue;
+
+                for (var slot = day.AddHours(9); slot.Hour < 17 && slots.Count < count; slot = slot.AddHours(1))
                 {
-                    Canceled = canceled
-                };
-            }
+                    if (slot <= nowUtc) continue;
+                    if (IsSlotOccupied(slot, isBusy, _professionalConflictWindowMinutes)) continue;
 
-            public async Task ConfirmByReminderAsync(int sessionId)
-            {
-                var session = await _repository.GetByIdAsync(sessionId);
-                if (session is null)
-                    throw new BusinessValidationException("La sesión no existe.", nameof(Session.Id));
-
-                if (session.Status == SessionStatus.Canceled)
-                    throw new BusinessValidationException("La sesión ya está cancelada.", nameof(Session.Status));
-
-                AppendSystemNote(session, "CONFIRMADA_PACIENTE");
-                await _repository.UpdateAsync(session);
-                QueryCache.InvalidatePrefix("sessions:");
-            }
-
-            public async Task CancelByReminderAsync(int sessionId)
-            {
-                var session = await _repository.GetByIdAsync(sessionId);
-                if (session is null)
-                    throw new BusinessValidationException("La sesión no existe.", nameof(Session.Id));
-
-                if (session.Status == SessionStatus.Canceled)
-                    return;
-
-                session.Status = SessionStatus.Canceled;
-                AppendSystemNote(session, "CANCELADA_PACIENTE");
-                await _repository.UpdateAsync(session);
-                QueryCache.InvalidatePrefix("sessions:");
-            }
-
-            public async Task CancelAsync(int sessionId, CancellationReason reason, string? observation)
-            {
-                var session = await _repository.GetByIdAsync(sessionId);
-                if (session is null)
-                    throw new BusinessValidationException("La sesión no existe.", nameof(Session.Id));
-
-                if (session.Status == SessionStatus.Canceled)
-                    throw new BusinessValidationException("La sesión ya está cancelada.", nameof(Session.Status));
-
-                if (session.Status == SessionStatus.Completed)
-                    throw new BusinessValidationException("No se puede cancelar una sesión completada.", nameof(Session.Status));
-
-                session.Status = SessionStatus.Canceled;
-                session.CancellationReason = reason;
-                session.CancellationObs = string.IsNullOrWhiteSpace(observation) ? null : observation.Trim();
-                session.CancelledAt = DateTime.UtcNow;
-                AppendSystemNote(session, $"CANCELADA_MOTIVO_{reason}");
-                await _repository.UpdateAsync(session);
-                QueryCache.InvalidatePrefix("sessions:");
-            }
-
-            /// <summary>
-            /// Recaptura: crea una nueva sesión a partir de una cancelada, con la misma
-            /// ficha clínica y tratamiento pero un nuevo horario.
-            /// </summary>
-            public async Task<Session> ReprogramAsync(int sourceSessionId, DateTime newFechaHora)
-            {
-                var source = await _repository.GetByIdAsync(sourceSessionId);
-                if (source is null)
-                    throw new BusinessValidationException("La sesión original no existe.", nameof(Session.Id));
-                if (source.Status != SessionStatus.Canceled)
-                    throw new BusinessValidationException("Solo se puede reprogramar una sesión cancelada.", nameof(Session.Status));
-
-                await ValidateProfessionalAvailabilityAsync(source.ProfessionalId, newFechaHora);
-
-                int sesionesEnTratamiento = await _repository.CountByTreatmentIdAsync(source.TreatmentId);
-                var treatment = await _treatmentRepository.GetByIdAsync(source.TreatmentId);
-
-                var nueva = new Session
-                {
-                    FechaHora = newFechaHora,
-                    PatientId = source.PatientId,
-                    ProfessionalId = source.ProfessionalId,
-                    TreatmentId = source.TreatmentId,
-                    OfficeId = source.OfficeId,
-                    Observaciones = source.Observaciones,
-                    Status = SessionStatus.Pending,
-                    PaymentStatus = PaymentStatus.Pending,
-                    NroSesionEnTratamiento = sesionesEnTratamiento + 1
-                };
-
-                if (treatment is not null && sesionesEnTratamiento >= treatment.CantidadSesionesTotales)
-                    throw new BusinessValidationException(
-                        $"El tratamiento ya alcanzó el límite de {treatment.CantidadSesionesTotales} sesiones.",
-                        nameof(Session.TreatmentId));
-
-                var created = await _repository.AddAsync(nueva);
-                QueryCache.InvalidatePrefix("sessions:");
-                return created;
-            }
-
-            /// <summary>
-            /// Sugiere turnos alternativos disponibles para un profesional, omitiendo horarios
-            /// ocupados (con la ventana de conflicto) y horarios pasados.
-            /// </summary>
-            public async Task<IReadOnlyList<AvailableSlotDto>> SuggestAvailableSlotsAsync(
-                int professionalId,
-                DateTime fromUtc,
-                int dayCount = 5,
-                int count = 3)
-            {
-                var normalizedFrom = fromUtc.Date;
-                var toExclusive = normalizedFrom.AddDays(Math.Max(1, Math.Min(dayCount, 30)));
-
-                var busyTimes = await _repository.GetProfessionalBusyTimesAsync(professionalId, normalizedFrom, toExclusive);
-                var isBusy = new HashSet<DateTime>(busyTimes);
-                var nowUtc = DateTime.UtcNow;
-
-                var slots = new List<AvailableSlotDto>();
-                for (var day = normalizedFrom;
-                     day < toExclusive && slots.Count < count;
-                     day = day.AddDays(1))
-                {
-                    if (isWeekend(day)) continue;
-
-                    for (var slot = day.AddHours(9); slot.Hour < 17 && slots.Count < count; slot = slot.AddHours(1))
-                    {
-                        if (slot <= nowUtc) continue;
-                        if (IsSlotOccupied(slot, isBusy, _professionalConflictWindowMinutes)) continue;
-
-                        slots.Add(new AvailableSlotDto(slot, $"{slot:dd/MM/yyyy} {slot:HH:mm} hs"));
-                        if (slots.Count >= count) break;
-                    }
+                    slots.Add(new AvailableSlotDto(slot, $"{slot:dd/MM/yyyy} {slot:HH:mm} hs"));
+                    if (slots.Count >= count) break;
                 }
-
-                return slots;
             }
 
-            private static bool IsSlotOccupied(DateTime slot, HashSet<DateTime> busyTimes, int windowMinutes)
+            return slots;
+        }
+
+        private static bool IsSlotOccupied(DateTime slot, HashSet<DateTime> busyTimes, int windowMinutes)
+        {
+            foreach (var busy in busyTimes)
             {
-                foreach (var busy in busyTimes)
-                {
-                    if (Math.Abs((busy - slot).TotalMinutes) <= windowMinutes)
-                        return true;
-                }
-                return false;
+                if (Math.Abs((busy - slot).TotalMinutes) <= windowMinutes)
+                    return true;
             }
+            return false;
+        }
 
-            private static bool isWeekend(DateTime d)
-                => d.DayOfWeek == DayOfWeek.Saturday || d.DayOfWeek == DayOfWeek.Sunday;
+        private static bool isWeekend(DateTime d)
+            => d.DayOfWeek == DayOfWeek.Saturday || d.DayOfWeek == DayOfWeek.Sunday;
 
+        public async Task<int> CountByCancellationReasonAsync(CancellationReason reason)
+            => await QueryCache.GetOrCreateAsync(
+                $"sessions:count:cancelreason:{reason}" + GetCacheScope(),
+                () => _metricsRepository.CountByCancellationReasonAsync(reason),
+                TimeSpan.FromSeconds(10));
 
-            public async Task<int> CountByCancellationReasonAsync(CancellationReason reason)
-                => await QueryCache.GetOrCreateAsync(
-                    $"sessions:count:cancelreason:{reason}",
-                    () => _repository.CountByCancellationReasonAsync(reason),
-                    TimeSpan.FromSeconds(10));
+        public async Task<IDictionary<CancellationReason, int>> CountByCancellationReasonInRangeAsync(DateTime fromInclusiveUtc, DateTime toExclusiveUtc)
+            => await QueryCache.GetOrCreateAsync(
+                $"sessions:count:cancelreason:range:{fromInclusiveUtc:yyyyMMddHHmmss}:{toExclusiveUtc:yyyyMMddHHmmss}" + GetCacheScope(),
+                () => _metricsRepository.CountByCancellationReasonInRangeAsync(fromInclusiveUtc, toExclusiveUtc),
+                TimeSpan.FromSeconds(10));
 
-            public async Task<IDictionary<CancellationReason, int>> CountByCancellationReasonInRangeAsync(DateTime fromInclusiveUtc, DateTime toExclusiveUtc)
-                => await QueryCache.GetOrCreateAsync(
-                    $"sessions:count:cancelreason:range:{fromInclusiveUtc:yyyyMMddHHmmss}:{toExclusiveUtc:yyyyMMddHHmmss}",
-                    () => _repository.CountByCancellationReasonInRangeAsync(fromInclusiveUtc, toExclusiveUtc),
-                    TimeSpan.FromSeconds(10));
+        private static readonly TimeSpan LateCancellationThreshold = TimeSpan.FromHours(24);
 
-            private static readonly TimeSpan LateCancellationThreshold = TimeSpan.FromHours(24);
+        public CancellationTiming GetCancellationTiming(Session session)
+        {
+            var cancelledAt = session.CancelledAt ?? DateTime.UtcNow;
+            var leadTime = session.FechaHora - cancelledAt;
+            return leadTime < LateCancellationThreshold ? CancellationTiming.Late : CancellationTiming.Early;
+        }
 
-            public CancellationTiming GetCancellationTiming(Session session)
-            {
-                var cancelledAt = session.CancelledAt ?? DateTime.UtcNow;
-                var leadTime = session.FechaHora - cancelledAt;
-                return leadTime < LateCancellationThreshold ? CancellationTiming.Late : CancellationTiming.Early;
-            }
+        public async Task<int> CountLateCancellationsInRangeAsync(DateTime fromInclusiveUtc, DateTime toExclusiveUtc)
+            => await QueryCache.GetOrCreateAsync(
+                $"sessions:count:cancellate:range:{fromInclusiveUtc:yyyyMMddHHmmss}:{toExclusiveUtc:yyyyMMddHHmmss}" + GetCacheScope(),
+                () => _metricsRepository.CountLateCancellationsInRangeAsync(fromInclusiveUtc, toExclusiveUtc),
+                TimeSpan.FromSeconds(10));
 
-            public async Task<int> CountLateCancellationsInRangeAsync(DateTime fromInclusiveUtc, DateTime toExclusiveUtc)
-                => await QueryCache.GetOrCreateAsync(
-                    $"sessions:count:cancellate:range:{fromInclusiveUtc:yyyyMMddHHmmss}:{toExclusiveUtc:yyyyMMddHHmmss}",
-                    () => _repository.CountLateCancellationsInRangeAsync(fromInclusiveUtc, toExclusiveUtc),
-                    TimeSpan.FromSeconds(10));
+        public async Task SetPaymentStatusAsync(int sessionId, PaymentStatus paymentStatus)
+        {
+            var session = await _repository.GetByIdAsync(sessionId);
+            if (session is null)
+                throw new BusinessValidationException("La sesión no existe.", nameof(Session.Id));
 
-            public async Task SetPaymentStatusAsync(int sessionId, PaymentStatus paymentStatus)
-            {
-                var session = await _repository.GetByIdAsync(sessionId);
-                if (session is null)
-                    throw new BusinessValidationException("La sesión no existe.", nameof(Session.Id));
+            if (session.PaymentStatus == paymentStatus)
+                return;
 
-                if (session.PaymentStatus == paymentStatus)
-                    return;
+            session.PaymentStatus = paymentStatus;
+            AppendSystemNote(session, paymentStatus == PaymentStatus.Paid ? "COBRO_REGISTRADO" : "COBRO_REABIERTO");
+            await _repository.UpdateAsync(session);
+            QueryCache.InvalidatePrefix("sessions:");
+        }
 
-                session.PaymentStatus = paymentStatus;
-                AppendSystemNote(session, paymentStatus == PaymentStatus.Paid ? "COBRO_REGISTRADO" : "COBRO_REABIERTO");
-                await _repository.UpdateAsync(session);
+        public async Task<(int UpdatedCount, int SkippedCount)> MarkCompletedPendingAsPaidBatchAsync(IReadOnlyCollection<int> sessionIds)
+        {
+            var normalizedIds = sessionIds
+                .Where(id => id > 0)
+                .Distinct()
+                .ToList();
+
+            if (normalizedIds.Count == 0)
+                return (0, 0);
+
+            var result = await _batchRepository.MarkCompletedPendingAsPaidBatchAsync(normalizedIds, DateTime.UtcNow);
+            if (result.UpdatedCount > 0)
                 QueryCache.InvalidatePrefix("sessions:");
-            }
 
-            public async Task<(int UpdatedCount, int SkippedCount)> MarkCompletedPendingAsPaidBatchAsync(IReadOnlyCollection<int> sessionIds)
-            {
-                var normalizedIds = sessionIds
-                    .Where(id => id > 0)
-                    .Distinct()
-                    .ToList();
+            return result;
+        }
 
-                if (normalizedIds.Count == 0)
-                    return (0, 0);
+        public async Task<(int UpdatedCount, int SkippedCount)> MarkPaidAsPendingBatchAsync(IReadOnlyCollection<int> sessionIds)
+        {
+            var normalizedIds = sessionIds
+                .Where(id => id > 0)
+                .Distinct()
+                .ToList();
 
-                var result = await _repository.MarkCompletedPendingAsPaidBatchAsync(normalizedIds, DateTime.UtcNow);
-                if (result.UpdatedCount > 0)
-                    QueryCache.InvalidatePrefix("sessions:");
+            if (normalizedIds.Count == 0)
+                return (0, 0);
 
-                return result;
-            }
+            var result = await _batchRepository.MarkPaidAsPendingBatchAsync(normalizedIds, DateTime.UtcNow);
+            if (result.UpdatedCount > 0)
+                QueryCache.InvalidatePrefix("sessions:");
 
-            public async Task<(int UpdatedCount, int SkippedCount)> MarkPaidAsPendingBatchAsync(IReadOnlyCollection<int> sessionIds)
-            {
-                var normalizedIds = sessionIds
-                    .Where(id => id > 0)
-                    .Distinct()
-                    .ToList();
-
-                if (normalizedIds.Count == 0)
-                    return (0, 0);
-
-                var result = await _repository.MarkPaidAsPendingBatchAsync(normalizedIds, DateTime.UtcNow);
-                if (result.UpdatedCount > 0)
-                    QueryCache.InvalidatePrefix("sessions:");
-
-                return result;
-            }
+            return result;
+        }
 
         public async Task<Session> CreateAsync(Session session)
         {
@@ -523,6 +485,21 @@ namespace KineGestion.Core.Services
                 : session.InternalNotes + Environment.NewLine + note;
         }
 
+        /// <summary>
+        /// Idéntico al filtro aplicado por SessionRepository.GetProfessionalIdFilter():
+        /// Admin (o sin usuario autenticado) ve todos los datos; el resto ve solo su profesional.
+        /// Se usa para que las claves del cache no mezclen resultados entre roles/distintos
+        /// profesionales (evita filtración cruzada de datos de tipo IDOR).
+        /// </summary>
+        private string GetCacheScope()
+        {
+            if (_currentUserProvider.IsInRole("Admin"))
+                return ":all";
+
+            var profIdStr = _currentUserProvider.GetClaimValue("ProfessionalId");
+            return int.TryParse(profIdStr, out var profId) ? $":prof:{profId}" : ":all";
+        }
+
         private static string NormalizeSearch(string? search)
             => string.IsNullOrWhiteSpace(search) ? "_" : search.Trim().ToLowerInvariant();
 
@@ -531,5 +508,12 @@ namespace KineGestion.Core.Services
 
         private static string NormalizeDate(DateTime? value)
             => value.HasValue ? value.Value.ToString("yyyyMMddHHmmss") : "_";
+
+        private sealed class AnonymousCurrentUserProvider : ICurrentUserProvider
+        {
+            public string GetAuditIdentifier() => "system";
+            public bool IsInRole(string role) => false;
+            public string? GetClaimValue(string claimType) => null;
+        }
     }
 }

@@ -197,7 +197,7 @@ namespace KineGestion.Web.Controllers
             Response.Cookies.Append(cookieKey, payload, new CookieOptions
             {
                 HttpOnly = true,
-                Secure = !Request.IsHttps ? false : true,
+                Secure = Request.IsHttps,
                 SameSite = SameSiteMode.Lax,
                 Expires = DateTimeOffset.UtcNow.AddDays(14),
                 IsEssential = true
@@ -596,11 +596,10 @@ namespace KineGestion.Web.Controllers
 
         private bool CanManageSessions()
         {
-            // User es null en tests unitarios sin ControllerContext y en flujos
-            // donde la autenticación aún no se materializó. En ese caso se permite
-            // (la autorización real la aplica el middleware/atributo [Authorize]).
-            if (User is null)
-                return true;
+            // Sin usuario autenticado nunca se permite: la autorización la aplica
+            // el middleware/atributo [Authorize], y este check es defensa en profundidad.
+            if (User is null || User.Identity is null || !User.Identity.IsAuthenticated)
+                return false;
 
             return User.IsInRole("Admin") || User.IsInRole("Kinesiologo");
         }

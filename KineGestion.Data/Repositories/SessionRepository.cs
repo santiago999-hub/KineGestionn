@@ -5,7 +5,6 @@ using System;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using KineGestion.Core;
-using KineGestion.Core.DTOs;
 using KineGestion.Core.Entities;
 using KineGestion.Core.Exceptions;
 using KineGestion.Core.Interfaces;
@@ -14,37 +13,20 @@ using System.Linq;
 
 namespace KineGestion.Data.Repositories
 {
-    public class SessionRepository : ISessionRepository
+    /// <summary>
+    /// CRUD del agregado Session y consultas de integridad/registro por entidad.
+    /// Los listados paginados viven en <see cref="SessionQueryRepository"/>,
+    /// los KPIs en <see cref="SessionMetricsRepository"/> y las operaciones
+    /// batch en <see cref="SessionBatchRepository"/>.
+    /// </summary>
+    public class SessionRepository : SessionRepositoryBase, ISessionRepository
     {
-        private readonly AppDbContext _context;
-        private readonly ICurrentUserProvider? _currentUserProvider;
-
-        public SessionRepository(AppDbContext context)
+        public SessionRepository(AppDbContext context) : base(context)
         {
-            _context = context;
         }
 
-        public SessionRepository(AppDbContext context, ICurrentUserProvider currentUserProvider)
+        public SessionRepository(AppDbContext context, ICurrentUserProvider currentUserProvider) : base(context, currentUserProvider)
         {
-            _context = context;
-            _currentUserProvider = currentUserProvider;
-        }
-
-        private bool IsClinicalStaff()
-            => _currentUserProvider?.IsInRole("Admin") == true
-            || _currentUserProvider?.IsInRole("Kinesiologo") == true
-            || _currentUserProvider?.IsInRole("Asistente") == true;
-
-        private bool CanViewClinicalNotes()
-            => _currentUserProvider?.IsInRole("Admin") == true
-            || _currentUserProvider?.IsInRole("Kinesiologo") == true;
-
-        private int? GetProfessionalIdFilter()
-        {
-            if (_currentUserProvider is null) return null;
-            if (_currentUserProvider.IsInRole("Admin")) return null;
-            var profIdStr = _currentUserProvider.GetClaimValue("ProfessionalId");
-            return int.TryParse(profIdStr, out var profId) ? profId : null;
         }
 
         /// <summary>
@@ -70,261 +52,6 @@ namespace KineGestion.Data.Repositories
             }
 
             return session;
-        }
-
-        /// <summary>OBSOLETO: carga la tabla completa en memoria. Ver interfaz para detalles del riesgo.</summary>
-        [Obsolete("Peligro de Memory Bomb. Usar GetPagedListForAdminAsync.")]
-        public async Task<IEnumerable<Session>> GetAllAsync()
-            => await _context.Sessions
-                             .AsNoTracking()
-                             .Include(s => s.Patient)
-                             .Include(s => s.Professional)
-                             .Include(s => s.Treatment)
-                             .Include(s => s.Office)
-                             .OrderByDescending(s => s.FechaHora)
-                             .ToListAsync();
-
-        /// <summary>OBSOLETO: usa 4 Includes completos. Ver interfaz. Usar GetPagedListForAdminAsync.</summary>
-        [Obsolete("Carga entidades completas con 4 JOINs. Usar GetPagedListForAdminAsync.")]
-        public async Task<(IEnumerable<Session> Sessions, int TotalCount)> GetPagedForAdminAsync(
-            int page,
-            int pageSize,
-            string? search,
-            SessionStatus? status,
-            PaymentStatus? paymentStatus,
-            DateTime? dateFrom,
-            DateTime? dateTo,
-            string? sortBy,
-            string? sortDir)
-        {
-            var query = _context.Sessions
-                .AsNoTracking()
-                .Include(s => s.Patient)
-                .Include(s => s.Professional)
-                .Include(s => s.Treatment)
-                .Include(s => s.Office)
-                .AsQueryable();
-
-            if (!string.IsNullOrWhiteSpace(search))
-            {
-                var term = search.Trim();
-                query = query.Where(s =>
-                    (s.Patient != null && (s.Patient.Nombre + " " + s.Patient.Apellido).Contains(term)) ||
-                    (s.Professional != null && (s.Professional.Nombre + " " + s.Professional.Apellido).Contains(term)) ||
-                    (s.Treatment != null && s.Treatment.Descripcion.Contains(term)));
-            }
-
-            if (status.HasValue)
-                query = query.Where(s => s.Status == status.Value);
-
-            if (paymentStatus.HasValue)
-                query = query.Where(s => s.PaymentStatus == paymentStatus.Value);
-
-            if (dateFrom.HasValue)
-                query = query.Where(s => s.FechaHora >= dateFrom.Value.Date);
-
-            if (dateTo.HasValue)
-                query = query.Where(s => s.FechaHora < dateTo.Value.Date.AddDays(1));
-
-            var sortField = string.IsNullOrWhiteSpace(sortBy) ? "fecha" : sortBy.Trim().ToLowerInvariant();
-            var descending = !string.Equals(sortDir, "asc", StringComparison.OrdinalIgnoreCase);
-
-            query = (sortField, descending) switch
-            {
-                ("estado", true) => query.OrderByDescending(s => s.Status).ThenByDescending(s => s.FechaHora),
-                ("estado", false) => query.OrderBy(s => s.Status).ThenByDescending(s => s.FechaHora),
-                (_, true) => query.OrderByDescending(s => s.FechaHora),
-                _ => query.OrderBy(s => s.FechaHora)
-            };
-
-            int totalCount = await query.CountAsync();
-
-            var sessions = await query
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .ToListAsync();
-
-            return (sessions, totalCount);
-        }
-
-        /// <summary>
-        /// Proyección SQL directa: solo trae los campos necesarios para la tabla admin.
-        /// Evita cargar nav properties completas de Patient, Professional, Treatment y Office.
-        /// Filtrado por rol: Admin ve todo, Kinesiologo ve sus sesiones, Asistente ve sin notas clínicas.
-        /// </summary>
-        public async Task<(IEnumerable<SessionListDto> Items, int TotalCount)> GetPagedListForAdminAsync(
-            int page,
-            int pageSize,
-            string? search,
-            SessionStatus? status,
-            PaymentStatus? paymentStatus,
-            DateTime? dateFrom,
-            DateTime? dateTo,
-            string? sortBy,
-            string? sortDir)
-        {
-            var baseQuery = _context.Sessions.AsNoTracking().AsQueryable();
-
-            // IDOR protection: non-admin users only see their own professional's sessions
-            var profFilter = GetProfessionalIdFilter();
-            if (profFilter.HasValue)
-                baseQuery = baseQuery.Where(s => s.ProfessionalId == profFilter.Value);
-
-            if (!string.IsNullOrWhiteSpace(search))
-            {
-                var term = search.Trim();
-                baseQuery = baseQuery.Where(s =>
-                    (s.Patient != null && (
-                        s.Patient.Nombre.Contains(term) ||
-                        s.Patient.Apellido.Contains(term) ||
-                        s.Patient.DNI.Contains(term))) ||
-                    (s.Professional != null && (
-                        s.Professional.Nombre.Contains(term) ||
-                        s.Professional.Apellido.Contains(term) ||
-                        s.Professional.Matricula.Contains(term))) ||
-                    (s.Treatment != null && s.Treatment.Descripcion.Contains(term)));
-            }
-
-            if (status.HasValue)       baseQuery = baseQuery.Where(s => s.Status == status.Value);
-            if (paymentStatus.HasValue) baseQuery = baseQuery.Where(s => s.PaymentStatus == paymentStatus.Value);
-            if (dateFrom.HasValue) baseQuery = baseQuery.Where(s => s.FechaHora >= dateFrom.Value.Date);
-            if (dateTo.HasValue) baseQuery = baseQuery.Where(s => s.FechaHora < dateTo.Value.Date.AddDays(1));
-
-            int totalCount = await baseQuery.CountAsync();
-
-            var sortField = string.IsNullOrWhiteSpace(sortBy) ? "fecha" : sortBy.Trim().ToLowerInvariant();
-            var descending = !string.Equals(sortDir, "asc", StringComparison.OrdinalIgnoreCase);
-
-            var sortedQuery = (sortField, descending) switch
-            {
-                ("estado", true)  => baseQuery.OrderByDescending(s => s.Status).ThenByDescending(s => s.FechaHora),
-                ("estado", false) => baseQuery.OrderBy(s => s.Status).ThenByDescending(s => s.FechaHora),
-                (_, true)  => baseQuery.OrderByDescending(s => s.FechaHora),
-                _ => baseQuery.OrderBy(s => s.FechaHora)
-            };
-
-            var items = await sortedQuery
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .Select(s => new SessionListDto(
-                    s.Id,
-                    s.FechaHora,
-                    s.Status,
-                    s.PaymentStatus,
-                    s.NroSesionEnTratamiento,
-                    s.Patient != null ? s.Patient.Apellido + ", " + s.Patient.Nombre : string.Empty,
-                    s.Professional != null ? s.Professional.Apellido + ", " + s.Professional.Nombre : string.Empty,
-                    s.Treatment != null ? s.Treatment.Descripcion : null,
-                    s.Office != null ? s.Office.Name : null,
-                    s.EvolutionLockedAt.HasValue,
-                    s.CancellationReason,
-                    s.CancellationObs
-                ))
-                .ToListAsync();
-
-            return (items, totalCount);
-        }
-
-        [Obsolete("Carga entidades completas con 3 JOINs. Usar GetPagedListByProfessionalAsync.")]
-        public async Task<(IEnumerable<Session> Sessions, int TotalCount)> GetPagedByProfessionalAsync(
-            int professionalId,
-            int page,
-            int pageSize,
-            string? search,
-            SessionStatus? status,
-            PaymentStatus? paymentStatus)
-        {
-            var query = _context.Sessions
-                .AsNoTracking()
-                .Include(s => s.Patient)
-                .Include(s => s.Treatment)
-                .Include(s => s.Office)
-                .Where(s => s.ProfessionalId == professionalId)
-                .AsQueryable();
-
-            if (!string.IsNullOrWhiteSpace(search))
-            {
-                var term = search.Trim();
-                query = query.Where(s =>
-                    (s.Patient != null && (s.Patient.Nombre + " " + s.Patient.Apellido).Contains(term)) ||
-                    (s.Treatment != null && s.Treatment.Descripcion.Contains(term)));
-            }
-
-            if (status.HasValue)
-                query = query.Where(s => s.Status == status.Value);
-
-            if (paymentStatus.HasValue)
-                query = query.Where(s => s.PaymentStatus == paymentStatus.Value);
-
-            int totalCount = await query.CountAsync();
-
-            var sessions = await query
-                .OrderByDescending(s => s.FechaHora)
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .ToListAsync();
-
-            return (sessions, totalCount);
-        }
-
-        /// <summary>
-        /// Proyección SQL directa para la agenda del kinesiológo.
-        /// No carga nav properties de Professional (ya está filtrado por professionalId).
-        /// </summary>
-        public async Task<(IEnumerable<SessionListDto> Items, int TotalCount)> GetPagedListByProfessionalAsync(
-            int professionalId,
-            int page,
-            int pageSize,
-            string? search,
-            SessionStatus? status,
-            PaymentStatus? paymentStatus,
-            DateTime? dateFrom,
-            DateTime? dateTo)
-        {
-            var baseQuery = _context.Sessions
-                .AsNoTracking()
-                .Where(s => s.ProfessionalId == professionalId)
-                .AsQueryable();
-
-            if (!string.IsNullOrWhiteSpace(search))
-            {
-                var term = search.Trim();
-                baseQuery = baseQuery.Where(s =>
-                    (s.Patient != null && (
-                        s.Patient.Nombre.Contains(term) ||
-                        s.Patient.Apellido.Contains(term) ||
-                        s.Patient.DNI.Contains(term))) ||
-                    (s.Treatment != null && s.Treatment.Descripcion.Contains(term)));
-            }
-
-            if (status.HasValue)       baseQuery = baseQuery.Where(s => s.Status == status.Value);
-            if (paymentStatus.HasValue) baseQuery = baseQuery.Where(s => s.PaymentStatus == paymentStatus.Value);
-            if (dateFrom.HasValue) baseQuery = baseQuery.Where(s => s.FechaHora >= dateFrom.Value.Date);
-            if (dateTo.HasValue) baseQuery = baseQuery.Where(s => s.FechaHora < dateTo.Value.Date.AddDays(1));
-
-            int totalCount = await baseQuery.CountAsync();
-
-            var items = await baseQuery
-                .OrderByDescending(s => s.FechaHora)
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .Select(s => new SessionListDto(
-                    s.Id,
-                    s.FechaHora,
-                    s.Status,
-                    s.PaymentStatus,
-                    s.NroSesionEnTratamiento,
-                    s.Patient != null ? s.Patient.Apellido + ", " + s.Patient.Nombre : string.Empty,
-                    string.Empty,   // el profesional ya es el usuario actual
-                    s.Treatment != null ? s.Treatment.Descripcion : null,
-                    s.Office != null ? s.Office.Name : null,
-                    s.EvolutionLockedAt.HasValue,
-                    s.CancellationReason,
-                    s.CancellationObs
-                ))
-                .ToListAsync();
-
-            return (items, totalCount);
         }
 
         public async Task<IEnumerable<Session>> GetByPatientIdAsync(int patientId)
@@ -386,7 +113,6 @@ namespace KineGestion.Data.Repositories
                              .Select(s => s.FechaHora)
                              .ToListAsync();
 
-
         public async Task<int> CountByTreatmentIdAsync(int treatmentId)
             => await _context.Sessions
                              .AsNoTracking()
@@ -407,395 +133,22 @@ namespace KineGestion.Data.Repositories
                              .AsNoTracking()
                              .CountAsync(s => s.OfficeId == officeId);
 
-        public async Task<int> CountAsync()
-        {
-            // Non-admin (Asistente/Kinesiologo) solo cuentan dentro del alcance de su profesional
-            var profFilter = GetProfessionalIdFilter();
-            if (profFilter.HasValue)
-                return await _context.Sessions.AsNoTracking()
-                    .CountAsync(s => s.ProfessionalId == profFilter.Value);
+        private static bool IsDeadlock(Exception ex)
+            => ex is SqlException { Number: 1205 }
+            || ex.InnerException is SqlException { Number: 1205 };
 
-            return await _context.Sessions.AsNoTracking().CountAsync();
-        }
-
-        public async Task<int> CountTodayAsync(DateTime utcToday)
-        {
-            var tomorrow = utcToday.Date.AddDays(1);
-            var profFilter = GetProfessionalIdFilter();
-            if (profFilter.HasValue)
-                return await _context.Sessions
-                    .AsNoTracking()
-                    .CountAsync(s => s.ProfessionalId == profFilter.Value
-                        && s.FechaHora >= utcToday.Date && s.FechaHora < tomorrow);
-
-            return await _context.Sessions
-                .AsNoTracking()
-                .CountAsync(s => s.FechaHora >= utcToday.Date && s.FechaHora < tomorrow);
-        }
-
-        public async Task<int> CountByPaymentStatusAsync(PaymentStatus paymentStatus)
-        {
-            var profFilter = GetProfessionalIdFilter();
-            if (profFilter.HasValue)
-                return await _context.Sessions
-                    .AsNoTracking()
-                    .CountAsync(s => s.ProfessionalId == profFilter.Value && s.PaymentStatus == paymentStatus);
-
-            return await _context.Sessions
-                .AsNoTracking()
-                .CountAsync(s => s.PaymentStatus == paymentStatus);
-        }
-
-        public async Task<int> CountByStatusAsync(SessionStatus status)
-        {
-            var profFilter = GetProfessionalIdFilter();
-            if (profFilter.HasValue)
-                return await _context.Sessions
-                    .AsNoTracking()
-                    .CountAsync(s => s.ProfessionalId == profFilter.Value && s.Status == status);
-
-            return await _context.Sessions
-                .AsNoTracking()
-                .CountAsync(s => s.Status == status);
-        }
-
-        public async Task<int> CountByCancellationReasonAsync(CancellationReason reason)
-        {
-            var profFilter = GetProfessionalIdFilter();
-            if (profFilter.HasValue)
-                return await _context.Sessions
-                    .AsNoTracking()
-                    .CountAsync(s => s.ProfessionalId == profFilter.Value
-                        && s.CancellationReason == reason);
-
-            return await _context.Sessions
-                .AsNoTracking()
-                .CountAsync(s => s.CancellationReason == reason);
-        }
-
-        public async Task<IDictionary<CancellationReason, int>> CountByCancellationReasonInRangeAsync(DateTime fromInclusiveUtc, DateTime toExclusiveUtc)
-        {
-            var profFilter = GetProfessionalIdFilter();
-            var query = _context.Sessions.AsNoTracking();
-            if (profFilter.HasValue)
-                query = query.Where(s => s.ProfessionalId == profFilter.Value);
-            query = query.Where(s => s.CancellationReason.HasValue
-                && s.FechaHora >= fromInclusiveUtc
-                && s.FechaHora < toExclusiveUtc);
-
-            var groups = await query
-                .GroupBy(s => s.CancellationReason!.Value)
-                .Select(g => new { Reason = g.Key, Count = g.Count() })
-                .ToListAsync();
-
-            return groups.ToDictionary(g => g.Reason, g => g.Count);
-        }
-
-        public async Task<int> CountLateCancellationsInRangeAsync(DateTime fromInclusiveUtc, DateTime toExclusiveUtc)
-        {
-            var profFilter = GetProfessionalIdFilter();
-            var query = _context.Sessions.AsNoTracking();
-            if (profFilter.HasValue)
-                query = query.Where(s => s.ProfessionalId == profFilter.Value);
-            query = query.Where(s => s.Status == SessionStatus.Canceled
-                && s.CancelledAt.HasValue
-                && s.FechaHora >= fromInclusiveUtc
-                && s.FechaHora < toExclusiveUtc);
-
-            // Clasificación tardía = menos de 24h de antelación (FechaHora - CancelledAt < 24h).
-            // Forma traducible por EF: CancelledAt > FechaHora - 24h. Se resuelve en SQL sin materializar.
-            return await query
-                .CountAsync(s => s.CancelledAt!.Value > s.FechaHora.AddHours(-24));
-        }
-
-        public async Task<int> CountByStatusAndPaymentStatusAsync(SessionStatus status, PaymentStatus paymentStatus)
-        {
-            var profFilter = GetProfessionalIdFilter();
-            if (profFilter.HasValue)
-                return await _context.Sessions
-                    .AsNoTracking()
-                    .CountAsync(s => s.ProfessionalId == profFilter.Value
-                        && s.Status == status && s.PaymentStatus == paymentStatus);
-
-            return await _context.Sessions
-                .AsNoTracking()
-                .CountAsync(s => s.Status == status && s.PaymentStatus == paymentStatus);
-        }
-
-        public async Task<int> CountByStatusOnDateAsync(SessionStatus status, DateTime utcDay)
-        {
-            var tomorrow = utcDay.Date.AddDays(1);
-            var profFilter = GetProfessionalIdFilter();
-            if (profFilter.HasValue)
-                return await _context.Sessions
-                    .AsNoTracking()
-                    .CountAsync(s => s.ProfessionalId == profFilter.Value
-                        && s.Status == status && s.FechaHora >= utcDay.Date && s.FechaHora < tomorrow);
-
-            return await _context.Sessions
-                .AsNoTracking()
-                .CountAsync(s => s.Status == status && s.FechaHora >= utcDay.Date && s.FechaHora < tomorrow);
-        }
-
-        public async Task<int> CountInRangeAsync(DateTime fromInclusiveUtc, DateTime toExclusiveUtc)
-        {
-            var profFilter = GetProfessionalIdFilter();
-            if (profFilter.HasValue)
-                return await _context.Sessions
-                    .AsNoTracking()
-                    .CountAsync(s => s.ProfessionalId == profFilter.Value
-                        && s.FechaHora >= fromInclusiveUtc && s.FechaHora < toExclusiveUtc);
-
-            return await _context.Sessions
-                .AsNoTracking()
-                .CountAsync(s => s.FechaHora >= fromInclusiveUtc && s.FechaHora < toExclusiveUtc);
-        }
-
-        public async Task<int> CountByStatusInRangeAsync(SessionStatus status, DateTime fromInclusiveUtc, DateTime toExclusiveUtc)
-        {
-            var profFilter = GetProfessionalIdFilter();
-            if (profFilter.HasValue)
-                return await _context.Sessions
-                    .AsNoTracking()
-                    .CountAsync(s => s.ProfessionalId == profFilter.Value
-                        && s.Status == status && s.FechaHora >= fromInclusiveUtc && s.FechaHora < toExclusiveUtc);
-
-            return await _context.Sessions
-                .AsNoTracking()
-                .CountAsync(s => s.Status == status && s.FechaHora >= fromInclusiveUtc && s.FechaHora < toExclusiveUtc);
-        }
-
-        public async Task<int> CountByPaymentStatusInRangeAsync(PaymentStatus paymentStatus, DateTime fromInclusiveUtc, DateTime toExclusiveUtc)
-        {
-            var profFilter = GetProfessionalIdFilter();
-            if (profFilter.HasValue)
-                return await _context.Sessions
-                    .AsNoTracking()
-                    .CountAsync(s => s.ProfessionalId == profFilter.Value
-                        && s.PaymentStatus == paymentStatus && s.FechaHora >= fromInclusiveUtc && s.FechaHora < toExclusiveUtc);
-
-            return await _context.Sessions
-                .AsNoTracking()
-                .CountAsync(s => s.PaymentStatus == paymentStatus && s.FechaHora >= fromInclusiveUtc && s.FechaHora < toExclusiveUtc);
-        }
-
-        public async Task<int> CountByStatusAndPaymentStatusInRangeAsync(SessionStatus status, PaymentStatus paymentStatus, DateTime fromInclusiveUtc, DateTime toExclusiveUtc)
-        {
-            var profFilter = GetProfessionalIdFilter();
-            if (profFilter.HasValue)
-                return await _context.Sessions
-                    .AsNoTracking()
-                    .CountAsync(s => s.ProfessionalId == profFilter.Value
-                        && s.Status == status
-                        && s.PaymentStatus == paymentStatus
-                        && s.FechaHora >= fromInclusiveUtc
-                        && s.FechaHora < toExclusiveUtc);
-
-            return await _context.Sessions
-                .AsNoTracking()
-                .CountAsync(s => s.Status == status
-                    && s.PaymentStatus == paymentStatus
-                    && s.FechaHora >= fromInclusiveUtc
-                    && s.FechaHora < toExclusiveUtc);
-        }
-
-        public async Task<IReadOnlyList<KpiSegmentDto>> GetKpiSegmentsByProfessionalAsync(DateTime fromInclusiveUtc, DateTime toExclusiveUtc)
-        {
-            var profFilter = GetProfessionalIdFilter();
-
-            IQueryable<Session> query = _context.Sessions.AsNoTracking();
-            if (profFilter.HasValue)
-                query = query.Where(s => s.ProfessionalId == profFilter.Value);
-            query = query.Where(s => s.FechaHora >= fromInclusiveUtc && s.FechaHora < toExclusiveUtc);
-
-            var groups = await query
-                .GroupBy(s => s.Professional)
-                .Select(g => new KpiSegmentDto(
-                    g.Key != null ? g.Key.Id.ToString() : "?",
-                    g.Key != null ? (g.Key.Apellido + ", " + g.Key.Nombre) : "Sin profesional",
-                    g.Count(),
-                    g.Count(s => s.Status == SessionStatus.Pending),
-                    g.Count(s => s.Status == SessionStatus.Completed),
-                    g.Count(s => s.Status == SessionStatus.Canceled),
-                    g.Count(s => s.Status == SessionStatus.Completed && s.PaymentStatus == PaymentStatus.Pending),
-                    g.Count(s => s.Status == SessionStatus.Completed && s.PaymentStatus == PaymentStatus.Paid)))
-                .ToListAsync();
-
-            return groups
-                .OrderByDescending(g => g.Canceled + g.CompletedPending)
-                .ToList();
-        }
-
-        public async Task<IReadOnlyList<KpiSegmentDto>> GetKpiSegmentsByTimeSlotAsync(DateTime fromInclusiveUtc, DateTime toExclusiveUtc)
-        {
-            var profFilter = GetProfessionalIdFilter();
-
-            IQueryable<Session> query = _context.Sessions.AsNoTracking();
-            if (profFilter.HasValue)
-                query = query.Where(s => s.ProfessionalId == profFilter.Value);
-            query = query.Where(s => s.FechaHora >= fromInclusiveUtc && s.FechaHora < toExclusiveUtc);
-
-            var groups = await query
-                .GroupBy(s => s.FechaHora.Hour)
-                .Select(g => new KpiSegmentDto(
-                    g.Key.ToString("00"),
-                    g.Key.ToString("00") + ":00",
-                    g.Count(),
-                    g.Count(s => s.Status == SessionStatus.Pending),
-                    g.Count(s => s.Status == SessionStatus.Completed),
-                    g.Count(s => s.Status == SessionStatus.Canceled),
-                    g.Count(s => s.Status == SessionStatus.Completed && s.PaymentStatus == PaymentStatus.Pending),
-                    g.Count(s => s.Status == SessionStatus.Completed && s.PaymentStatus == PaymentStatus.Paid)))
-                .ToListAsync();
-
-            return groups
-                .OrderBy(g => g.SegmentKey)
-                .ToList();
-        }
-
-        public async Task<IEnumerable<SessionReminderCandidateDto>> GetReminderCandidatesAsync(DateTime fromInclusiveUtc, DateTime toExclusiveUtc)
-            => await _context.Sessions
-                .AsNoTracking()
-                .Where(s => s.Status == SessionStatus.Pending
-                    && s.FechaHora >= fromInclusiveUtc
-                    && s.FechaHora < toExclusiveUtc)
-                .OrderBy(s => s.FechaHora)
-                .Select(s => new SessionReminderCandidateDto(
-                    s.Id,
-                    s.FechaHora,
-                    s.Patient != null ? s.Patient.Apellido + ", " + s.Patient.Nombre : "Paciente",
-                    s.Patient != null ? s.Patient.Email : null,
-                    s.Patient != null ? s.Patient.Telefono : null,
-                    s.Professional != null ? s.Professional.Apellido + ", " + s.Professional.Nombre : "Profesional",
-                    s.Treatment != null ? s.Treatment.Descripcion : null
-                ))
-                .ToListAsync();
-
-        public async Task<IEnumerable<BillingFollowUpCandidateDto>> GetBillingFollowUpCandidatesAsync(DateTime asOfUtc, int minAgeDays, int maxAgeDays)
-        {
-            var cutoffOldest = asOfUtc.Date.AddDays(-maxAgeDays);
-            var cutoffMostRecent = asOfUtc.Date.AddDays(-minAgeDays).AddDays(1);
-
-            var rows = await _context.Sessions
-                .AsNoTracking()
-                .Where(s => s.Status == SessionStatus.Completed
-                    && s.PaymentStatus == PaymentStatus.Pending
-                    && s.FechaHora >= cutoffOldest
-                    && s.FechaHora < cutoffMostRecent)
-                .Select(s => new
-                {
-                    s.Id,
-                    s.FechaHora,
-                    s.Patient,
-                    s.Professional,
-                    s.Treatment
-                })
-                .ToListAsync();
-
-            return rows.Select(s => new BillingFollowUpCandidateDto(
-                s.Id,
-                s.FechaHora,
-                s.Patient != null ? s.Patient.Apellido + ", " + s.Patient.Nombre : "Paciente",
-                s.Patient != null ? s.Patient.Email : null,
-                s.Patient != null ? s.Patient.Telefono : null,
-                s.Professional != null ? s.Professional.Apellido + ", " + s.Professional.Nombre : "Profesional",
-                s.Treatment != null ? s.Treatment.Descripcion : null,
-                Math.Max(0, (asOfUtc.Date - s.FechaHora.Date).Days)
-            ));
-        }
-
-        /// <summary>
-        /// Embudo de recordatorios: para las sesiones que recibieron al menos un envío,
-        /// devuelve su estado y si tienen nota de confirmación/cancelación del paciente.
-        /// InternalNotes se lee descifrada por EF; la clasificación se hace en memoria
-        /// sobre el volumen acotado de sesiones enviadas (evita Memory Bomb).
-        /// </summary>
-        public async Task<IReadOnlyList<SessionFunnelOutcomeDto>> GetSessionFunnelOutcomesAsync(
-            IReadOnlyCollection<int> sessionIds,
-            DateTime fromSentUtc,
-            DateTime toSentUtc)
-        {
-            var ids = sessionIds.Where(id => id > 0).Distinct().ToList();
-            if (ids.Count == 0)
-                return Array.Empty<SessionFunnelOutcomeDto>();
-
-            var sessions = await _context.Sessions
-                .AsNoTracking()
-                .Where(s => ids.Contains(s.Id)
-                    && s.FechaHora >= fromSentUtc
-                    && s.FechaHora < toSentUtc)
-                .Select(s => new
-                {
-                    s.Id,
-                    s.Status,
-                    s.CancelledAt,
-                    s.InternalNotes
-                })
-                .ToListAsync();
-
-            return sessions.Select(s => new SessionFunnelOutcomeDto(
-                s.Id,
-                s.Status,
-                s.InternalNotes != null && s.InternalNotes.Contains("CONFIRMADA_PACIENTE", StringComparison.OrdinalIgnoreCase),
-                s.InternalNotes != null && s.InternalNotes.Contains("CANCELADA_PACIENTE", StringComparison.OrdinalIgnoreCase),
-                s.CancelledAt))
-                .ToList();
-        }
-
-        public async Task<(int UpdatedCount, int SkippedCount)> MarkCompletedPendingAsPaidBatchAsync(IReadOnlyCollection<int> sessionIds, DateTime actionAtUtc)
-        {
-            var normalizedIds = sessionIds
-                .Where(id => id > 0)
-                .Distinct()
-                .ToList();
-
-            if (normalizedIds.Count == 0)
-                return (0, 0);
-
-            var note = $"[{actionAtUtc:yyyy-MM-dd HH:mm 'UTC'}] COBRO_REGISTRADO";
-            var candidates = _context.Sessions
-                .Where(s => normalizedIds.Contains(s.Id)
-                    && s.Status == SessionStatus.Completed
-                    && s.PaymentStatus == PaymentStatus.Pending);
-
-            var updatedCount = await candidates.ExecuteUpdateAsync(setters => setters
-                .SetProperty(s => s.PaymentStatus, PaymentStatus.Paid)
-                .SetProperty(s => s.InternalNotes, s => string.IsNullOrWhiteSpace(s.InternalNotes)
-                    ? note
-                    : s.InternalNotes + Environment.NewLine + note));
-
-            return (updatedCount, normalizedIds.Count - updatedCount);
-        }
-
-        public async Task<(int UpdatedCount, int SkippedCount)> MarkPaidAsPendingBatchAsync(IReadOnlyCollection<int> sessionIds, DateTime actionAtUtc)
-        {
-            var normalizedIds = sessionIds
-                .Where(id => id > 0)
-                .Distinct()
-                .ToList();
-
-            if (normalizedIds.Count == 0)
-                return (0, 0);
-
-            var note = $"[{actionAtUtc:yyyy-MM-dd HH:mm 'UTC'}] COBRO_REABIERTO";
-            var candidates = _context.Sessions
-                .Where(s => normalizedIds.Contains(s.Id)
-                    && s.PaymentStatus == PaymentStatus.Paid);
-
-            var updatedCount = await candidates.ExecuteUpdateAsync(setters => setters
-                .SetProperty(s => s.PaymentStatus, PaymentStatus.Pending)
-                .SetProperty(s => s.InternalNotes, s => string.IsNullOrWhiteSpace(s.InternalNotes)
-                    ? note
-                    : s.InternalNotes + Environment.NewLine + note));
-
-            return (updatedCount, normalizedIds.Count - updatedCount);
-        }
+        private static bool IsUniqueConstraintViolation(Exception ex)
+            => ex is SqlException { Number: 2601 or 2627 }
+            || ex.InnerException is SqlException { Number: 2601 or 2627 }
+            || ex.InnerException?.InnerException is SqlException { Number: 2601 or 2627 };
 
         /// <summary>
         /// Inserta una sesión de forma atómica bajo una transacción Serializable.
-        /// Se recalcula el conteo dentro de la transacción para evitar phantoms entre el COUNT
-        /// y el INSERT. Si SQL Server detecta un deadlock transitorio, se reintenta unas pocas
-        /// veces antes de propagar el error.
+        /// La numeración (NroSesionEnTratamiento) y la validación del límite de sesiones
+        /// del tratamiento son regla de negocio del SessionService (CreateAsync/ReprogramAsync):
+        /// el repositorio solo se encarga de persistir. La integridad ante carreras se protege
+        /// con el índice único (TreatmentId, NroSesionEnTratamiento): si dos recálculos chocan,
+        /// se detecta la violación y se pide reintentar.
         /// </summary>
         public async Task<Session> AddAsync(Session session)
         {
@@ -808,20 +161,6 @@ namespace KineGestion.Data.Repositories
 
                 try
                 {
-                    int sesionesActuales = await _context.Sessions
-                        .CountAsync(s => s.TreatmentId == session.TreatmentId);
-
-                    var treatment = await _context.Treatments
-                        .AsNoTracking()
-                        .FirstOrDefaultAsync(t => t.Id == session.TreatmentId);
-
-                    if (treatment is not null && sesionesActuales >= treatment.CantidadSesionesTotales)
-                        throw new BusinessValidationException(
-                            $"El tratamiento ya alcanzó el límite de {treatment.CantidadSesionesTotales} sesiones.",
-                            nameof(Session.TreatmentId));
-
-                    session.NroSesionEnTratamiento = sesionesActuales + 1;
-
                     _context.Sessions.Add(session);
                     await _context.SaveChangesAsync();
                     await tx.CommitAsync();
@@ -868,14 +207,5 @@ namespace KineGestion.Data.Repositories
                 await _context.SaveChangesAsync();
             }
         }
-
-        private static bool IsDeadlock(Exception ex)
-            => ex is SqlException { Number: 1205 }
-            || ex.InnerException is SqlException { Number: 1205 };
-
-        private static bool IsUniqueConstraintViolation(Exception ex)
-            => ex is SqlException { Number: 2601 or 2627 }
-            || ex.InnerException is SqlException { Number: 2601 or 2627 }
-            || ex.InnerException?.InnerException is SqlException { Number: 2601 or 2627 };
     }
 }

@@ -100,6 +100,7 @@ namespace KineGestion.Web.Tests
                 professionalService.Object,
                 treatmentService.Object,
                 officeService.Object);
+            SetAuthenticatedUser(controller, "Admin");
 
             var vm = BuildValidViewModel();
 
@@ -134,6 +135,7 @@ namespace KineGestion.Web.Tests
                 professionalService.Object,
                 treatmentService.Object,
                 officeService.Object);
+            SetAuthenticatedUser(controller, "Admin");
 
             var vm = BuildValidViewModel();
             vm.Id = 15;
@@ -228,6 +230,23 @@ namespace KineGestion.Web.Tests
             Status = SessionStatus.Pending,
             PaymentStatus = PaymentStatus.Pending
         };
+
+        private static void SetAuthenticatedUser(SessionsController controller, params string[] roles)
+        {
+            var claims = new List<Claim>
+            {
+                new(ClaimTypes.NameIdentifier, "test-user")
+            };
+            claims.AddRange(roles.Select(r => new Claim(ClaimTypes.Role, r)));
+
+            controller.ControllerContext = new ControllerContext
+            {
+                HttpContext = new DefaultHttpContext
+                {
+                    User = new ClaimsPrincipal(new ClaimsIdentity(claims, "TestAuth"))
+                }
+            };
+        }
 
         [Theory]
         [InlineData(CancellationTiming.Late, "24h")]

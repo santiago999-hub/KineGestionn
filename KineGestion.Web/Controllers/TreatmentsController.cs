@@ -169,14 +169,15 @@ namespace KineGestion.Web.Controllers
 
         private async Task LoadPatientsAsync(TreatmentViewModel viewModel)
         {
-            var patients = await _patientService.GetActivePatientsAsync();
+            // GetForSelectAsync proyecta solo los campos necesarios y ya ordena
+            // por Apellido en SQL (mismo patrón que SessionsController.LoadSelectListsAsync).
+            var patients = await _patientService.GetForSelectAsync();
             viewModel.Pacientes = patients
                 .Select(p => new SelectListItem
                 {
                     Value = p.Id.ToString(),
                     Text = $"{p.Apellido}, {p.Nombre} — DNI {p.DNI}"
                 })
-                .OrderBy(p => p.Text)
                 .ToList();
         }
     }

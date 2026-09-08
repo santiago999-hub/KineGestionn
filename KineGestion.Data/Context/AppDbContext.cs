@@ -46,7 +46,8 @@ namespace KineGestion.Data.Context
         {
             base.OnModelCreating(modelBuilder);
 
-            // ─── GLOBAL QUERY FILTERS (Soft Delete) ──────────────────────────────            // Office no tiene dependencias inversas requeridas, filtro global seguro.
+            // ─── GLOBAL QUERY FILTERS (Soft Delete) ──────────────────────────────
+            // Office no tiene dependencias inversas requeridas, filtro global seguro.
             // Professional y Patient filtran IsActivo en sus repositorios
             // para evitar NullRef en las navigation properties de Session.
             modelBuilder.Entity<Office>().HasQueryFilter(o => o.IsActive);
@@ -228,7 +229,8 @@ namespace KineGestion.Data.Context
 
                 private static void ConfigureAuditableEntity<TEntity>(ModelBuilder modelBuilder)
             where TEntity : BaseEntity
-        {            modelBuilder.Entity<TEntity>().Property(e => e.CreatedAt).IsRequired();
+        {
+            modelBuilder.Entity<TEntity>().Property(e => e.CreatedAt).IsRequired();
             modelBuilder.Entity<TEntity>().Property(e => e.UpdatedAt).IsRequired();
             modelBuilder.Entity<TEntity>().Property(e => e.CreatedBy).IsRequired().HasMaxLength(256).HasDefaultValue("system");
             modelBuilder.Entity<TEntity>().Property(e => e.UpdatedBy).IsRequired().HasMaxLength(256).HasDefaultValue("system");
@@ -384,13 +386,13 @@ namespace KineGestion.Data.Context
             {
                 action = "Create";
                 foreach (var property in entry.Properties.Where(ShouldAuditProperty))
-                    newValues[property.Metadata.Name] = property.CurrentValue;
+                    newValues[property.Metadata.Name] = RedactIfNeeded(property, property.CurrentValue);
             }
             else if (entry.State == EntityState.Deleted)
             {
                 action = "Delete";
                 foreach (var property in entry.Properties.Where(ShouldAuditProperty))
-                    oldValues[property.Metadata.Name] = property.OriginalValue;
+                    oldValues[property.Metadata.Name] = RedactIfNeeded(property, property.OriginalValue);
             }
             else
             {
@@ -399,8 +401,8 @@ namespace KineGestion.Data.Context
 
                 foreach (var property in entry.Properties.Where(ShouldAuditProperty).Where(p => p.IsModified))
                 {
-                    oldValues[property.Metadata.Name] = property.OriginalValue;
-                    newValues[property.Metadata.Name] = property.CurrentValue;
+                    oldValues[property.Metadata.Name] = RedactIfNeeded(property, property.OriginalValue);
+                    newValues[property.Metadata.Name] = RedactIfNeeded(property, property.CurrentValue);
                 }
 
                 if (oldValues.Count == 0 && newValues.Count == 0)
@@ -416,6 +418,17 @@ namespace KineGestion.Data.Context
                 NewValuesJson = newValues.Count == 0 ? null : JsonSerializer.Serialize(newValues)
             };
         }
+
+        /// <summary>
+        /// Los campos con value converter (Evolution, InternalNotes, Observaciones, Telefono, Email)
+        /// se guardan encriptados en la base pero el ChangeTracker los expone descifrados.
+        /// Para no filtrar PII en texto plano en el audit log, se reemplaza el valor por un marcador.
+        /// </summary>
+        private static bool IsSensitiveProperty(PropertyEntry property)
+            => property.Metadata.GetValueConverter() is not null;
+
+        private static object? RedactIfNeeded(PropertyEntry property, object? value)
+            => IsSensitiveProperty(property) ? "[encriptado]" : value;
 
         private static bool IsSoftDeleteTransition(EntityEntry entry)
         {

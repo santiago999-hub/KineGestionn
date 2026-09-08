@@ -106,10 +106,17 @@ builder.Services.AddScoped<IProfessionalRepository, ProfessionalRepository>();
 builder.Services.AddScoped<IProfessionalService, ProfessionalService>();
 
 builder.Services.AddScoped<ISessionRepository, SessionRepository>();
+builder.Services.AddScoped<ISessionMetricsRepository, SessionMetricsRepository>();
+builder.Services.AddScoped<ISessionQueryRepository, SessionQueryRepository>();
+builder.Services.AddScoped<ISessionBatchRepository, SessionBatchRepository>();
 builder.Services.AddScoped<ISessionService>(sp =>
 {
     var repository = sp.GetRequiredService<ISessionRepository>();
+    var metricsRepository = sp.GetRequiredService<ISessionMetricsRepository>();
+    var queryRepository = sp.GetRequiredService<ISessionQueryRepository>();
+    var batchRepository = sp.GetRequiredService<ISessionBatchRepository>();
     var treatmentRepository = sp.GetRequiredService<ITreatmentRepository>();
+    var currentUserProvider = sp.GetRequiredService<ICurrentUserProvider>();
     var conflictWindow = OperationalConfig.ReadBoundedInt(
         builder.Configuration,
         startupLogger,
@@ -117,7 +124,14 @@ builder.Services.AddScoped<ISessionService>(sp =>
         defaultValue: 45,
         min: 5,
         max: 240);
-    return new SessionService(repository, treatmentRepository, conflictWindow);
+    return new SessionService(
+        repository,
+        metricsRepository,
+        queryRepository,
+        batchRepository,
+        treatmentRepository,
+        currentUserProvider,
+        conflictWindow);
 });
 
 builder.Services.AddScoped<ITreatmentRepository, TreatmentRepository>();

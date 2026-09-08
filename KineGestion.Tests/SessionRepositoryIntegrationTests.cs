@@ -108,7 +108,7 @@ namespace KineGestion.Tests
 
             await using (var testContext = new AppDbContext(options))
             {
-                var repository = new SessionRepository(testContext);
+                var repository = new SessionMetricsRepository(testContext);
 
                 var completedCount = await repository.CountByStatusOnDateAsync(SessionStatus.Completed, targetDay);
                 var pendingCount = await repository.CountByStatusOnDateAsync(SessionStatus.Pending, targetDay);
@@ -204,6 +204,9 @@ namespace KineGestion.Tests
                     PatientId = 1,
                     ProfessionalId = 1,
                     TreatmentId = 1,
+                    // Simula la numeración calculada por SessionService (count+1 = 3)
+                    // que colisiona con la sesión existente NroSesionEnTratamiento=3.
+                    NroSesionEnTratamiento = 3,
                     Status = SessionStatus.Pending,
                     PaymentStatus = PaymentStatus.Pending
                 };
@@ -314,7 +317,7 @@ namespace KineGestion.Tests
 
             await using (var testContext = new AppDbContext(options))
             {
-                var repository = new SessionRepository(testContext);
+                var repository = new SessionBatchRepository(testContext);
                 var result = await repository.MarkCompletedPendingAsPaidBatchAsync(new[] { eligibleId, alreadyPaidId, notCompletedId }, actionAtUtc);
 
                 Assert.Equal(1, result.UpdatedCount);
@@ -452,7 +455,7 @@ namespace KineGestion.Tests
 
             await using (var testContext = new AppDbContext(options))
             {
-                var repository = new SessionRepository(testContext);
+                var repository = new SessionQueryRepository(testContext);
                 var result = (await repository.GetBillingFollowUpCandidatesAsync(asOfUtc, minAgeDays: 1, maxAgeDays: 7)).ToList();
 
                 Assert.Single(result);
@@ -558,7 +561,7 @@ namespace KineGestion.Tests
 
             await using (var testContext = new AppDbContext(options))
             {
-                var repository = new SessionRepository(testContext);
+                var repository = new SessionMetricsRepository(testContext);
                 var result = (await repository.GetKpiSegmentsByProfessionalAsync(from, to)).ToList();
 
                 Assert.Equal(2, result.Count);
@@ -657,7 +660,7 @@ namespace KineGestion.Tests
 
             await using (var testContext = new AppDbContext(options))
             {
-                var repository = new SessionRepository(testContext);
+                var repository = new SessionMetricsRepository(testContext);
                 var result = (await repository.GetKpiSegmentsByTimeSlotAsync(from, to)).ToList();
 
                 Assert.Equal(2, result.Count);
@@ -757,7 +760,7 @@ namespace KineGestion.Tests
 
             await using (var testContext = new AppDbContext(options))
             {
-                var repository = new SessionRepository(testContext);
+                var repository = new SessionMetricsRepository(testContext);
                 var count = await repository.CountLateCancellationsInRangeAsync(from, to);
 
                 Assert.Equal(2, count);
@@ -850,7 +853,7 @@ namespace KineGestion.Tests
 
             await using (var testContext = new AppDbContext(options))
             {
-                var repository = new SessionRepository(testContext);
+                var repository = new SessionQueryRepository(testContext);
                 var allIds = await testContext.Sessions.Select(s => s.Id).ToListAsync();
 
                 var outcomes = await repository.GetSessionFunnelOutcomesAsync(allIds, fromSent, toSent);

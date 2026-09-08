@@ -19,9 +19,6 @@ namespace KineGestion.Core.Interfaces
         [Obsolete("Carga toda la tabla en memoria. Usar GetPagedAsync (listados) o GetForSelectAsync (dropdowns).")]
         Task<IEnumerable<Patient>> GetAllAsync();
 
-        /// <summary>Retorna solo los pacientes con IsActivo = true.</summary>
-        Task<IEnumerable<Patient>> GetActivePatientsAsync();
-
         /// <summary>Proyección mínima (Id, Nombre, Apellido, DNI) para poblar dropdowns.</summary>
         Task<IEnumerable<PatientSelectDto>> GetForSelectAsync();
 

@@ -42,16 +42,6 @@ namespace KineGestion.Core.Services
                 () => _repository.GetForSelectAsync(),
                 TimeSpan.FromSeconds(30));
 
-        /// <summary>
-        /// LÓGICA DE NEGOCIO: filtra pacientes activos.
-        /// Esta decisión vive en el Service, no en el Controller ni en el Repository.
-        /// </summary>
-        public async Task<IEnumerable<Patient>> GetActivePatientsAsync()
-            => await QueryCache.GetOrCreateAsync(
-                "patients:active:list",
-                () => _repository.GetActivosAsync(),
-                TimeSpan.FromSeconds(20));
-
         public async Task<(IEnumerable<Patient> Patients, int TotalCount)> GetPagedAsync(int page, int pageSize, string? search)
             => await QueryCache.GetOrCreateAsync(
                 $"patients:paged:{page}:{pageSize}:{NormalizeSearch(search)}",

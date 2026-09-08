@@ -12,6 +12,9 @@ namespace KineGestion.Tests
     public class SessionServiceTests
     {
         private readonly Mock<ISessionRepository> _sessionRepositoryMock;
+        private readonly Mock<ISessionMetricsRepository> _sessionMetricsRepositoryMock;
+        private readonly Mock<ISessionQueryRepository> _sessionQueryRepositoryMock;
+        private readonly Mock<ISessionBatchRepository> _sessionBatchRepositoryMock;
         private readonly Mock<ITreatmentRepository> _treatmentRepositoryMock;
         private readonly SessionService _service;
 
@@ -19,8 +22,16 @@ namespace KineGestion.Tests
         {
             QueryCache.ClearAll();
             _sessionRepositoryMock = new Mock<ISessionRepository>();
+            _sessionMetricsRepositoryMock = new Mock<ISessionMetricsRepository>();
+            _sessionQueryRepositoryMock = new Mock<ISessionQueryRepository>();
+            _sessionBatchRepositoryMock = new Mock<ISessionBatchRepository>();
             _treatmentRepositoryMock = new Mock<ITreatmentRepository>();
-            _service = new SessionService(_sessionRepositoryMock.Object, _treatmentRepositoryMock.Object);
+            _service = new SessionService(
+                _sessionRepositoryMock.Object,
+                _sessionMetricsRepositoryMock.Object,
+                _sessionQueryRepositoryMock.Object,
+                _sessionBatchRepositoryMock.Object,
+                _treatmentRepositoryMock.Object);
         }
 
         [Fact]
@@ -31,7 +42,7 @@ namespace KineGestion.Tests
                 new KineGestion.Core.DTOs.SessionListDto(1, DateTime.UtcNow, Core.SessionStatus.Pending, Core.PaymentStatus.Pending, 1, "Paciente", "Profesional", "Tratamiento", "Consultorio", false)
             }, TotalCount: 1);
 
-            _sessionRepositoryMock
+            _sessionQueryRepositoryMock
                 .Setup(r => r.GetPagedListForAdminAsync(1, 10, null, null, null, null, null, null, null))
                 .ReturnsAsync(expected);
 
@@ -40,7 +51,7 @@ namespace KineGestion.Tests
 
             Assert.Equal(1, first.TotalCount);
             Assert.Equal(1, second.TotalCount);
-            _sessionRepositoryMock.Verify(r => r.GetPagedListForAdminAsync(1, 10, null, null, null, null, null, null, null), Times.Once);
+            _sessionQueryRepositoryMock.Verify(r => r.GetPagedListForAdminAsync(1, 10, null, null, null, null, null, null, null), Times.Once);
         }
 
         [Fact]
@@ -62,7 +73,11 @@ namespace KineGestion.Tests
             var customWindow = 30;
             var serviceWithCustomWindow = new SessionService(
                 _sessionRepositoryMock.Object,
+                _sessionMetricsRepositoryMock.Object,
+                _sessionQueryRepositoryMock.Object,
+                _sessionBatchRepositoryMock.Object,
                 _treatmentRepositoryMock.Object,
+                null,
                 customWindow);
 
             _sessionRepositoryMock
@@ -489,7 +504,7 @@ namespace KineGestion.Tests
         [Fact]
         public async Task SuggestAvailableSlotsAsync_ShouldReturnOpenWeekdaySlots()
         {
-            var from = new DateTime(2026, 9, 7, 0, 0, 0, DateTimeKind.Utc); // lunes
+            var from = NextMondayUtc(DateTime.UtcNow); // siempre un lunes futuro
             int professionalId = 3;
 
             _sessionRepositoryMock
@@ -506,7 +521,7 @@ namespace KineGestion.Tests
         [Fact]
         public async Task SuggestAvailableSlotsAsync_ShouldSkipBusySlots()
         {
-            var from = new DateTime(2026, 9, 7, 0, 0, 0, DateTimeKind.Utc); // lunes
+            var from = NextMondayUtc(DateTime.UtcNow); // siempre un lunes futuro
             int professionalId = 3;
 
             // Lunes a las 9 y 10 están ocupados → los primeros libres son 11, y martes 9, 10
@@ -514,17 +529,24 @@ namespace KineGestion.Tests
                 .Setup(r => r.GetProfessionalBusyTimesAsync(professionalId, It.IsAny<DateTime>(), It.IsAny<DateTime>()))
                 .ReturnsAsync(new List<DateTime>
                 {
-                    new DateTime(2026, 9, 7, 9, 0, 0, DateTimeKind.Utc),
-                    new DateTime(2026, 9, 7, 10, 0, 0, DateTimeKind.Utc)
+                    from.Date.AddHours(9),
+                    from.Date.AddHours(10)
                 });
 
             var slots = await _service.SuggestAvailableSlotsAsync(professionalId, from, dayCount: 2, count: 3);
 
             Assert.Equal(3, slots.Count);
             // Lunes 9 y 10 ocupados → los siguientes libres ese mismo día son 11, 12 y 13
-            Assert.Equal(new DateTime(2026, 9, 7, 11, 0, 0, DateTimeKind.Utc), slots[0].FechaHora);
-            Assert.Equal(new DateTime(2026, 9, 7, 12, 0, 0, DateTimeKind.Utc), slots[1].FechaHora);
-            Assert.Equal(new DateTime(2026, 9, 7, 13, 0, 0, DateTimeKind.Utc), slots[2].FechaHora);
+            Assert.Equal(from.Date.AddHours(11), slots[0].FechaHora);
+            Assert.Equal(from.Date.AddHours(12), slots[1].FechaHora);
+            Assert.Equal(from.Date.AddHours(13), slots[2].FechaHora);
+        }
+
+        private static DateTime NextMondayUtc(DateTime from)
+        {
+            var start = from.Date.AddDays(7);
+            var daysUntilMonday = ((int)DayOfWeek.Monday - (int)start.DayOfWeek + 7) % 7;
+            return start.AddDays(daysUntilMonday);
         }
 
         // ─── DeleteAsync ──────────────────────────────────────────────────────────
@@ -614,7 +636,7 @@ namespace KineGestion.Tests
                 new KineGestion.Core.DTOs.SessionFunnelOutcomeDto(5, Core.SessionStatus.Completed, false, false, null)
             };
 
-            _sessionRepositoryMock
+            _sessionQueryRepositoryMock
                 .Setup(r => r.GetSessionFunnelOutcomesAsync(It.IsAny<IReadOnlyCollection<int>>(), from, to))
                 .ReturnsAsync(outcomes);
 
@@ -635,7 +657,7 @@ namespace KineGestion.Tests
             var from = new DateTime(2026, 8, 1);
             var to = new DateTime(2026, 9, 1);
 
-            _sessionRepositoryMock
+            _sessionQueryRepositoryMock
                 .Setup(r => r.GetSessionFunnelOutcomesAsync(It.IsAny<IReadOnlyCollection<int>>(), from, to))
                 .ReturnsAsync(Array.Empty<KineGestion.Core.DTOs.SessionFunnelOutcomeDto>());
 
