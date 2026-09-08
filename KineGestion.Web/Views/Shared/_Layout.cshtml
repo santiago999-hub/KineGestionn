@@ -118,6 +118,11 @@
                     <i class="bi bi-cash-stack"></i>
                     <span>Cobranza D+1</span>
                 </a>
+                <a class="kg-nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "DispatchQueue" ? "active" : "")"
+                   asp-controller="DispatchQueue" asp-action="Index">
+                    <i class="bi bi-arrow-repeat"></i>
+                    <span>Cola de Envíos</span>
+                </a>
                 <a class="kg-nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Segmentacion" ? "active" : "")"
                    asp-controller="Segmentacion" asp-action="Index">
                     <i class="bi bi-bar-chart-steps"></i>

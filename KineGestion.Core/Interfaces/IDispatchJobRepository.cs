@@ -34,5 +34,26 @@ namespace KineGestion.Core.Interfaces
         /// despachados o pendientes, para que la automatización D+1 escale de nivel sin reenviar.
         /// </summary>
         Task<IReadOnlyDictionary<int, IReadOnlyList<string>>> GetDispatchedBillingTypesAsync(IReadOnlyCollection<int> sessionIds, CancellationToken cancellationToken);
+
+        /// <summary>Contadores por estado + jobs pendientes estancados para la vista de operación.</summary>
+        Task<DispatchQueueStats> GetStatsAsync(DateTime stuckThresholdUtc, CancellationToken cancellationToken);
+
+        /// <summary>Página de jobs con filtros por estado, tipo de despacho y texto (sesión/payload).</summary>
+        Task<(IReadOnlyList<DispatchJob> Items, int TotalCount)> GetJobsAsync(
+            DispatchJobStatus? status,
+            string? dispatchType,
+            string? search,
+            int page,
+            int pageSize,
+            CancellationToken cancellationToken);
+
+        /// <summary>Tipos de despacho distintos para el filtro de la vista.</summary>
+        Task<IReadOnlyList<string>> GetDistinctDispatchTypesAsync(CancellationToken cancellationToken);
+
+        /// <summary>Vuelve a cola (Pending, intentos en 0) los jobs Failed indicados. Devuelve cuántos reintentó.</summary>
+        Task<int> ResetForRetryAsync(IReadOnlyCollection<int> ids, DateTime nowUtc, CancellationToken cancellationToken);
+
+        /// <summary>Marca como Cancelled (terminal) los jobs abiertos (Pending/Processing) indicados. Devuelve cuántos canceló.</summary>
+        Task<int> CancelAsync(IReadOnlyCollection<int> ids, DateTime nowUtc, CancellationToken cancellationToken);
     }
 }

@@ -238,5 +238,190 @@ namespace KineGestion.Tests
                 await context.Database.EnsureDeletedAsync();
             }
         }
+
+        [Fact]
+        public async Task GetStatsAsync_ShouldCountByStatusAndFlagStuckPending()
+        {
+            var databaseName = $"KineGestion_Integration_{Guid.NewGuid():N}";
+            await using var context = await CreateDatabaseAsync(databaseName);
+            try
+            {
+                var repository = new DispatchJobRepository(context);
+                var now = new DateTime(2026, 9, 2, 12, 0, 0, DateTimeKind.Utc);
+
+                // Reclamo el job en proceso ANTES de agregar el resto, para que el claim solo lo tome a él.
+                var claimed = NewJob(3, "BillingFollowUp:Soft", "CLAIM");
+                await repository.AddAsync(claimed, default);
+                await repository.ClaimNextBatchAsync(10, TimeSpan.FromHours(1), now, default);
+
+                var stuck = NewJob(1, "PatientReminder", "STUCK");
+                stuck.CreatedAtUtc = now.AddMinutes(-60);
+                await repository.AddAsync(stuck, default);
+
+                var fresh = NewJob(2, "PatientReminder", "FRESH");
+                fresh.CreatedAtUtc = now;
+                await repository.AddAsync(fresh, default);
+
+                var succeeded = NewJob(4, "PatientReminder", "OK");
+                await repository.AddAsync(succeeded, default);
+                await repository.MarkSucceededAsync(succeeded.Id, null, now, default);
+
+                var failed = NewJob(5, "PatientReminder", "FAIL");
+                await repository.AddAsync(failed, default);
+                await repository.MarkFailedAsync(failed.Id, "boom", TimeSpan.FromMinutes(1), maxAttempts: 1, now, default);
+
+                var stats = await repository.GetStatsAsync(now.AddMinutes(-15), default);
+
+                Assert.Equal(2, stats.PendingCount);
+                Assert.Equal(1, stats.ProcessingCount);
+                Assert.Equal(1, stats.SucceededCount);
+                Assert.Equal(1, stats.FailedCount);
+                Assert.Equal(0, stats.CancelledCount);
+                Assert.Equal(1, stats.StuckCount);
+            }
+            finally
+            {
+                await context.Database.EnsureDeletedAsync();
+            }
+        }
+
+        [Fact]
+        public async Task GetJobsAsync_ShouldFilterStatusDispatchTypeSearch_AndPaginateDescending()
+        {
+            var databaseName = $"KineGestion_Integration_{Guid.NewGuid():N}";
+            await using var context = await CreateDatabaseAsync(databaseName);
+            try
+            {
+                var repository = new DispatchJobRepository(context);
+
+                var firmFail = NewJob(1, "BillingFollowUp:Firm", "F1");
+                firmFail.PayloadJson = "{\"SessionId\":1,\"PacienteNombre\":\"Gomez, Ana\"}";
+                await repository.AddAsync(firmFail, default);
+                await repository.MarkFailedAsync(firmFail.Id, "SMTP offline", TimeSpan.FromMinutes(1), maxAttempts: 1, DateTime.UtcNow, default);
+
+                var softOk = NewJob(2, "BillingFollowUp:Soft", "S1");
+                softOk.PayloadJson = "{\"SessionId\":2,\"PacienteNombre\":\"Rodriguez, Luis\"}";
+                await repository.AddAsync(softOk, default);
+                await repository.MarkSucceededAsync(softOk.Id, null, DateTime.UtcNow, default);
+
+                var reminder = NewJob(3, "PatientReminder", "R1");
+                reminder.PayloadJson = "{\"SessionId\":3,\"PacienteNombre\":\"Gomez, Ana\"}";
+                await repository.AddAsync(reminder, default);
+
+                // Filtro por estado: solo fallidos.
+                var failedOnly = await repository.GetJobsAsync(DispatchJobStatus.Failed, null, null, 1, 10, default);
+                Assert.Single(failedOnly.Items);
+                Assert.Equal(1, failedOnly.TotalCount);
+                Assert.Equal("BillingFollowUp:Firm", failedOnly.Items[0].DispatchType);
+
+                // Filtro por tipo de despacho.
+                var billing = await repository.GetJobsAsync(null, "BillingFollowUp:Soft", null, 1, 10, default);
+                Assert.Single(billing.Items);
+                Assert.Equal(2, billing.Items[0].SessionId);
+
+                // Búsqueda de texto: encuentra por nombre en el payload.
+                var search = await repository.GetJobsAsync(null, null, "Gomez, Ana", 1, 10, default);
+                Assert.Equal(2, search.TotalCount);
+
+                // Paginación: página de 2, ordenada de más reciente a más antigua.
+                softOk.CreatedAtUtc = new DateTime(2026, 9, 2, 11, 0, 0, DateTimeKind.Utc);
+                reminder.CreatedAtUtc = new DateTime(2026, 9, 2, 10, 0, 0, DateTimeKind.Utc);
+                firmFail.CreatedAtUtc = new DateTime(2026, 9, 2, 9, 0, 0, DateTimeKind.Utc);
+                await context.SaveChangesAsync(default);
+
+                var page = await repository.GetJobsAsync(null, null, null, 1, 2, default);
+                Assert.Equal(3, page.TotalCount);
+                Assert.Equal(new[] { 2, 3 }, page.Items.Select(j => j.SessionId).ToArray());
+            }
+            finally
+            {
+                await context.Database.EnsureDeletedAsync();
+            }
+        }
+
+        [Fact]
+        public async Task ResetForRetryAsync_ShouldResetFailedJobs_AndIgnoreTerminalOthers()
+        {
+            var databaseName = $"KineGestion_Integration_{Guid.NewGuid():N}";
+            await using var context = await CreateDatabaseAsync(databaseName);
+            try
+            {
+                var repository = new DispatchJobRepository(context);
+
+                var failed1 = NewJob(1, "PatientReminder", "A");
+                await repository.AddAsync(failed1, default);
+                await repository.MarkFailedAsync(failed1.Id, "err1", TimeSpan.FromMinutes(1), maxAttempts: 1, DateTime.UtcNow, default);
+
+                var failed2 = NewJob(2, "BillingFollowUp:Soft", "B");
+                await repository.AddAsync(failed2, default);
+                await repository.MarkFailedAsync(failed2.Id, "err2a", TimeSpan.FromMinutes(1), maxAttempts: 3, DateTime.UtcNow.AddMinutes(-10), default);
+                await repository.MarkFailedAsync(failed2.Id, "err2b", TimeSpan.FromMinutes(1), maxAttempts: 3, DateTime.UtcNow.AddMinutes(-5), default);
+                await repository.MarkFailedAsync(failed2.Id, "err2c", TimeSpan.FromMinutes(1), maxAttempts: 3, DateTime.UtcNow.AddHours(1), default);
+
+                var succeeded = NewJob(3, "PatientReminder", "C");
+                await repository.AddAsync(succeeded, default);
+                await repository.MarkSucceededAsync(succeeded.Id, null, DateTime.UtcNow, default);
+
+                var now = new DateTime(2026, 9, 2, 15, 0, 0, DateTimeKind.Utc);
+                var resetCount = await repository.ResetForRetryAsync(new[] { failed1.Id, failed2.Id, succeeded.Id, -1 }, now, default);
+
+                Assert.Equal(2, resetCount);
+
+                var afterFailed1 = await context.DispatchJobs.AsNoTracking().SingleAsync(j => j.Id == failed1.Id);
+                Assert.Equal(DispatchJobStatus.Pending, afterFailed1.Status);
+                Assert.Equal(0, afterFailed1.Attempts);
+                Assert.Equal(now, afterFailed1.NextAttemptAtUtc);
+                Assert.Null(afterFailed1.LastError);
+
+                var afterSucceeded = await context.DispatchJobs.AsNoTracking().SingleAsync(j => j.Id == succeeded.Id);
+                Assert.Equal(DispatchJobStatus.Succeeded, afterSucceeded.Status);
+            }
+            finally
+            {
+                await context.Database.EnsureDeletedAsync();
+            }
+        }
+
+        [Fact]
+        public async Task CancelAsync_ShouldCancelOpenJobs_AndLeaveTerminalUntouched()
+        {
+            var databaseName = $"KineGestion_Integration_{Guid.NewGuid():N}";
+            await using var context = await CreateDatabaseAsync(databaseName);
+            try
+            {
+                var repository = new DispatchJobRepository(context);
+
+                var pending = NewJob(1, "PatientReminder", "P");
+                await repository.AddAsync(pending, default);
+
+                var claimed = NewJob(2, "BillingFollowUp:Reminder", "PR");
+                await repository.AddAsync(claimed, default);
+                await repository.ClaimNextBatchAsync(10, TimeSpan.FromHours(1), DateTime.UtcNow, default);
+
+                var succeeded = NewJob(3, "PatientReminder", "OK");
+                await repository.AddAsync(succeeded, default);
+                await repository.MarkSucceededAsync(succeeded.Id, null, DateTime.UtcNow, default);
+
+                var now = new DateTime(2026, 9, 2, 16, 0, 0, DateTimeKind.Utc);
+                var cancelledCount = await repository.CancelAsync(new[] { pending.Id, claimed.Id, succeeded.Id }, now, default);
+
+                Assert.Equal(2, cancelledCount);
+
+                var afterPending = await context.DispatchJobs.AsNoTracking().SingleAsync(j => j.Id == pending.Id);
+                Assert.Equal(DispatchJobStatus.Cancelled, afterPending.Status);
+                Assert.Equal(now, afterPending.ProcessedAtUtc);
+                Assert.Equal("Cancelado por el usuario", afterPending.LastError);
+
+                var afterClaimed = await context.DispatchJobs.AsNoTracking().SingleAsync(j => j.Id == claimed.Id);
+                Assert.Equal(DispatchJobStatus.Cancelled, afterClaimed.Status);
+
+                var afterSucceeded = await context.DispatchJobs.AsNoTracking().SingleAsync(j => j.Id == succeeded.Id);
+                Assert.Equal(DispatchJobStatus.Succeeded, afterSucceeded.Status);
+            }
+            finally
+            {
+                await context.Database.EnsureDeletedAsync();
+            }
+        }
     }
 }

@@ -96,7 +96,8 @@ builder.Services.AddHostedService<BillingOperationalAlertBackgroundService>();
 builder.Services.AddHostedService<BillingFollowUpAutomationBackgroundService>();
 builder.Services.AddHostedService<CacheWarmupBackgroundService>();
 builder.Services.AddHealthChecks()
-    .AddCheck<DatabaseHealthCheck>("database", tags: new[] { "ready" });
+    .AddCheck<DatabaseHealthCheck>("database", tags: new[] { "ready" })
+    .AddCheck<DispatchQueueHealthCheck>("dispatch-queue", tags: new[] { "ready" });
 
 // ─── DEPENDENCY INJECTION (Clean Architecture) ────────────────────────────────
 // Orden de registro: Repositorios primero, luego Servicios.

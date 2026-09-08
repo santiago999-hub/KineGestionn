@@ -116,7 +116,9 @@ namespace KineGestion.Data.Repositories
         public async Task CleanupTerminalAsync(DateTime olderThanUtc, CancellationToken cancellationToken)
         {
             await _context.DispatchJobs
-                .Where(j => (j.Status == DispatchJobStatus.Succeeded || j.Status == DispatchJobStatus.Failed)
+                .Where(j => (j.Status == DispatchJobStatus.Succeeded
+                        || j.Status == DispatchJobStatus.Failed
+                        || j.Status == DispatchJobStatus.Cancelled)
                     && j.ProcessedAtUtc != null
                     && j.ProcessedAtUtc < olderThanUtc)
                 .ExecuteDeleteAsync(cancellationToken);
@@ -145,6 +147,105 @@ namespace KineGestion.Data.Repositories
                 .ToDictionary(
                     g => g.Key,
                     g => (IReadOnlyList<string>)g.Select(r => r.DispatchType).Distinct().OrderBy(t => t).ToList());
+        }
+
+        public async Task<DispatchQueueStats> GetStatsAsync(DateTime stuckThresholdUtc, CancellationToken cancellationToken)
+        {
+            return new DispatchQueueStats
+            {
+                PendingCount = await _context.DispatchJobs.CountAsync(j => j.Status == DispatchJobStatus.Pending, cancellationToken),
+                ProcessingCount = await _context.DispatchJobs.CountAsync(j => j.Status == DispatchJobStatus.Processing, cancellationToken),
+                SucceededCount = await _context.DispatchJobs.CountAsync(j => j.Status == DispatchJobStatus.Succeeded, cancellationToken),
+                FailedCount = await _context.DispatchJobs.CountAsync(j => j.Status == DispatchJobStatus.Failed, cancellationToken),
+                CancelledCount = await _context.DispatchJobs.CountAsync(j => j.Status == DispatchJobStatus.Cancelled, cancellationToken),
+                StuckCount = await _context.DispatchJobs.CountAsync(
+                    j => j.Status == DispatchJobStatus.Pending && j.CreatedAtUtc < stuckThresholdUtc,
+                    cancellationToken)
+            };
+        }
+
+        public async Task<(IReadOnlyList<DispatchJob> Items, int TotalCount)> GetJobsAsync(
+            DispatchJobStatus? status,
+            string? dispatchType,
+            string? search,
+            int page,
+            int pageSize,
+            CancellationToken cancellationToken)
+        {
+            var query = _context.DispatchJobs.AsNoTracking();
+
+            if (status.HasValue)
+                query = query.Where(j => j.Status == status.Value);
+
+            if (!string.IsNullOrWhiteSpace(dispatchType))
+                query = query.Where(j => j.DispatchType == dispatchType);
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var term = search.Trim();
+                query = query.Where(j =>
+                    j.DispatchType.Contains(term)
+                    || j.LastError != null && j.LastError.Contains(term)
+                    || j.PayloadJson.Contains(term));
+            }
+
+            var totalCount = await query.CountAsync(cancellationToken);
+
+            var items = await query
+                .OrderByDescending(j => j.CreatedAtUtc)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync(cancellationToken);
+
+            return ((IReadOnlyList<DispatchJob>)items, totalCount);
+        }
+
+        public async Task<IReadOnlyList<string>> GetDistinctDispatchTypesAsync(CancellationToken cancellationToken)
+        {
+            return await _context.DispatchJobs
+                .AsNoTracking()
+                .Select(j => j.DispatchType)
+                .Distinct()
+                .OrderBy(t => t)
+                .ToListAsync(cancellationToken);
+        }
+
+        public async Task<int> ResetForRetryAsync(IReadOnlyCollection<int> ids, DateTime nowUtc, CancellationToken cancellationToken)
+        {
+            var idList = ids.Where(id => id > 0).Distinct().ToList();
+            if (idList.Count == 0)
+                return 0;
+
+            return await _context.DispatchJobs
+                .Where(j => idList.Contains(j.Id) && j.Status == DispatchJobStatus.Failed)
+                .ExecuteUpdateAsync(
+                    setters => setters
+                        .SetProperty(j => j.Status, DispatchJobStatus.Pending)
+                        .SetProperty(j => j.Attempts, 0)
+                        .SetProperty(j => j.NextAttemptAtUtc, nowUtc)
+                        .SetProperty(j => j.ClaimToken, (string?)null)
+                        .SetProperty(j => j.ProcessedAtUtc, (DateTime?)null)
+                        .SetProperty(j => j.LastError, (string?)null),
+                    cancellationToken);
+        }
+
+        public async Task<int> CancelAsync(IReadOnlyCollection<int> ids, DateTime nowUtc, CancellationToken cancellationToken)
+        {
+            var idList = ids.Where(id => id > 0).Distinct().ToList();
+            if (idList.Count == 0)
+                return 0;
+
+            return await _context.DispatchJobs
+                .Where(j => idList.Contains(j.Id)
+                    && (j.Status == DispatchJobStatus.Pending || j.Status == DispatchJobStatus.Processing))
+                .ExecuteUpdateAsync(
+                    setters => setters
+                        .SetProperty(j => j.Status, DispatchJobStatus.Cancelled)
+                        .SetProperty(j => j.ProcessedAtUtc, nowUtc)
+                        .SetProperty(j => j.ClaimToken, (string?)null)
+                        .SetProperty(j => j.NextAttemptAtUtc, (DateTime?)null)
+                        .SetProperty(j => j.LastError, "Cancelado por el usuario"),
+                    cancellationToken);
         }
     }
 }

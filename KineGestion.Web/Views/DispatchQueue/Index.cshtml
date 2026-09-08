@@ -1,0 +1,269 @@
+@using KineGestion.Core.Entities
+@model KineGestion.Web.Models.ViewModels.DispatchQueueIndexViewModel
+
+@{
+    ViewData["Title"] = "Cola de Envíos";
+    string StatusColor(DispatchJobStatus status) => status switch
+    {
+        DispatchJobStatus.Pending => "text-bg-secondary",
+        DispatchJobStatus.Processing => "text-bg-info",
+        DispatchJobStatus.Succeeded => "text-bg-success",
+        DispatchJobStatus.Failed => "text-bg-danger",
+        DispatchJobStatus.Cancelled => "text-bg-warning",
+        _ => "text-bg-secondary"
+    };
+}
+
+<div class="kg-page-header">
+    <div>
+        <h2><i class="bi bi-arrow-repeat"></i> Cola de Envíos</h2>
+        <p class="text-muted mb-0">Recordatorios y cobranzas pendientes, en proceso o fallidos. El worker procesa cada 5s.</p>
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-md-3">
+        <div class="kg-card">
+            <div class="kg-card-body d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="text-muted small">Pendientes</div>
+                    <div class="fs-4 fw-semibold">@Model.Stats.PendingCount</div>
+                </div>
+                <span class="kg-badge kg-badge-info">@(Model.Stats.PendingCount == 0 ? "Al día" : "En cola")</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="kg-card">
+            <div class="kg-card-body d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="text-muted small">En proceso (lease)</div>
+                    <div class="fs-4 fw-semibold">@Model.Stats.ProcessingCount</div>
+                </div>
+                <i class="bi bi-play-circle text-info fs-3"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="kg-card">
+            <div class="kg-card-body d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="text-muted small">Estancados</div>
+                    <div class="fs-4 fw-semibold @(Model.Stats.StuckCount > 0 ? "text-danger" : "")">@Model.Stats.StuckCount</div>
+                </div>
+                <i class="bi bi-exclamation-triangle fs-3 @(Model.Stats.StuckCount > 0 ? "text-danger" : "text-success")"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="kg-card">
+            <div class="kg-card-body d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="text-muted small">Fallidos terminales</div>
+                    <div class="fs-4 fw-semibold @(Model.Stats.FailedCount > 0 ? "text-danger" : "")">@Model.Stats.FailedCount</div>
+                </div>
+                <i class="bi bi-x-octagon fs-3 @(Model.Stats.FailedCount > 0 ? "text-danger" : "text-success")"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="kg-card">
+            <div class="kg-card-body d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="text-muted small">Exitosos</div>
+                    <div class="fs-4 fw-semibold">@Model.Stats.SucceededCount</div>
+                </div>
+                <i class="bi bi-check-circle-fill text-success fs-3"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="kg-card">
+            <div class="kg-card-body d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="text-muted small">Cancelados</div>
+                    <div class="fs-4 fw-semibold">@Model.Stats.CancelledCount</div>
+                </div>
+                <i class="bi bi-ban text-warning fs-3"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<form method="get" asp-action="Index" class="kg-card mb-3">
+    <div class="kg-card-body row g-2 align-items-end">
+        <div class="col-md-3">
+            <label class="form-label">Estado</label>
+            <select name="status" class="form-select">
+                <option value="">Todos</option>
+                @foreach (var value in Enum.GetValues<DispatchJobStatus>())
+                {
+                    <option value="@((int)value)" selected="@(Model.FilterStatus == value)">@value</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Tipo de envío</label>
+            <select name="dispatchType" class="form-select">
+                <option value="">Todos</option>
+                @foreach (var type in Model.DispatchTypes)
+                {
+                    <option value="@type" selected="@(Model.FilterDispatchType == type)">@type</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">Buscar</label>
+            <input type="text" name="search" value="@Model.Search" class="form-control" placeholder="Tipo, error o nombre de paciente..." />
+        </div>
+        <div class="col-md-2 d-grid">
+            <button type="submit" class="btn btn-primary"><i class="bi bi-funnel"></i> Filtrar</button>
+        </div>
+    </div>
+</form>
+
+@if (Model.Stats.FailedCount > 0)
+{
+    <form method="post" asp-action="RetryAllFailed" class="mb-3">
+        @Html.AntiForgeryToken()
+        <button type="submit" class="btn btn-outline-warning">
+            <i class="bi bi-arrow-counterclockwise"></i> Reintentar todos los fallidos (@Model.Stats.FailedCount)
+        </button>
+    </form>
+}
+
+<div class="kg-card mb-3">
+    <div class="kg-card-header d-flex justify-content-between align-items-center">
+        <h5 class="kg-card-header-title mb-0"><i class="bi bi-list-check"></i> Jobs del despachador</h5>
+        <span class="kg-badge kg-badge-info">@Model.TotalCount jobs</span>
+    </div>
+    <div class="kg-card-body">
+        @if (!Model.Jobs.Any())
+        {
+            <div class="alert kg-alert-success mb-0">No hay jobs que coincidan con el filtro.</div>
+        }
+        else
+        {
+            <form method="post" asp-action="RetrySelected" id="bulkForm">
+                @Html.AntiForgeryToken()
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead>
+                            <tr>
+                                <th style="width:40px;"><input type="checkbox" id="selectAll" /></th>
+                                <th>#</th>
+                                <th>Sesión</th>
+                                <th>Tipo</th>
+                                <th>Estado</th>
+                                <th>Intentos</th>
+                                <th>Error</th>
+                                <th>Creado (UTC)</th>
+                                <th>Próximo intento</th>
+                                <th style="width:180px;">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var job in Model.Jobs)
+                            {
+                                <tr>
+                                    <td><input type="checkbox" name="ids" value="@job.Id" class="job-check" /></td>
+                                    <td>@job.Id</td>
+                                    <td>@job.SessionId</td>
+                                    <td><small>@job.DispatchType</small></td>
+                                    <td><span class="badge @StatusColor(job.Status)">@job.Status</span></td>
+                                    <td>@job.Attempts</td>
+                                    <td style="max-width:280px;">
+                                        @if (!string.IsNullOrWhiteSpace(job.LastError))
+                                        {
+                                            <small class="text-danger text-wrap d-inline-block"
+                                                   title="@job.LastError">@(job.LastError.Length > 80 ? job.LastError[..80] + "..." : job.LastError)</small>
+                                        }
+                                        else
+                                        {
+                                            <small class="text-muted">-</small>
+                                        }
+                                    </td>
+                                    <td><small>@(job.CreatedAtUtc.ToString("dd/MM/yyyy HH:mm"))</small></td>
+                                    <td>
+                                        @if (job.NextAttemptAtUtc.HasValue)
+                                        {
+                                            <small>@job.NextAttemptAtUtc.Value.ToString("dd/MM/yyyy HH:mm")</small>
+                                        }
+                                        else
+                                        {
+                                            <small class="text-muted">-</small>
+                                        }
+                                    </td>
+                                    <td>
+                                        <div class="d-flex gap-1">
+                                            @if (job.Status == DispatchJobStatus.Failed)
+                                            {
+                                                <form method="post" asp-action="RetrySelected">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="ids" value="@job.Id" />
+                                                    <button type="submit" class="btn btn-sm btn-outline-warning" title="Reintentar">
+                                                        <i class="bi bi-arrow-counterclockwise"></i>
+                                                    </button>
+                                                </form>
+                                            }
+                                            @if (job.Status == DispatchJobStatus.Pending || job.Status == DispatchJobStatus.Processing)
+                                            {
+                                                <form method="post" asp-action="CancelSelected">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="ids" value="@job.Id" />
+                                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Cancelar (no enviar)">
+                                                        <i class="bi bi-x-lg"></i>
+                                                    </button>
+                                                </form>
+                                            }
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center mt-3">
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-outline-warning" formaction="@Url.Action("RetrySelected")">
+                            <i class="bi bi-arrow-counterclockwise"></i> Reintentar seleccionados
+                        </button>
+                        <button type="submit" class="btn btn-outline-danger" formaction="@Url.Action("CancelSelected")">
+                            <i class="bi bi-x-lg"></i> Cancelar seleccionados
+                        </button>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        @if (Model.Page > 1)
+                        {
+                            <a class="btn btn-sm btn-outline-secondary"
+                               asp-action="Index"
+                               asp-route-status="@Model.FilterStatus"
+                               asp-route-dispatchType="@Model.FilterDispatchType"
+                               asp-route-search="@Model.Search"
+                               asp-route-page="@(Model.Page - 1)">&laquo; Ant</a>
+                        }
+                        <span class="small text-muted">Página @Model.Page de @Model.TotalPages</span>
+                        @if (Model.Page < Model.TotalPages)
+                        {
+                            <a class="btn btn-sm btn-outline-secondary"
+                               asp-action="Index"
+                               asp-route-status="@Model.FilterStatus"
+                               asp-route-dispatchType="@Model.FilterDispatchType"
+                               asp-route-search="@Model.Search"
+                               asp-route-page="@(Model.Page + 1)">Sig &raquo;</a>
+                        }
+                    </div>
+                </div>
+            </form>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.getElementById('selectAll').addEventListener('change', function () {
+            document.querySelectorAll('.job-check').forEach(cb => cb.checked = this.checked);
+        });
+    </script>
+}
