@@ -13,7 +13,7 @@ namespace KineGestion.Tests
         public async Task SaveChangesAsync_ShouldPersistRealEntityId_ForCreateAuditLog()
         {
             var databaseName = $"KineGestion_Audit_{Guid.NewGuid():N}";
-            var connectionString = $"Server=localhost\\SQLEXPRESS;Database={databaseName};Trusted_Connection=True;TrustServerCertificate=True";
+            var connectionString = TestConnection.For(databaseName);
             var options = new DbContextOptionsBuilder<AppDbContext>()
                 .UseSqlServer(connectionString)
                 .Options;
@@ -60,7 +60,7 @@ namespace KineGestion.Tests
         public async Task SaveChangesAsync_ShouldRegisterSoftDeleteAsDelete_ForProfessionalAndOffice()
         {
             var databaseName = $"KineGestion_Audit_{Guid.NewGuid():N}";
-            var connectionString = $"Server=localhost\\SQLEXPRESS;Database={databaseName};Trusted_Connection=True;TrustServerCertificate=True";
+            var connectionString = TestConnection.For(databaseName);
             var options = new DbContextOptionsBuilder<AppDbContext>()
                 .UseSqlServer(connectionString)
                 .Options;

@@ -41,6 +41,7 @@ namespace KineGestion.Data.Context
         public DbSet<Office> Offices { get; set; }
         public DbSet<Equipment> Equipments { get; set; }
         public DbSet<AuditLog> AuditLogs { get; set; }
+        public DbSet<DispatchJob> DispatchJobs { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -188,6 +189,25 @@ namespace KineGestion.Data.Context
                 entity.HasIndex(a => new { a.EntityName, a.EntityId, a.ChangedAt });
                 entity.HasIndex(a => a.ChangedAt);
             });
+
+            modelBuilder.Entity<DispatchJob>(entity =>
+            {
+                entity.HasKey(j => j.Id);
+                entity.Property(j => j.DispatchType).IsRequired().HasMaxLength(64);
+                entity.Property(j => j.PayloadJson).IsRequired();
+                entity.Property(j => j.PayloadHash).IsRequired().HasMaxLength(64);
+                entity.Property(j => j.LastError).HasMaxLength(2000);
+
+                // Deduplicación a nivel BD de jobs abiertos: un solo job abierto por
+                // (sesión, tipo, contenido). Evita doble envío ante doble click o
+                // carreras de productores concurrentes.
+                entity.HasIndex(j => new { j.SessionId, j.DispatchType, j.PayloadHash })
+                    .IsUnique()
+                    .HasFilter("[Status] IN (0, 1)");
+
+                entity.HasIndex(j => new { j.Status, j.NextAttemptAtUtc, j.CreatedAtUtc });
+                entity.HasIndex(j => j.CreatedAtUtc);
+            });
         }
 
         public override int SaveChanges()
@@ -299,6 +319,7 @@ namespace KineGestion.Data.Context
             var trackedEntries = ChangeTracker
                 .Entries()
                 .Where(e => e.Entity is not AuditLog
+                            && e.Entity is not DispatchJob
                             && e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted
                             && !(e.Entity is IdentityUser)
                             && !e.Metadata.IsOwned())

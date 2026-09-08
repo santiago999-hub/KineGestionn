@@ -89,9 +89,11 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddSingleton<ICurrentUserProvider, HttpContextCurrentUserProvider>();
 builder.Services.AddSingleton<IEncryptionService, DataProtectionEncryptionService>();
 builder.Services.AddMemoryCache();builder.Services.AddSingleton<RequestMetricsStore>();
-builder.Services.AddSingleton<IReminderDispatchQueue, ReminderDispatchQueue>();
+builder.Services.AddScoped<IDispatchJobRepository, DispatchJobRepository>();
+builder.Services.AddScoped<IReminderDispatchQueue, ReminderDispatchQueue>();
 builder.Services.AddHostedService<ReminderDispatchBackgroundService>();
 builder.Services.AddHostedService<BillingOperationalAlertBackgroundService>();
+builder.Services.AddHostedService<BillingFollowUpAutomationBackgroundService>();
 builder.Services.AddHostedService<CacheWarmupBackgroundService>();
 builder.Services.AddHealthChecks()
     .AddCheck<DatabaseHealthCheck>("database", tags: new[] { "ready" });
@@ -149,6 +151,7 @@ builder.Services.AddHttpClient();
 builder.Services.AddScoped<IReminderDeliveryService, ReminderDeliveryService>();
 builder.Services.AddScoped<IBillingOperationalAlertService, BillingOperationalAlertService>();
 builder.Services.AddScoped<IBillingFollowUpService, BillingFollowUpService>();
+builder.Services.AddScoped<IBillingFollowUpAutomationService, BillingFollowUpAutomationService>();
 
 // ─── IDENTITY SERVICE (R5: desacoplamiento de UsersController) ────────────────
 // IIdentityService abstrae la lógica de UserManager/RoleManager del controlador.

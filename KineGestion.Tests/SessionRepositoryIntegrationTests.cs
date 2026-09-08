@@ -16,7 +16,7 @@ namespace KineGestion.Tests
         public async Task CountByStatusOnDateAsync_ShouldCountOnlyMatchingStatusAndDay()
         {
             var databaseName = $"KineGestion_Integration_{Guid.NewGuid():N}";
-            var connectionString = $"Server=localhost\\SQLEXPRESS;Database={databaseName};Trusted_Connection=True;TrustServerCertificate=True";
+            var connectionString = TestConnection.For(databaseName);
             var options = new DbContextOptionsBuilder<AppDbContext>()
                 .UseSqlServer(connectionString)
                 .Options;
@@ -127,7 +127,7 @@ namespace KineGestion.Tests
         public async Task AddAsync_ShouldThrowBusinessValidationException_WhenUniqueIndexConflictsWithCountBasedNumbering()
         {
             var databaseName = $"KineGestion_Integration_{Guid.NewGuid():N}";
-            var connectionString = $"Server=localhost\\SQLEXPRESS;Database={databaseName};Trusted_Connection=True;TrustServerCertificate=True";
+            var connectionString = TestConnection.For(databaseName);
             var options = new DbContextOptionsBuilder<AppDbContext>()
                 .UseSqlServer(connectionString)
                 .Options;
@@ -227,7 +227,7 @@ namespace KineGestion.Tests
         public async Task MarkCompletedPendingAsPaidBatchAsync_ShouldUpdateOnlyEligibleSessions_UsingSetBasedUpdate()
         {
             var databaseName = $"KineGestion_Integration_{Guid.NewGuid():N}";
-            var connectionString = $"Server=localhost\\SQLEXPRESS;Database={databaseName};Trusted_Connection=True;TrustServerCertificate=True";
+            var connectionString = TestConnection.For(databaseName);
             var options = new DbContextOptionsBuilder<AppDbContext>()
                 .UseSqlServer(connectionString)
                 .Options;
@@ -352,7 +352,7 @@ namespace KineGestion.Tests
         public async Task GetBillingFollowUpCandidatesAsync_ShouldReturnCompletedPendingSessionsInAgeWindow()
         {
             var databaseName = $"KineGestion_Integration_{Guid.NewGuid():N}";
-            var connectionString = $"Server=localhost\\SQLEXPRESS;Database={databaseName};Trusted_Connection=True;TrustServerCertificate=True";
+            var connectionString = TestConnection.For(databaseName);
             var options = new DbContextOptionsBuilder<AppDbContext>()
                 .UseSqlServer(connectionString)
                 .Options;
@@ -479,7 +479,7 @@ namespace KineGestion.Tests
         public async Task GetKpiSegmentsByProfessionalAsync_ShouldAggregateKpisPerProfessional()
         {
             var databaseName = $"KineGestion_Integration_{Guid.NewGuid():N}";
-            var connectionString = $"Server=localhost\\SQLEXPRESS;Database={databaseName};Trusted_Connection=True;TrustServerCertificate=True";
+            var connectionString = TestConnection.For(databaseName);
             var options = new DbContextOptionsBuilder<AppDbContext>()
                 .UseSqlServer(connectionString)
                 .Options;
@@ -591,7 +591,7 @@ namespace KineGestion.Tests
         public async Task GetKpiSegmentsByTimeSlotAsync_ShouldAggregateKpisByHour()
         {
             var databaseName = $"KineGestion_Integration_{Guid.NewGuid():N}";
-            var connectionString = $"Server=localhost\\SQLEXPRESS;Database={databaseName};Trusted_Connection=True;TrustServerCertificate=True";
+            var connectionString = TestConnection.For(databaseName);
             var options = new DbContextOptionsBuilder<AppDbContext>()
                 .UseSqlServer(connectionString)
                 .Options;
@@ -687,7 +687,7 @@ namespace KineGestion.Tests
         public async Task CountLateCancellationsInRangeAsync_ShouldCountOnlyCancelationsWithLessThan24hLead()
         {
             var databaseName = $"KineGestion_Integration_{Guid.NewGuid():N}";
-            var connectionString = $"Server=localhost\\SQLEXPRESS;Database={databaseName};Trusted_Connection=True;TrustServerCertificate=True";
+            var connectionString = TestConnection.For(databaseName);
             var options = new DbContextOptionsBuilder<AppDbContext>()
                 .UseSqlServer(connectionString)
                 .Options;
@@ -776,7 +776,7 @@ namespace KineGestion.Tests
         public async Task GetSessionFunnelOutcomesAsync_ShouldClassifyConfirmedAndCanceled_WithinSentRange()
         {
             var databaseName = $"KineGestion_Integration_{Guid.NewGuid():N}";
-            var connectionString = $"Server=localhost\\SQLEXPRESS;Database={databaseName};Trusted_Connection=True;TrustServerCertificate=True";
+            var connectionString = TestConnection.For(databaseName);
             var options = new DbContextOptionsBuilder<AppDbContext>()
                 .UseSqlServer(connectionString)
                 .Options;

@@ -14,7 +14,7 @@ namespace KineGestion.Tests
         public async Task GetPagedAsync_ShouldFilterByActionAndDateRange()
         {
             var databaseName = $"KineGestion_AuditRepo_{Guid.NewGuid():N}";
-            var connectionString = $"Server=localhost\\SQLEXPRESS;Database={databaseName};Trusted_Connection=True;TrustServerCertificate=True";
+            var connectionString = TestConnection.For(databaseName);
             var options = new DbContextOptionsBuilder<AppDbContext>()
                 .UseSqlServer(connectionString)
                 .Options;
