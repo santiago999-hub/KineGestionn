@@ -1,17 +1,17 @@
 # KineGestion — Sesión de trabajo
 
 ## Objective
-- Cerrar debilidades operativas de la app en tanda. Hechas: **#1 observabilidad de la cola de despachos** (commit `79cc656`) y **#2 despliegue containerizado** (commit `5b5c2eb`).
+- Cerrar debilidades operativas de la app en tanda. Hechas: **#1 observabilidad de la cola de despachos** (`79cc656`), **#2 despliegue containerizado** (`5b5c2eb`) y **#3 analítica de auditoría** (`c820840`).
 - Antes se cerró la tanda de calidad de tests pedida por el usuario: test real de autorización, cobertura de Billing y paralelismo reactivado — commit `4ea435b`.
 
 ## Important Details
 - Repo: `C:\Users\Santy\OneDrive\Desktop\Nueva carpeta` — solución `KineGestion.sln`; .NET 8; web SDK con implicit usings.
 - Remote: `https://github.com/santiago999-hub/KineGestionn.git`, branch `main`. Commits locales y origin sincronizados.
-- Últimos commits (orden): `5b5c2eb` "feat: despliegue containerizado (Dockerfile, compose y publicacion de imagen a GHCR)" → `79cc656` "feat: tablero de la cola de despachos (stats, reintentos manuales y alerta de jobs estancados)" → `4ea435b` "refactor: calidad de tests (cobranza cubierta, paralelismo reactivado)" → `0d1e2f2` "feat: cola durable de despachos, automatizacion D+1 de cobranza y CI".
+- Últimos commits (orden): `c820840` "feat: analitica de auditoria (resumen por accion, entidad, usuario y tendencia diaria)" → `5b5c2eb` "feat: despliegue containerizado (Dockerfile, compose y publicacion de imagen a GHCR)" → `79cc656` "feat: tablero de la cola de despachos (stats, reintentos manuales y alerta de jobs estancados)" → `4ea435b` "refactor: calidad de tests (cobranza cubierta, paralelismo reactivado)" → `0d1e2f2` "feat: cola durable de despachos, automatizacion D+1 de cobranza y CI".
 - Estilo de commits: `feat:`/`refactor:` en minúscula, español.
 - Entorno Windows PowerShell: **`rg` NO está disponible**; usar la herramienta `grep` dedicada o `Select-String`.
 - Tests de integración: `TestConnection.For(databaseName)` (local `Server=localhost\SQLEXPRESS`, CI con env `KINEGESTION_TEST_CONNECTION` + placeholder `{DatabaseName}`); DB aislada por test; CI filtra con `FullyQualifiedName~Integration`.
-- Estado de suites (verde): KineGestion.Tests **115/115**, Web.Tests **162/162**, build Release 0w/0e.
+- Estado de suites (verde): KineGestion.Tests **117/117** (115 + 2 analítica), Web.Tests **165/165** (162 + 3 analytics controller), build Release 0w/0e.
 - Despliegue: `Dockerfile` multi-stage (`sdk:8.0` build → `aspnet:8.0` runtime, usuario no-root, puerto 8080, keyring en `/app/keyring` sobreescribible); `docker-compose.yml` (SQL Server 2022 + web, healthchecks, volúmenes `kinegestion-sql` y `kinegestion-keys`, envs `MSSQL_SA_PASSWORD`/`KINEGESTION_ADMIN_*` con defaults demo); CI job `publish-container` pushea imagen a **GHCR** (`ghcr.io/{repo}:latest` + `:sha`) solo en push a `main` tras tests.
 - **Docker NO está instalado en la máquina local** — el build real de la imagen se valida vía CI al pushear.
 - Program.cs: nuevo flag `Database:ApplyMigrationsOnStartup` (default false; ``true en compose) → aplica `MigrateAsync` antes del seed. La validación de seguridad de producción (`ValidateProductionSafetyConfiguration`) sigue activa: conn string y admin password no pueden ser placeholders/defaults inseguros.
@@ -23,6 +23,7 @@
 - **Paso 3 — Paralelismo reactivado:** `QueryCacheTests` sin `ClearAll()` con keys `querycache-test:*`; 5 servicios usan `InvalidatePrefix`; eliminado `KineGestion.Tests/AssemblyInfo.cs`.
 - **Feature #1 — Tablero cola de despachos** (`79cc656`, 13 archivos, +984/−4): `DispatchJobStatus.Cancelled=4`; `DispatchQueueStats`; 5 métodos nuevos en `IDispatchJobRepository` + impl (clearup incluye `Cancelled`); `DispatchQueueController` (Index/RetrySelected/RetryAllFailed/CancelSelected); vista `Index.cshtml`; health check `dispatch-queue` (Degraded con jobs estancados); nav + `appsettings.json` (`StuckAlertThresholdMinutes:30`, `AdminPageSize:20`). Tests: controller (5) + integración repo (4).
 - **Feature #2 — Despliegue** (`5b5c2eb`, 5 archivos +204/−1): `.dockerignore`, `Dockerfile`, `docker-compose.yml`, flag de migraciones en `Program.cs`, job `publish-container` en `ci.yml`.
+- **Feature #3 — Analítica de auditoría** (`c820840`, 11 archivos +556): DTO `AuditAnalyticsData` (ByAction/ByEntity/ByUser + DailyTrend); `IAuditLogRepository.GetAnalyticsAsync` + impl SQL agregada (ventana default 90 días, rank desc; `GetAnalyticsAsync` normaliza rango invertido); `AuditController.Analytics` GET (`/Audit/Analytics`), vista `Views/Audit/Analytics.cshtml` (cards con barras CSS sobre Bootstrap `progress`, labels localizados) y nav "Analítica de Auditoría". Tests: 3 unit del controller + 2 de integración del repo.
 
 ### Active
 - (none)
@@ -34,13 +35,21 @@
 - Debilidades restantes (preguntar al usuario por cuál seguir):
   1. ✅ Observabilidad de envíos (hecho).
   2. ✅ Despliegue (hecho).
-  3. Analítica de auditoría (consultas sobre `AuditTrail` JSON).
-  4. Retención/rotación de auditoría.
+  3. ✅ Analítica de auditoría (hecho).
+  4. Retención/rotación de auditoría (archivo/limpieza de `AuditLog` viejos; sugerencia: job del servicio de limpieza con `ChangedAt < retention` — el patrón de limpieza ya existe en `CleanupTerminalAsync` de la cola).
   5. SMTP único legacy (poco testeable).
 - Si se testea la imagen: `docker compose up -d` en una máquina con Docker, luego revisar `/health/ready` en `http://localhost:8080` (la CI ya cubre el build).
 
 ## Relevant Files
-- `Dockerfile`, `.dockerignore`, `docker-compose.yml` — despliegue containerizado (nuevos).
+- `KineGestion.Core/DTOs/AuditAnalyticsData.cs` — agrupaciones de analítica (nuevo).
+- `KineGestion.Data/Repositories/AuditLogRepository.cs` — `GetAnalyticsAsync` + `NormalizeDateRange`.
+- `KineGestion.Web/Controllers/AuditController.cs` — acción `Analytics`.
+- `KineGestion.Web/Views/Audit/Analytics.cshtml` — dashboard de analítica (nuevo).
+- `KineGestion.Web/Models/ViewModels/AuditAnalyticsViewModel.cs` — viewmodel (nuevo).
+- `KineGestion.Web/Views/Shared/_Layout.cshtml` — nav "Analítica de Auditoría".
+- `KineGestion.Tests/AuditLogAnalyticsIntegrationTests.cs` — 2 tests de integración (nuevo).
+- `KineGestion.Web.Tests/AuditControllerTests.cs` — +3 tests de Analytics.
+- `Dockerfile`, `.dockerignore`, `docker-compose.yml` — despliegue containerizado.
 - `.github/workflows/ci.yml` — job `publish-container` (GHCR, solo main).
 - `KineGestion.Web/Program.cs` — flag `Database:ApplyMigrationsOnStartup`.
 - `KineGestion.Web/Controllers/DispatchQueueController.cs` — tablero de cola.
