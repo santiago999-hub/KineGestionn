@@ -108,7 +108,7 @@ namespace KineGestion.Web.Tests
             Assert.Equal("admin@clinic.com", queuedItem!.PacienteEmail);
             Assert.Equal("BillingBatchLowEffectivenessAlert", queuedItem.DispatchType);
             Assert.Equal("OperationalAlert", queuedItem.AuditEntityName);
-            Assert.Contains("Umbral configurado: 70,00%", queuedItem.EmailBodyOverride);
+            Assert.Contains($"Umbral configurado: {70m:N2}%", queuedItem.EmailBodyOverride);
         }
 
         [Fact]
