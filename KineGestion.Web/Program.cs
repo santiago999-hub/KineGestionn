@@ -151,6 +151,7 @@ builder.Services.AddScoped<IAuditLogRepository, AuditLogRepository>();
 builder.Services.AddScoped<IAuditLogService, AuditLogService>();
 builder.Services.AddHttpClient();
 builder.Services.AddScoped<IReminderDeliveryService, ReminderDeliveryService>();
+builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();
 builder.Services.AddScoped<IBillingOperationalAlertService, BillingOperationalAlertService>();
 builder.Services.AddScoped<IBillingFollowUpService, BillingFollowUpService>();
 builder.Services.AddScoped<IBillingFollowUpAutomationService, BillingFollowUpAutomationService>();

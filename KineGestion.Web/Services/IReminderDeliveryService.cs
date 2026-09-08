@@ -1,8 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.Net;
 using System.Net.Http.Json;
-using System.Net.Mail;
 using System.Text;
 
 namespace KineGestion.Web.Services
@@ -51,15 +49,18 @@ namespace KineGestion.Web.Services
     {
         private readonly IConfiguration _configuration;
         private readonly IHttpClientFactory _httpClientFactory;
+        private readonly IEmailSender _emailSender;
         private readonly ILogger<ReminderDeliveryService> _logger;
 
         public ReminderDeliveryService(
             IConfiguration configuration,
             IHttpClientFactory httpClientFactory,
+            IEmailSender emailSender,
             ILogger<ReminderDeliveryService> logger)
         {
             _configuration = configuration;
             _httpClientFactory = httpClientFactory;
+            _emailSender = emailSender;
             _logger = logger;
         }
 
@@ -120,20 +121,7 @@ namespace KineGestion.Web.Services
                 return;
             }
 
-            var host = _configuration["Reminders:Email:SmtpHost"];
-            var port = OperationalConfig.ReadBoundedInt(
-                _configuration,
-                _logger,
-                "Reminders:Email:SmtpPort",
-                defaultValue: 587,
-                min: 1,
-                max: 65535);
-            var user = _configuration["Reminders:Email:Username"];
-            var pass = _configuration["Reminders:Email:Password"];
-            var from = _configuration["Reminders:Email:From"];
-            var useSsl = _configuration.GetValue<bool?>("Reminders:Email:EnableSsl") ?? true;
-
-            if (string.IsNullOrWhiteSpace(host) || string.IsNullOrWhiteSpace(from))
+            if (!_emailSender.IsConfigured)
             {
                 result.Errors.Add("Canal email habilitado, pero falta configuración SmtpHost o From.");
                 return;
@@ -143,23 +131,13 @@ namespace KineGestion.Web.Services
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                using var smtp = new SmtpClient(host, port)
+                await _emailSender.SendAsync(new EmailEnvelope
                 {
-                    EnableSsl = useSsl,
-                    DeliveryMethod = SmtpDeliveryMethod.Network
-                };
-
-                if (!string.IsNullOrWhiteSpace(user))
-                    smtp.Credentials = new NetworkCredential(user, pass ?? string.Empty);
-
-                using var mail = new MailMessage(from, request.PacienteEmail)
-                {
+                    To = request.PacienteEmail,
                     Subject = subject,
-                    Body = body,
-                    IsBodyHtml = false
-                };
+                    Body = body
+                }, cancellationToken);
 
-                await smtp.SendMailAsync(mail);
                 result.EmailSent = true;
             }
             catch (Exception ex)

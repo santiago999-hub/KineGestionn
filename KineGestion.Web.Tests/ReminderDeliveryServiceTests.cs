@@ -18,12 +18,13 @@ namespace KineGestion.Web.Tests
         public async Task SendAsync_ShouldReturnError_WhenNoChannelEnabled()
         {
             var service = BuildService(
+                new Mock<IEmailSender>(),
                 new Dictionary<string, string?>
                 {
                     ["Reminders:Email:Enabled"] = "false",
                     ["Reminders:WhatsApp:Enabled"] = "false"
                 },
-                new CaptureHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)));
+                new CaptureHandler((_, _) => Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK))));
 
             var result = await service.SendAsync(BuildRequest());
 
@@ -35,12 +36,13 @@ namespace KineGestion.Web.Tests
         public async Task SendAsync_ShouldReturnError_WhenWhatsAppEnabledWithoutApiUrl()
         {
             var service = BuildService(
+                new Mock<IEmailSender>(),
                 new Dictionary<string, string?>
                 {
                     ["Reminders:Email:Enabled"] = "false",
                     ["Reminders:WhatsApp:Enabled"] = "true"
                 },
-                new CaptureHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)));
+                new CaptureHandler((_, _) => Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK))));
 
             var result = await service.SendAsync(BuildRequest());
 
@@ -52,15 +54,16 @@ namespace KineGestion.Web.Tests
         public async Task SendAsync_ShouldUseWhatsAppTemplate_WithPlaceholderReplacement()
         {
             string? capturedText = null;
-            var handler = new CaptureHandler(req =>
+            var handler = new CaptureHandler(async (req, ct) =>
             {
-                var payloadJson = req.Content!.ReadAsStringAsync().GetAwaiter().GetResult();
+                var payloadJson = await req.Content!.ReadAsStringAsync(ct);
                 using var payload = JsonDocument.Parse(payloadJson);
                 capturedText = payload.RootElement.GetProperty("text").GetString();
                 return new HttpResponseMessage(HttpStatusCode.OK);
             });
 
             var service = BuildService(
+                new Mock<IEmailSender>(),
                 new Dictionary<string, string?>
                 {
                     ["Reminders:Email:Enabled"] = "false",
@@ -87,15 +90,16 @@ namespace KineGestion.Web.Tests
         public async Task SendAsync_ShouldUseDefaultBody_WhenTemplateMissing()
         {
             string? capturedText = null;
-            var handler = new CaptureHandler(req =>
+            var handler = new CaptureHandler(async (req, ct) =>
             {
-                var payloadJson = req.Content!.ReadAsStringAsync().GetAwaiter().GetResult();
+                var payloadJson = await req.Content!.ReadAsStringAsync(ct);
                 using var payload = JsonDocument.Parse(payloadJson);
                 capturedText = payload.RootElement.GetProperty("text").GetString();
                 return new HttpResponseMessage(HttpStatusCode.OK);
             });
 
             var service = BuildService(
+                new Mock<IEmailSender>(),
                 new Dictionary<string, string?>
                 {
                     ["Reminders:Email:Enabled"] = "false",
@@ -119,13 +123,14 @@ namespace KineGestion.Web.Tests
         public async Task SendAsync_ShouldReportMissingPhone_WhenWhatsAppEnabled()
         {
             var service = BuildService(
+                new Mock<IEmailSender>(),
                 new Dictionary<string, string?>
                 {
                     ["Reminders:Email:Enabled"] = "false",
                     ["Reminders:WhatsApp:Enabled"] = "true",
                     ["Reminders:WhatsApp:ApiUrl"] = "https://api.whatsapp.test/send"
                 },
-                new CaptureHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)));
+                new CaptureHandler((_, _) => Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK))));
 
             var req = BuildRequest();
             req.PacienteTelefono = null;
@@ -140,15 +145,16 @@ namespace KineGestion.Web.Tests
         public async Task SendAsync_ShouldUseOverrideContent_WhenOperationalAlertIsQueued()
         {
             string? capturedText = null;
-            var handler = new CaptureHandler(req =>
+            var handler = new CaptureHandler(async (req, ct) =>
             {
-                var payloadJson = req.Content!.ReadAsStringAsync().GetAwaiter().GetResult();
+                var payloadJson = await req.Content!.ReadAsStringAsync(ct);
                 using var payload = JsonDocument.Parse(payloadJson);
                 capturedText = payload.RootElement.GetProperty("text").GetString();
                 return new HttpResponseMessage(HttpStatusCode.OK);
             });
 
             var service = BuildService(
+                new Mock<IEmailSender>(),
                 new Dictionary<string, string?>
                 {
                     ["Reminders:Email:Enabled"] = "false",
@@ -166,7 +172,113 @@ namespace KineGestion.Web.Tests
             Assert.Equal("ALERTA OPERATIVA", capturedText);
         }
 
-        private static ReminderDeliveryService BuildService(Dictionary<string, string?> values, HttpMessageHandler handler)
+        [Fact]
+        public async Task SendAsync_WhenEmailEnabled_ShouldForwardEnvelopeToSender()
+        {
+            EmailEnvelope? captured = null;
+            var emailSender = new Mock<IEmailSender>();
+            emailSender.SetupGet(s => s.IsConfigured).Returns(true);
+            emailSender
+                .Setup(s => s.SendAsync(It.IsAny<EmailEnvelope>(), It.IsAny<CancellationToken>()))
+                .Callback<EmailEnvelope, CancellationToken>((envelope, _) => captured = envelope)
+                .Returns(Task.CompletedTask);
+
+            var service = BuildService(
+                emailSender,
+                new Dictionary<string, string?>
+                {
+                    ["Reminders:Email:Enabled"] = "true",
+                    ["Reminders:WhatsApp:Enabled"] = "false"
+                },
+                new CaptureHandler((_, _) => Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK))));
+
+            var result = await service.SendAsync(BuildRequest());
+
+            Assert.True(result.EmailSent);
+            Assert.True(result.AnyChannelSent);
+            Assert.NotNull(captured);
+            Assert.Equal("juan@test.com", captured.To);
+            Assert.Contains("Perez, Juan", captured.Body);
+            Assert.Contains("https://confirm.test", captured.Body);
+            emailSender.Verify(s => s.SendAsync(It.IsAny<EmailEnvelope>(), It.IsAny<CancellationToken>()), Times.Once);
+        }
+
+        [Fact]
+        public async Task SendAsync_WhenEmailEnabledAndSenderFails_ShouldRecordError()
+        {
+            var emailSender = new Mock<IEmailSender>();
+            emailSender.SetupGet(s => s.IsConfigured).Returns(true);
+            emailSender
+                .Setup(s => s.SendAsync(It.IsAny<EmailEnvelope>(), It.IsAny<CancellationToken>()))
+                .Throws(new InvalidOperationException("smtp down"));
+
+            var service = BuildService(
+                emailSender,
+                new Dictionary<string, string?>
+                {
+                    ["Reminders:Email:Enabled"] = "true",
+                    ["Reminders:WhatsApp:Enabled"] = "false"
+                },
+                new CaptureHandler((_, _) => Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK))));
+
+            var result = await service.SendAsync(BuildRequest());
+
+            Assert.False(result.EmailSent);
+            Assert.False(result.AnyChannelSent);
+            Assert.Contains("smtp down", string.Join(" | ", result.Errors), StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public async Task SendAsync_WhenEmailEnabledButNotConfigured_ShouldRecordConfigurationError()
+        {
+            var emailSender = new Mock<IEmailSender>();
+            emailSender.SetupGet(s => s.IsConfigured).Returns(false);
+
+            var service = BuildService(
+                emailSender,
+                new Dictionary<string, string?>
+                {
+                    ["Reminders:Email:Enabled"] = "true",
+                    ["Reminders:WhatsApp:Enabled"] = "false"
+                },
+                new CaptureHandler((_, _) => Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK))));
+
+            var result = await service.SendAsync(BuildRequest());
+
+            Assert.False(result.EmailSent);
+            Assert.Contains("falta configuración SmtpHost o From", string.Join(" | ", result.Errors), StringComparison.OrdinalIgnoreCase);
+            emailSender.Verify(s => s.SendAsync(It.IsAny<EmailEnvelope>(), It.IsAny<CancellationToken>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task SendAsync_WhenEmailEnabledAndPatientWithoutEmail_ShouldReportMissingEmail()
+        {
+            var emailSender = new Mock<IEmailSender>();
+            emailSender.SetupGet(s => s.IsConfigured).Returns(true);
+
+            var service = BuildService(
+                emailSender,
+                new Dictionary<string, string?>
+                {
+                    ["Reminders:Email:Enabled"] = "true",
+                    ["Reminders:WhatsApp:Enabled"] = "false"
+                },
+                new CaptureHandler((_, _) => Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK))));
+
+            var request = BuildRequest();
+            request.PacienteEmail = null;
+
+            var result = await service.SendAsync(request);
+
+            Assert.False(result.EmailSent);
+            Assert.Contains("paciente sin email", string.Join(" | ", result.Errors), StringComparison.OrdinalIgnoreCase);
+            emailSender.Verify(s => s.SendAsync(It.IsAny<EmailEnvelope>(), It.IsAny<CancellationToken>()), Times.Never);
+        }
+
+        private static ReminderDeliveryService BuildService(
+            Mock<IEmailSender> emailSender,
+            Dictionary<string, string?> values,
+            HttpMessageHandler handler)
         {
             var config = new ConfigurationBuilder()
                 .AddInMemoryCollection(values)
@@ -178,7 +290,7 @@ namespace KineGestion.Web.Tests
                 .Setup(f => f.CreateClient(It.IsAny<string>()))
                 .Returns(new HttpClient(handler));
 
-            return new ReminderDeliveryService(config, httpFactory.Object, logger.Object);
+            return new ReminderDeliveryService(config, httpFactory.Object, emailSender.Object, logger.Object);
         }
 
         private static ReminderDeliveryRequest BuildRequest() => new()
@@ -196,18 +308,15 @@ namespace KineGestion.Web.Tests
 
         private sealed class CaptureHandler : HttpMessageHandler
         {
-            private readonly Func<HttpRequestMessage, HttpResponseMessage> _handler;
+            private readonly Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>> _handler;
 
-            public CaptureHandler(Func<HttpRequestMessage, HttpResponseMessage> handler)
+            public CaptureHandler(Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>> handler)
             {
                 _handler = handler;
             }
 
             protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
-            {
-                var response = _handler(request);
-                return Task.FromResult(response);
-            }
+                => _handler(request, cancellationToken);
         }
     }
 }
