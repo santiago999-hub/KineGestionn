@@ -1,0 +1,197 @@
+@model KineGestion.Web.Models.ViewModels.AuditAnalyticsViewModel
+@using KineGestion.Web.Localization
+@using KineGestion.Web.Models.ViewModels
+
+@{
+    ViewData["Title"] = AuditText.Get("Audit.Analytics.Title", "Analítica de auditoría");
+}
+
+<div class="kg-page-header">
+    <div>
+        <h2>@AuditText.Get("Audit.Analytics.HeaderTitle", "Analítica de auditoría")</h2>
+        <p class="text-muted mb-0">
+            @string.Format(
+                AuditText.Get("Audit.Analytics.HeaderSubtitle", "Resumen de {0} eventos entre el {1} y el {2}"),
+                Model.Data.TotalCount,
+                Model.Data.FromUtc.ToString("dd/MM/yyyy"),
+                Model.Data.ToUtc.ToString("dd/MM/yyyy"))
+        </p>
+    </div>
+</div>
+
+<div class="kg-card">
+    <div class="kg-card-header">
+        <h5 class="kg-card-header-title">
+            <i class="bi bi-bar-chart-line"></i> @AuditText.Get("Audit.Analytics.CardRange", "Período analizado")
+        </h5>
+    </div>
+    <form method="get" class="px-3 pt-3 pb-1">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label small text-muted">@AuditText.Get("Audit.View.Filter.From", "Desde")</label>
+                <input type="date" name="dateFrom" value="@(Model.DateFrom?.ToString("yyyy-MM-dd"))" class="form-control" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small text-muted">@AuditText.Get("Audit.View.Filter.To", "Hasta")</label>
+                <input type="date" name="dateTo" value="@(Model.DateTo?.ToString("yyyy-MM-dd"))" class="form-control" />
+            </div>
+            <div class="col-md-6 d-flex gap-2">
+                <button type="submit" class="btn-kg-primary" title="@AuditText.Get("Audit.Analytics.Button.Apply", "Aplicar filtro")" aria-label="@AuditText.Get("Audit.Analytics.Button.Apply", "Aplicar filtro")"><i class="bi bi-search"></i> @AuditText.Get("Audit.Analytics.Button.Apply", "Aplicar")</button>
+                <a asp-action="Analytics" class="btn-kg-outline" title="@AuditText.Get("Audit.View.Button.Clear", "Limpiar filtros")" aria-label="@AuditText.Get("Audit.View.Button.Clear", "Limpiar filtros")"><i class="bi bi-x-lg"></i></a>
+                <a asp-action="Index" class="btn-kg-outline" title="@AuditText.Get("Audit.Analytics.BackToList", "Ver historial completo")" aria-label="@AuditText.Get("Audit.Analytics.BackToList", "Ver historial completo")"><i class="bi bi-clock-history"></i></a>
+            </div>
+        </div>
+    </form>
+</div>
+
+@if (Model.Data.TotalCount == 0)
+{
+    <div class="kg-card">
+        <div class="kg-empty">
+            <div class="kg-empty-icon"><i class="bi bi-graph-up-arrow"></i></div>
+            <h5>@AuditText.Get("Audit.Analytics.Empty.Title", "Sin datos en el período")</h5>
+            <p>@AuditText.Get("Audit.Analytics.Empty.Description", "Ampliá el rango de fechas para ver la actividad del sistema.")</p>
+        </div>
+    </div>
+}
+else
+{
+    <div class="row g-3 mt-1">
+        <div class="col-md-4">
+            <div class="kg-card h-100">
+                <div class="kg-card-header">
+                    <h5 class="kg-card-header-title">
+                        <i class="bi bi-tag"></i> @AuditText.Get("Audit.Analytics.ByAction", "Por acción")
+                    </h5>
+                </div>
+                <div class="px-3 py-3">
+                    <table class="kg-table">
+                        <tbody>
+                            @foreach (var item in Model.Data.ByAction)
+                            {
+                                var actionLabel = AuditIndexViewModel.GetActionLabel(item.Name);
+                                var width = Model.MaxByAction > 0 ? (100 * item.Count / Model.MaxByAction) : 0;
+                                <tr>
+                                    <td style="width:30%;white-space:nowrap">
+                                        @if (item.Name == "Create")
+                                        {
+                                            <span class="kg-badge kg-badge-success">@actionLabel</span>
+                                        }
+                                        else if (item.Name == "Delete")
+                                        {
+                                            <span class="kg-badge kg-badge-danger">@actionLabel</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="kg-badge kg-badge-warning">@actionLabel</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <div class="progress" style="height:14px" role="presentation">
+                                            <div class="progress-bar" style="width:@(width)%;background:var(--kg-primary)"></div>
+                                        </div>
+                                    </td>
+                                    <td style="width:15%;text-align:right;white-space:nowrap">
+                                        <strong>@item.Count</strong>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="kg-card h-100">
+                <div class="kg-card-header">
+                    <h5 class="kg-card-header-title">
+                        <i class="bi bi-collection"></i> @AuditText.Get("Audit.Analytics.ByEntity", "Por entidad")
+                    </h5>
+                </div>
+                <div class="px-3 py-3">
+                    <table class="kg-table">
+                        <tbody>
+                            @foreach (var item in Model.Data.ByEntity)
+                            {
+                                var entityLabel = AuditIndexViewModel.GetEntityLabel(item.Name);
+                                var width = Model.MaxByEntity > 0 ? (100 * item.Count / Model.MaxByEntity) : 0;
+                                <tr>
+                                    <td style="min-width:120px">@entityLabel</td>
+                                    <td>
+                                        <div class="progress" style="height:14px" role="presentation">
+                                            <div class="progress-bar" style="width:@(width)%;background:#0ea5e9"></div>
+                                        </div>
+                                    </td>
+                                    <td style="width:15%;text-align:right;white-space:nowrap">
+                                        <strong>@item.Count</strong>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="kg-card h-100">
+                <div class="kg-card-header">
+                    <h5 class="kg-card-header-title">
+                        <i class="bi bi-people"></i> @AuditText.Get("Audit.Analytics.ByUser", "Por usuario")
+                    </h5>
+                </div>
+                <div class="px-3 py-3">
+                    <table class="kg-table">
+                        <tbody>
+                            @foreach (var item in Model.Data.ByUser)
+                            {
+                                var width = Model.MaxByUser > 0 ? (100 * item.Count / Model.MaxByUser) : 0;
+                                <tr>
+                                    <td style="min-width:120px;word-break:break-all">@item.Name</td>
+                                    <td>
+                                        <div class="progress" style="height:14px" role="presentation">
+                                            <div class="progress-bar" style="width:@(width)%;background:#22c55e"></div>
+                                        </div>
+                                    </td>
+                                    <td style="width:15%;text-align:right;white-space:nowrap">
+                                        <strong>@item.Count</strong>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="kg-card mt-3">
+        <div class="kg-card-header">
+            <h5 class="kg-card-header-title">
+                <i class="bi bi-graph-up"></i> @AuditText.Get("Audit.Analytics.Trend", "Actividad por día")
+            </h5>
+        </div>
+        <div class="px-3 py-3">
+            <table class="kg-table">
+                <tbody>
+                    @foreach (var point in Model.Data.DailyTrend)
+                    {
+                        var width = Model.MaxTrend > 0 ? (100 * point.Count / Model.MaxTrend) : 0;
+                        <tr>
+                            <td style="width:140px;white-space:nowrap">@point.DateUtc.ToLocalTime().ToString("dd/MM/yyyy")</td>
+                            <td>
+                                <div class="progress" style="height:14px" role="presentation">
+                                    <div class="progress-bar" style="width:@(width)%;background:#8b5cf6"></div>
+                                </div>
+                            </td>
+                            <td style="width:15%;text-align:right;white-space:nowrap">
+                                <strong>@point.Count</strong>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}

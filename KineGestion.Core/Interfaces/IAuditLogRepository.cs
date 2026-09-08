@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System;
 using System.Threading.Tasks;
+using KineGestion.Core.DTOs;
 using KineGestion.Core.Entities;
 
 namespace KineGestion.Core.Interfaces
@@ -24,6 +25,8 @@ namespace KineGestion.Core.Interfaces
             string? action,
             DateTime? dateFrom,
             DateTime? dateTo);
+
+        Task<AuditAnalyticsData> GetAnalyticsAsync(DateTime? dateFrom, DateTime? dateTo);
 
         Task<AuditLog> AddAsync(AuditLog auditLog);
     }

@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System;
 using System.Threading.Tasks;
+using KineGestion.Core.DTOs;
 using KineGestion.Core.Entities;
 using KineGestion.Core.Interfaces;
 
@@ -34,6 +35,9 @@ namespace KineGestion.Core.Services
             DateTime? dateFrom,
             DateTime? dateTo)
             => _repository.GetAllAsync(entityName, entityId, changedBy, action, dateFrom, dateTo);
+
+        public Task<AuditAnalyticsData> GetAnalyticsAsync(DateTime? dateFrom, DateTime? dateTo)
+            => _repository.GetAnalyticsAsync(dateFrom, dateTo);
 
         public Task<AuditLog> AddAsync(AuditLog auditLog)
             => _repository.AddAsync(auditLog);

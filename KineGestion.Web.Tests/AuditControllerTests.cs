@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using KineGestion.Core.DTOs;
 using KineGestion.Core.Entities;
 using KineGestion.Core.Interfaces;
 using KineGestion.Web.Controllers;
@@ -387,6 +388,105 @@ namespace KineGestion.Web.Tests
             Assert.Contains(AuditActionType.Create, model.ActionOptions);
             Assert.Contains(AuditActionType.Update, model.ActionOptions);
             Assert.Contains(AuditActionType.Delete, model.ActionOptions);
+        }
+
+        [Fact]
+        public async Task Analytics_ShouldPopulateModel_WithAggregatedDataAndMaxima()
+        {
+            var auditService = new Mock<IAuditLogService>();
+            auditService
+                .Setup(s => s.GetAnalyticsAsync(null, null))
+                .ReturnsAsync(new AuditAnalyticsData
+                {
+                    TotalCount = 5,
+                    ByAction = new[]
+                    {
+                        new AuditMetricItem { Name = "Create", Count = 3 },
+                        new AuditMetricItem { Name = "Update", Count = 2 }
+                    },
+                    ByEntity = new[]
+                    {
+                        new AuditMetricItem { Name = "Patient", Count = 4 },
+                        new AuditMetricItem { Name = "Session", Count = 1 }
+                    },
+                    ByUser = new[]
+                    {
+                        new AuditMetricItem { Name = "admin@local", Count = 5 }
+                    },
+                    DailyTrend = new[]
+                    {
+                        new AuditDailyPoint { DateUtc = new DateTime(2026, 5, 1), Count = 2 },
+                        new AuditDailyPoint { DateUtc = new DateTime(2026, 5, 2), Count = 3 }
+                    }
+                });
+
+            var controller = new AuditController(auditService.Object);
+
+            var result = await controller.Analytics();
+
+            var view = Assert.IsType<ViewResult>(result);
+            var model = Assert.IsType<AuditAnalyticsViewModel>(view.Model);
+
+            Assert.Equal(5, model.Data.TotalCount);
+            Assert.Equal(2, model.Data.ByAction.Count);
+            Assert.Single(model.Data.ByUser);
+            Assert.Equal(2, model.Data.DailyTrend.Count);
+            Assert.Equal(3, model.MaxByAction);
+            Assert.Equal(4, model.MaxByEntity);
+            Assert.Equal(5, model.MaxByUser);
+            Assert.Equal(3, model.MaxTrend);
+            Assert.Null(model.DateFrom);
+            Assert.Null(model.DateTo);
+
+            auditService.Verify(s => s.GetAnalyticsAsync(null, null), Times.Once);
+        }
+
+        [Fact]
+        public async Task Analytics_ShouldNormalizeInvertedDateRange_BeforeCallingService()
+        {
+            var auditService = new Mock<IAuditLogService>();
+            var invertedFrom = new DateTime(2026, 5, 9);
+            var invertedTo = new DateTime(2026, 5, 1);
+            var expectedFrom = new DateTime(2026, 5, 1);
+            var expectedTo = new DateTime(2026, 5, 9);
+
+            auditService
+                .Setup(s => s.GetAnalyticsAsync(expectedFrom, expectedTo))
+                .ReturnsAsync(new AuditAnalyticsData());
+
+            var controller = new AuditController(auditService.Object);
+
+            var result = await controller.Analytics(invertedFrom, invertedTo);
+
+            var view = Assert.IsType<ViewResult>(result);
+            var model = Assert.IsType<AuditAnalyticsViewModel>(view.Model);
+
+            Assert.Equal(expectedFrom, model.DateFrom);
+            Assert.Equal(expectedTo, model.DateTo);
+            auditService.Verify(s => s.GetAnalyticsAsync(expectedFrom, expectedTo), Times.Once);
+        }
+
+        [Fact]
+        public async Task Analytics_ShouldForwardDateRange_ToService()
+        {
+            var auditService = new Mock<IAuditLogService>();
+            var dateFrom = new DateTime(2026, 5, 1);
+            var dateTo = new DateTime(2026, 5, 9);
+
+            auditService
+                .Setup(s => s.GetAnalyticsAsync(dateFrom, dateTo))
+                .ReturnsAsync(new AuditAnalyticsData { TotalCount = 1 });
+
+            var controller = new AuditController(auditService.Object);
+
+            var result = await controller.Analytics(dateFrom, dateTo);
+
+            var view = Assert.IsType<ViewResult>(result);
+            var model = Assert.IsType<AuditAnalyticsViewModel>(view.Model);
+
+            Assert.Equal(dateFrom, model.DateFrom);
+            Assert.Equal(dateTo, model.DateTo);
+            auditService.Verify(s => s.GetAnalyticsAsync(dateFrom, dateTo), Times.Once);
         }
     }
 }

@@ -133,6 +133,11 @@
                     <i class="bi bi-funnel"></i>
                     <span>Embudo recordatorios</span>
                 </a>
+                <a class="kg-nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Audit" && ViewContext.RouteData.Values["action"]?.ToString() == "Analytics" ? "active" : "")"
+                   asp-controller="Audit" asp-action="Analytics">
+                    <i class="bi bi-bar-chart-line"></i>
+                    <span>@LayoutText.Get("Nav.AuditAnalytics", "Analítica de Auditoría")</span>
+                </a>
                 <a class="kg-nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Audit" ? "active" : "")"
                    asp-controller="Audit" asp-action="Index">
                     <i class="bi bi-shield-check"></i>

@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using KineGestion.Core.DTOs;
 using KineGestion.Core.Entities;
 using KineGestion.Core.Interfaces;
 using KineGestion.Data.Context;
@@ -52,6 +53,54 @@ namespace KineGestion.Data.Repositories
             return await query.ToListAsync();
         }
 
+        public async Task<AuditAnalyticsData> GetAnalyticsAsync(DateTime? dateFrom, DateTime? dateTo)
+        {
+            var (from, toExclusive) = NormalizeDateRange(dateFrom, dateTo);
+            var query = _context.AuditLogs.AsNoTracking()
+                .Where(a => a.ChangedAt >= from && a.ChangedAt < toExclusive);
+
+            var totalCount = await query.CountAsync();
+
+            var byAction = await query
+                .GroupBy(a => a.Action)
+                .Select(g => new AuditMetricItem { Name = g.Key, Count = g.Count() })
+                .OrderByDescending(x => x.Count)
+                .ThenBy(x => x.Name)
+                .ToListAsync();
+
+            var byEntity = await query
+                .GroupBy(a => a.EntityName)
+                .Select(g => new AuditMetricItem { Name = g.Key, Count = g.Count() })
+                .OrderByDescending(x => x.Count)
+                .ThenBy(x => x.Name)
+                .ToListAsync();
+
+            var byUser = await query
+                .GroupBy(a => a.ChangedBy)
+                .Select(g => new AuditMetricItem { Name = g.Key, Count = g.Count() })
+                .OrderByDescending(x => x.Count)
+                .ThenBy(x => x.Name)
+                .Take(25)
+                .ToListAsync();
+
+            var dailyTrend = await query
+                .GroupBy(a => a.ChangedAt.Date)
+                .Select(g => new AuditDailyPoint { DateUtc = g.Key, Count = g.Count() })
+                .OrderBy(x => x.DateUtc)
+                .ToListAsync();
+
+            return new AuditAnalyticsData
+            {
+                FromUtc = from,
+                ToUtc = toExclusive.AddDays(-1),
+                TotalCount = totalCount,
+                ByAction = byAction,
+                ByEntity = byEntity,
+                ByUser = byUser,
+                DailyTrend = dailyTrend
+            };
+        }
+
         public async Task<AuditLog> AddAsync(AuditLog auditLog)
         {
             _context.AuditLogs.Add(auditLog);
@@ -94,6 +143,19 @@ namespace KineGestion.Data.Repositories
             }
 
             return query;
+        }
+
+        private static (DateTime From, DateTime ToExclusive) NormalizeDateRange(DateTime? dateFrom, DateTime? dateTo)
+        {
+            var from = (dateFrom ?? DateTime.UtcNow.AddDays(-90)).Date;
+            var toExclusive = (dateTo ?? DateTime.UtcNow).Date.AddDays(1);
+
+            if (from >= toExclusive)
+            {
+                from = toExclusive.AddDays(-1);
+            }
+
+            return (from, toExclusive);
         }
     }
 }

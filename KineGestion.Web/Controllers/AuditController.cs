@@ -6,6 +6,7 @@ using System.IO;
 using System.Text;
 using System.Threading.Tasks;
 using KineGestion.Core;
+using KineGestion.Core.DTOs;
 using KineGestion.Core.Entities;
 using KineGestion.Core.Interfaces;
 using KineGestion.Web.Localization;
@@ -58,6 +59,29 @@ namespace KineGestion.Web.Controllers
                 Page = page,
                 PageSize = pageSize,
                 TotalCount = totalCount
+            };
+
+            return View(model);
+        }
+
+        public async Task<IActionResult> Analytics(DateTime? dateFrom = null, DateTime? dateTo = null)
+        {
+            if (dateFrom.HasValue && dateTo.HasValue && dateFrom > dateTo)
+            {
+                (dateFrom, dateTo) = (dateTo, dateFrom);
+            }
+
+            var data = await _auditLogService.GetAnalyticsAsync(dateFrom, dateTo);
+
+            var model = new AuditAnalyticsViewModel
+            {
+                Data = data,
+                DateFrom = dateFrom,
+                DateTo = dateTo,
+                MaxByAction = data.ByAction.Count == 0 ? 0 : data.ByAction.Max(x => x.Count),
+                MaxByEntity = data.ByEntity.Count == 0 ? 0 : data.ByEntity.Max(x => x.Count),
+                MaxByUser = data.ByUser.Count == 0 ? 0 : data.ByUser.Max(x => x.Count),
+                MaxTrend = data.DailyTrend.Count == 0 ? 0 : data.DailyTrend.Max(x => x.Count)
             };
 
             return View(model);
