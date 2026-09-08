@@ -1,17 +1,17 @@
 # KineGestion — Sesión de trabajo
 
 ## Objective
-- Cerrar debilidades operativas de la app en tanda. Hechas: **#1 observabilidad de la cola** (`79cc656`), **#2 despliegue** (`5b5c2eb`), **#3 analítica de auditoría** (`c820840`) y **#4 retención de auditoría** (`5d773a9`). Queda solo la #5 (SMTP legacy, poco testeable).
+- Cerrar debilidades operativas de la app en tanda. Hechas: **#1 observabilidad de la cola** (`79cc656`), **#2 despliegue** (`5b5c2eb`), **#3 analítica de auditoría** (`c820840`), **#4 retención de auditoría** (`5d773a9`) y **#5 SMTP legacy** (`ae5d0ad`). Tanda completa.
 - Antes se cerró la tanda de calidad de tests pedida por el usuario: test real de autorización, cobertura de Billing y paralelismo reactivado — commit `4ea435b`.
 
 ## Important Details
 - Repo: `C:\Users\Santy\OneDrive\Desktop\Nueva carpeta` — solución `KineGestion.sln`; .NET 8; web SDK con implicit usings.
 - Remote: `https://github.com/santiago999-hub/KineGestionn.git`, branch `main`. Commits locales y origin sincronizados.
-- Últimos commits (orden): `5d773a9` "feat: retencion de auditoria (purga por lotes de registros vencidos)" → `c820840` "feat: analitica de auditoria (resumen por accion, entidad, usuario y tendencia diaria)" → `5b5c2eb` "feat: despliegue containerizado (Dockerfile, compose y publicacion de imagen a GHCR)" → `79cc656` "feat: tablero de la cola de despachos (stats, reintentos manuales y alerta de jobs estancados)" → `4ea435b` "refactor: calidad de tests (cobranza cubierta, paralelismo reactivado)" → `0d1e2f2` "feat: cola durable de despachos, automatizacion D+1 de cobranza y CI".
+- Últimos commits (orden): `ae5d0ad` "feat: canal email abstracto y testeable (IEmailSender con timeout de SMTP)" → `5d773a9` "feat: retencion de auditoria (purga por lotes de registros vencidos)" → `c820840` "feat: analitica de auditoria (resumen por accion, entidad, usuario y tendencia diaria)" → `5b5c2eb` "feat: despliegue containerizado (Dockerfile, compose y publicacion de imagen a GHCR)" → `79cc656` "feat: tablero de la cola de despachos (stats, reintentos manuales y alerta de jobs estancados)" → `4ea435b` "refactor: calidad de tests (cobranza cubierta, paralelismo reactivado)" → `0d1e2f2` "feat: cola durable de despachos, automatizacion D+1 de cobranza y CI".
 - Estilo de commits: `feat:`/`refactor:` en minúscula, español.
 - Entorno Windows PowerShell: **`rg` NO está disponible**; usar la herramienta `grep` dedicada o `Select-String`.
 - Tests de integración: `TestConnection.For(databaseName)` (local `Server=localhost\SQLEXPRESS`, CI con env `KINEGESTION_TEST_CONNECTION` + placeholder `{DatabaseName}`); DB aislada por test; CI filtra con `FullyQualifiedName~Integration`.
-- Estado de suites (verde): KineGestion.Tests **119/119** (117 + 2 retención), Web.Tests **165/165**, build Release 0w/0e.
+- Estado de suites (verde): KineGestion.Tests **119/119** (94 unit + 25 integración), Web.Tests **169/169**, build Release 0w/0e. Nota: la suite de integración de Core puede colgarse puntualmente si SQL Server está ocupado — separar con `--filter FullyQualifiedName!~Integration` / `~Integration`.
 - Despliegue: `Dockerfile` multi-stage (`sdk:8.0` build → `aspnet:8.0` runtime, usuario no-root, puerto 8080, keyring en `/app/keyring` sobreescribible); `docker-compose.yml` (SQL Server 2022 + web, healthchecks, volúmenes `kinegestion-sql` y `kinegestion-keys`, envs `MSSQL_SA_PASSWORD`/`KINEGESTION_ADMIN_*` con defaults demo); CI job `publish-container` pushea imagen a **GHCR** (`ghcr.io/{repo}:latest` + `:sha`) solo en push a `main` tras tests.
 - **Docker NO está instalado en la máquina local** — el build real de la imagen se valida vía CI al pushear.
 - Program.cs: nuevo flag `Database:ApplyMigrationsOnStartup` (default false; ``true en compose) → aplica `MigrateAsync` antes del seed. La validación de seguridad de producción (`ValidateProductionSafetyConfiguration`) sigue activa: conn string y admin password no pueden ser placeholders/defaults inseguros.
@@ -25,6 +25,7 @@
 - **Feature #2 — Despliegue** (`5b5c2eb`, 5 archivos +204/−1): `.dockerignore`, `Dockerfile`, `docker-compose.yml`, flag `Database:ApplyMigrationsOnStartup` en `Program.cs`, job `publish-container` en `ci.yml` (GHCR, solo main).
 - **Feature #3 — Analítica de auditoría** (`c820840`, 11 archivos +556): DTO `AuditAnalyticsData` (ByAction/ByEntity/ByUser + DailyTrend); `IAuditLogRepository.GetAnalyticsAsync` + impl SQL (ventana default 90 días, rank desc; normaliza rango invertido); `AuditController.Analytics` GET (`/Audit/Analytics`), vista `Views/Audit/Analytics.cshtml` (cards con barras Bootstrap `progress`, labels localizados) y nav "Analítica de Auditoría". Tests: 3 unit del controller + 2 de integración del repo.
 - **Feature #4 — Retención de auditoría** (`5d773a9`, 8 archivos +255): `IAuditLogRepository.DeleteOlderThanAsync(cutoff, batchSize)` (borra en lotes con `OrderBy ChangedAt + Take` + `ExecuteDelete`, aprovecha índice `IX_AuditLogs_ChangedAt`); passthrough en `IAuditLogService`; `AuditRetentionBackgroundService` (hosted, config `Audit:*`); registro en `Program.cs`; sección `Audit` en `appsettings.json` (`RetentionEnabled:true`, `RetentionDays:180`, `RetentionStartupDelayMs:10000`, `RetentionIntervalHours:24`, `RetentionBatchSize:1000`). Tests de integración: 2.
+- **Feature #5 — SMTP legacy testeable** (`ae5d0ad`, 5 archivos +224/−48): nuevo `IEmailSender`/`SmtpEmailSender` (archivo `EmailSender.cs`) que encapsula el `SmtpClient` con `Timeout` por config `Reminders:Email:TimeoutSeconds` (default 15s, rango 3–120 vía `OperationalConfig`) y `IsConfigured`; `ReminderDeliveryService` ahora recibe `IEmailSender` inyectado (DI en `Program.cs`) y delega el envío, dejando en el servicio solo las validaciones de contacto/config. Tests: +4 unit (forward del envelope al sender, error del sender, no configurado, paciente sin email) y limpieza del smell `.GetAwaiter().GetResult()` en `CaptureHandler` (ahora async con `CancellationToken`).
 
 ### Active
 - (none)
@@ -33,15 +34,13 @@
 - (none)
 
 ## Next Move
-- Debilidades restantes:
-  1. ✅ Observabilidad de envíos (hecho).
-  2. ✅ Despliegue (hecho).
-  3. ✅ Analítica de auditoría (hecho).
-  4. ✅ Retención de auditoría (hecho).
-  5. SMTP único legacy (envío via `ReminderDeliveryService`; no hay nombre de cola/aplicación sendmail — bajo valor testable; evaluar antes feature/asignación nueva).
-- Si se testea la imagen: `docker compose up -d` en una máquina con Docker, luego revisar `/health/ready` en `http://localhost:8080` (la CI ya cubre el build).
+- Debilidades operativas de la tanda: **todas cerradas** ✅ (1 observabilidad, 2 despliegue, 3 analítica, 4 retención, 5 SMTP).
+- Próximos pasos candidatos a acordar con el usuario: nueva feature/asignación, o validar la imagen en una máquina con Docker (`docker compose up -d` → `/health/ready` en `http://localhost:8080`).
 
 ## Relevant Files
+- `KineGestion.Web/Services/EmailSender.cs` — `EmailEnvelope`, `IEmailSender`, `SmtpEmailSender` con timeout configurable (nuevo, #5).
+- `KineGestion.Web/Services/IReminderDeliveryService.cs` — delega el email al `IEmailSender` (#5).
+- `KineGestion.Web.Tests/ReminderDeliveryServiceTests.cs` — +4 tests del canal email; `CaptureHandler` async (#5).
 - `KineGestion.Core/DTOs/AuditAnalyticsData.cs` — agrupaciones de analítica (nuevo).
 - `KineGestion.Data/Repositories/AuditLogRepository.cs` — `GetAnalyticsAsync` + `NormalizeDateRange`.
 - `KineGestion.Web/Controllers/AuditController.cs` — acción `Analytics`.
