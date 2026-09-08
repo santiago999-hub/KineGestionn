@@ -1,7 +1,13 @@
 using System;
 using System.Reflection;
+using System.Security.Claims;
+using System.Threading.Tasks;
+using KineGestion.Core.Interfaces;
 using KineGestion.Web.Controllers;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Moq;
 
 namespace KineGestion.Web.Tests
 {
@@ -38,13 +44,42 @@ namespace KineGestion.Web.Tests
             AssertAuthorizeAdminOnly(deletePost);
         }
 
-        [Fact]
-        public void Sessions_CreateAndEditActions_ShouldAllowOnlyAdminAndKinesiologo()
+        [Theory]
+        [InlineData("Asistente")]
+        [InlineData("")]
+        [InlineData(null)]
+        public async Task Sessions_Create_ShouldRedirectToIndex_WhenUserCannotManageSessions(string? role)
         {
-            // Create/Edit delegan a la lógica de negocio; la restricción de rol se
-            // refuerza dentro del action (User.IsInRole). El atributo de clase permite
-            // Admin, Kinesiologo y Asistente para que el Asistente pueda ver la agenda.
-            Assert.True(true);
+            var controller = new SessionsController(
+                Mock.Of<ISessionService>(),
+                Mock.Of<IPatientService>(),
+                Mock.Of<IProfessionalService>(),
+                Mock.Of<ITreatmentService>(),
+                Mock.Of<IOfficeService>());
+
+            controller.ControllerContext = new ControllerContext
+            {
+                HttpContext = new DefaultHttpContext
+                {
+                    User = BuildPrincipal(role)
+                }
+            };
+            controller.TempData = new Microsoft.AspNetCore.Mvc.ViewFeatures.TempDataDictionary(
+                controller.HttpContext, Mock.Of<Microsoft.AspNetCore.Mvc.ViewFeatures.ITempDataProvider>());
+
+            var result = await controller.Create();
+
+            var redirect = Assert.IsType<RedirectToActionResult>(result);
+            Assert.Equal(nameof(SessionsController.Index), redirect.ActionName);
+        }
+
+        private static ClaimsPrincipal BuildPrincipal(string? role)
+        {
+            var claims = new System.Collections.Generic.List<Claim>();
+            if (!string.IsNullOrWhiteSpace(role))
+                claims.Add(new Claim(ClaimTypes.Role, role));
+
+            return new ClaimsPrincipal(new ClaimsIdentity(claims, "TestAuth"));
         }
 
         private static void AssertAuthorizeAdminOnly(MethodInfo? method)

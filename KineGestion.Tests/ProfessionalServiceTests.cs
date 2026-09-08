@@ -17,7 +17,7 @@ namespace KineGestion.Tests
 
         public ProfessionalServiceTests()
         {
-            QueryCache.ClearAll();
+            QueryCache.InvalidatePrefix("professionals:");
             _repositoryMock = new Mock<IProfessionalRepository>();
             _sessionRepositoryMock = new Mock<ISessionRepository>();
             _service = new ProfessionalService(_repositoryMock.Object, _sessionRepositoryMock.Object);

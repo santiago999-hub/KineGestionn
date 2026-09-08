@@ -16,7 +16,7 @@ namespace KineGestion.Tests
 
         public OfficeServiceTests()
         {
-            QueryCache.ClearAll();
+            QueryCache.InvalidatePrefix("offices:");
             _repositoryMock = new Mock<IOfficeRepository>();
             _sessionRepositoryMock = new Mock<ISessionRepository>();
             _service = new OfficeService(_repositoryMock.Object, _sessionRepositoryMock.Object);

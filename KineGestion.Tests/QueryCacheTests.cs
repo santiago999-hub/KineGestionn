@@ -12,7 +12,6 @@ namespace KineGestion.Tests
         [Fact]
         public async Task GetOrCreateAsync_ShouldExecuteFactoryOnce_WhenConcurrentMisses()
         {
-            QueryCache.ClearAll();
             var callCount = 0;
 
             async Task<int> Factory()
@@ -23,7 +22,7 @@ namespace KineGestion.Tests
             }
 
             var tasks = Enumerable.Range(0, 8)
-                .Select(_ => QueryCache.GetOrCreateAsync("sessions:admin:paged:concurrency-test", Factory, TimeSpan.FromSeconds(2)));
+                .Select(_ => QueryCache.GetOrCreateAsync("querycache-test:concurrency", Factory, TimeSpan.FromSeconds(2)));
 
             var results = await Task.WhenAll(tasks);
 
@@ -34,7 +33,6 @@ namespace KineGestion.Tests
         [Fact]
         public async Task GetOrCreateAsync_ShouldNotCache_WhenTtlIsZeroOrNegative()
         {
-            QueryCache.ClearAll();
             var callCount = 0;
 
             async Task<int> Factory()
@@ -44,8 +42,8 @@ namespace KineGestion.Tests
                 return 7;
             }
 
-            var first = await QueryCache.GetOrCreateAsync("patients:count:active:no-cache", Factory, TimeSpan.Zero);
-            var second = await QueryCache.GetOrCreateAsync("patients:count:active:no-cache", Factory, TimeSpan.FromMilliseconds(-1));
+            var first = await QueryCache.GetOrCreateAsync("querycache-test:no-cache", Factory, TimeSpan.Zero);
+            var second = await QueryCache.GetOrCreateAsync("querycache-test:no-cache", Factory, TimeSpan.FromMilliseconds(-1));
 
             Assert.Equal(7, first);
             Assert.Equal(7, second);
@@ -55,7 +53,6 @@ namespace KineGestion.Tests
         [Fact]
         public async Task GetOrCreateAsync_ShouldRecompute_WhenEntryExpired()
         {
-            QueryCache.ClearAll();
             var callCount = 0;
 
             async Task<int> Factory()
@@ -65,9 +62,9 @@ namespace KineGestion.Tests
                 return callCount;
             }
 
-            var first = await QueryCache.GetOrCreateAsync("sessions:count:expiring", Factory, TimeSpan.FromMilliseconds(20));
+            var first = await QueryCache.GetOrCreateAsync("querycache-test:expiring", Factory, TimeSpan.FromMilliseconds(20));
             await Task.Delay(50);
-            var second = await QueryCache.GetOrCreateAsync("sessions:count:expiring", Factory, TimeSpan.FromMilliseconds(20));
+            var second = await QueryCache.GetOrCreateAsync("querycache-test:expiring", Factory, TimeSpan.FromMilliseconds(20));
 
             Assert.Equal(1, first);
             Assert.Equal(2, second);
@@ -77,7 +74,6 @@ namespace KineGestion.Tests
         [Fact]
         public async Task GetOrCreateAsync_ShouldKeepSingleFlight_AcrossConcurrentRounds()
         {
-            QueryCache.ClearAll();
             var callCount = 0;
 
             async Task<int> Factory()
@@ -89,7 +85,7 @@ namespace KineGestion.Tests
 
             for (var round = 0; round < 5; round++)
             {
-                var key = $"sessions:admin:paged:round:{round}";
+                var key = $"querycache-test:round:{round}";
                 var tasks = Enumerable.Range(0, 10)
                     .Select(_ => QueryCache.GetOrCreateAsync(key, Factory, TimeSpan.FromSeconds(1)));
 

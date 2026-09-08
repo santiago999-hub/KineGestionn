@@ -20,7 +20,7 @@ namespace KineGestion.Tests
 
         public PatientServiceTests()
         {
-            QueryCache.ClearAll();
+            QueryCache.InvalidatePrefix("patients:");
             _repositoryMock = new Mock<IPatientRepository>();
             _treatmentRepositoryMock = new Mock<ITreatmentRepository>();
             _sessionRepositoryMock = new Mock<ISessionRepository>();

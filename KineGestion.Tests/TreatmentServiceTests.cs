@@ -19,7 +19,7 @@ namespace KineGestion.Tests
 
         public TreatmentServiceTests()
         {
-            QueryCache.ClearAll();
+            QueryCache.InvalidatePrefix("treatments:");
             _repositoryMock = new Mock<ITreatmentRepository>();
             _sessionRepositoryMock = new Mock<ISessionRepository>();
             _service = new TreatmentService(_repositoryMock.Object, _sessionRepositoryMock.Object);

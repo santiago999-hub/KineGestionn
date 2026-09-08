@@ -20,7 +20,7 @@ namespace KineGestion.Tests
 
         public SessionServiceTests()
         {
-            QueryCache.ClearAll();
+            QueryCache.InvalidatePrefix("sessions:");
             _sessionRepositoryMock = new Mock<ISessionRepository>();
             _sessionMetricsRepositoryMock = new Mock<ISessionMetricsRepository>();
             _sessionQueryRepositoryMock = new Mock<ISessionQueryRepository>();
