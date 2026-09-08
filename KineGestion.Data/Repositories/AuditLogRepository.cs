@@ -101,6 +101,33 @@ namespace KineGestion.Data.Repositories
             };
         }
 
+        public async Task<int> DeleteOlderThanAsync(DateTime cutoffUtc, int batchSize, CancellationToken cancellationToken)
+        {
+            var total = 0;
+
+            while (true)
+            {
+                var ids = await _context.AuditLogs
+                    .Where(a => a.ChangedAt < cutoffUtc)
+                    .OrderBy(a => a.ChangedAt)
+                    .Select(a => a.Id)
+                    .Take(batchSize)
+                    .ToListAsync(cancellationToken);
+
+                if (ids.Count == 0)
+                    break;
+
+                total += await _context.AuditLogs
+                    .Where(a => ids.Contains(a.Id))
+                    .ExecuteDeleteAsync(cancellationToken);
+
+                if (ids.Count < batchSize)
+                    break;
+            }
+
+            return total;
+        }
+
         public async Task<AuditLog> AddAsync(AuditLog auditLog)
         {
             _context.AuditLogs.Add(auditLog);

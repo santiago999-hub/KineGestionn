@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 using KineGestion.Core.DTOs;
 using KineGestion.Core.Entities;
@@ -38,6 +39,9 @@ namespace KineGestion.Core.Services
 
         public Task<AuditAnalyticsData> GetAnalyticsAsync(DateTime? dateFrom, DateTime? dateTo)
             => _repository.GetAnalyticsAsync(dateFrom, dateTo);
+
+        public Task<int> DeleteOlderThanAsync(DateTime cutoffUtc, int batchSize, CancellationToken cancellationToken)
+            => _repository.DeleteOlderThanAsync(cutoffUtc, batchSize, cancellationToken);
 
         public Task<AuditLog> AddAsync(AuditLog auditLog)
             => _repository.AddAsync(auditLog);

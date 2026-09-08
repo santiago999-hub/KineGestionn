@@ -95,6 +95,7 @@ builder.Services.AddHostedService<ReminderDispatchBackgroundService>();
 builder.Services.AddHostedService<BillingOperationalAlertBackgroundService>();
 builder.Services.AddHostedService<BillingFollowUpAutomationBackgroundService>();
 builder.Services.AddHostedService<CacheWarmupBackgroundService>();
+builder.Services.AddHostedService<AuditRetentionBackgroundService>();
 builder.Services.AddHealthChecks()
     .AddCheck<DatabaseHealthCheck>("database", tags: new[] { "ready" })
     .AddCheck<DispatchQueueHealthCheck>("dispatch-queue", tags: new[] { "ready" });

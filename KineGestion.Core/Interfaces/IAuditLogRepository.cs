@@ -28,6 +28,8 @@ namespace KineGestion.Core.Interfaces
 
         Task<AuditAnalyticsData> GetAnalyticsAsync(DateTime? dateFrom, DateTime? dateTo);
 
+        Task<int> DeleteOlderThanAsync(DateTime cutoffUtc, int batchSize, CancellationToken cancellationToken);
+
         Task<AuditLog> AddAsync(AuditLog auditLog);
     }
 }
