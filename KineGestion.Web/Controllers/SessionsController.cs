@@ -15,7 +15,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 namespace KineGestion.Web.Controllers
 {
     [Authorize(Roles = "Admin,Kinesiologo,Asistente")]
-    public class SessionsController : Controller
+    public class SessionsController : BaseController
     {
         private const string IndexFiltersCookieKey = "kg.sessions.index.filters";
         private const string MyAgendaFiltersCookieKey = "kg.sessions.myagenda.filters";
@@ -197,7 +197,6 @@ namespace KineGestion.Web.Controllers
             Response.Cookies.Append(cookieKey, payload, new CookieOptions
             {
                 HttpOnly = true,
-                Secure = Request.IsHttps,
                 SameSite = SameSiteMode.Lax,
                 Expires = DateTimeOffset.UtcNow.AddDays(14),
                 IsEssential = true
@@ -293,8 +292,7 @@ namespace KineGestion.Web.Controllers
             }
             catch (BusinessValidationException ex)
             {
-                var key = string.IsNullOrWhiteSpace(ex.PropertyName) ? string.Empty : ex.PropertyName;
-                ModelState.AddModelError(key, ex.Message);
+                AddModelStateError(ex);
                 await LoadSelectListsAsync(viewModel);
                 return View(viewModel);
             }
@@ -347,8 +345,7 @@ namespace KineGestion.Web.Controllers
             }
             catch (BusinessValidationException ex)
             {
-                var key = string.IsNullOrWhiteSpace(ex.PropertyName) ? string.Empty : ex.PropertyName;
-                ModelState.AddModelError(key, ex.Message);
+                AddModelStateError(ex);
                 await LoadSelectListsAsync(viewModel);
                 return View(viewModel);
             }

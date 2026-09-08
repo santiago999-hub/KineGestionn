@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace KineGestion.Web.Controllers
 {
     [Authorize(Roles = "Admin")]
-    public class OfficesController : Controller
+    public class OfficesController : BaseController
     {
         private readonly IOfficeService _officeService;
         private readonly ISessionService _sessionService;
@@ -60,8 +60,7 @@ namespace KineGestion.Web.Controllers
             }
             catch (BusinessValidationException ex)
             {
-                var key = string.IsNullOrWhiteSpace(ex.PropertyName) ? string.Empty : ex.PropertyName;
-                ModelState.AddModelError(key, ex.Message);
+                AddModelStateError(ex);
                 return View(viewModel);
             }
         }
@@ -95,8 +94,7 @@ namespace KineGestion.Web.Controllers
             }
             catch (BusinessValidationException ex)
             {
-                var key = string.IsNullOrWhiteSpace(ex.PropertyName) ? string.Empty : ex.PropertyName;
-                ModelState.AddModelError(key, ex.Message);
+                AddModelStateError(ex);
                 return View(viewModel);
             }
         }

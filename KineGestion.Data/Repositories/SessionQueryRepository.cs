@@ -267,8 +267,8 @@ namespace KineGestion.Data.Repositories
             return sessions.Select(s => new SessionFunnelOutcomeDto(
                 s.Id,
                 s.Status,
-                s.InternalNotes != null && s.InternalNotes.Contains("CONFIRMADA_PACIENTE", StringComparison.OrdinalIgnoreCase),
-                s.InternalNotes != null && s.InternalNotes.Contains("CANCELADA_PACIENTE", StringComparison.OrdinalIgnoreCase),
+                s.InternalNotes != null && s.InternalNotes.Contains(SessionNotes.ConfirmedByPatient, StringComparison.OrdinalIgnoreCase),
+                s.InternalNotes != null && s.InternalNotes.Contains(SessionNotes.CanceledByPatient, StringComparison.OrdinalIgnoreCase),
                 s.CancelledAt))
                 .ToList();
         }

@@ -10,7 +10,7 @@ using KineGestion.Web.Models.ViewModels;
 namespace KineGestion.Web.Controllers
 {
     [Authorize(Roles = "Admin,Kinesiologo,Asistente")]
-    public class PatientsController : Controller
+    public class PatientsController : BaseController
     {
         private readonly IPatientService _patientService;
         private readonly ITreatmentService _treatmentService;
@@ -95,8 +95,7 @@ namespace KineGestion.Web.Controllers
             }
             catch (BusinessValidationException ex)
             {
-                var key = string.IsNullOrWhiteSpace(ex.PropertyName) ? nameof(viewModel.DNI) : ex.PropertyName;
-                ModelState.AddModelError(key, ex.Message);
+                AddModelStateError(ex, nameof(viewModel.DNI));
                 return View(viewModel);
             }
         }
@@ -133,8 +132,7 @@ namespace KineGestion.Web.Controllers
             }
             catch (BusinessValidationException ex)
             {
-                var key = string.IsNullOrWhiteSpace(ex.PropertyName) ? nameof(viewModel.DNI) : ex.PropertyName;
-                ModelState.AddModelError(key, ex.Message);
+                AddModelStateError(ex, nameof(viewModel.DNI));
                 return View(viewModel);
             }
         }

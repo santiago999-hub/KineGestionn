@@ -12,7 +12,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 namespace KineGestion.Web.Controllers
 {
     [Authorize(Roles = "Admin")]
-    public class EquipmentsController : Controller
+    public class EquipmentsController : BaseController
     {
         private readonly IEquipmentService _equipmentService;
         private readonly IOfficeService _officeService;
@@ -81,8 +81,7 @@ namespace KineGestion.Web.Controllers
             }
             catch (BusinessValidationException ex)
             {
-                var key = string.IsNullOrWhiteSpace(ex.PropertyName) ? string.Empty : ex.PropertyName;
-                ModelState.AddModelError(key, ex.Message);
+                AddModelStateError(ex);
                 await LoadSelectListsAsync(viewModel);
                 return View(viewModel);
             }
@@ -121,8 +120,7 @@ namespace KineGestion.Web.Controllers
             }
             catch (BusinessValidationException ex)
             {
-                var key = string.IsNullOrWhiteSpace(ex.PropertyName) ? string.Empty : ex.PropertyName;
-                ModelState.AddModelError(key, ex.Message);
+                AddModelStateError(ex);
                 await LoadSelectListsAsync(viewModel);
                 return View(viewModel);
             }

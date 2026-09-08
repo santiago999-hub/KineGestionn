@@ -296,6 +296,18 @@ if (pipelineProfileEnabled)
     });
 }
 
+// Cookie policy global: garantiza SameSite mínimo Lax y Secure en producción para TODAS
+// las cookies (auth, idioma, filtros de sesión). Los controllers no necesitan recordarlo
+// por sitio. En desarrollo se permite SameAsRequest para que funcione sobre HTTP local.
+// HttpOnly se deja explícito por cookie (la cookie de idioma es legible por JS a propósito).
+app.UseCookiePolicy(new CookiePolicyOptions
+{
+    MinimumSameSitePolicy = SameSiteMode.Lax,
+    Secure = app.Environment.IsDevelopment()
+        ? CookieSecurePolicy.SameAsRequest
+        : CookieSecurePolicy.Always
+});
+
 app.UseAuthentication();
 app.UseAuthorization();
 

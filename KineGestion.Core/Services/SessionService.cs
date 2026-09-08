@@ -181,7 +181,7 @@ namespace KineGestion.Core.Services
             if (session.Status == SessionStatus.Canceled)
                 throw new BusinessValidationException("La sesión ya está cancelada.", nameof(Session.Status));
 
-            AppendSystemNote(session, "CONFIRMADA_PACIENTE");
+            AppendSystemNote(session, SessionNotes.ConfirmedByPatient);
             await _repository.UpdateAsync(session);
             QueryCache.InvalidatePrefix("sessions:");
         }
@@ -196,7 +196,7 @@ namespace KineGestion.Core.Services
                 return;
 
             session.Status = SessionStatus.Canceled;
-            AppendSystemNote(session, "CANCELADA_PACIENTE");
+            AppendSystemNote(session, SessionNotes.CanceledByPatient);
             await _repository.UpdateAsync(session);
             QueryCache.InvalidatePrefix("sessions:");
         }
@@ -217,7 +217,7 @@ namespace KineGestion.Core.Services
             session.CancellationReason = reason;
             session.CancellationObs = string.IsNullOrWhiteSpace(observation) ? null : observation.Trim();
             session.CancelledAt = DateTime.UtcNow;
-            AppendSystemNote(session, $"CANCELADA_MOTIVO_{reason}");
+            AppendSystemNote(session, SessionNotes.CanceledByReason(reason));
             await _repository.UpdateAsync(session);
             QueryCache.InvalidatePrefix("sessions:");
         }
@@ -349,7 +349,7 @@ namespace KineGestion.Core.Services
                 return;
 
             session.PaymentStatus = paymentStatus;
-            AppendSystemNote(session, paymentStatus == PaymentStatus.Paid ? "COBRO_REGISTRADO" : "COBRO_REABIERTO");
+            AppendSystemNote(session, paymentStatus == PaymentStatus.Paid ? SessionNotes.PaymentRegistered : SessionNotes.PaymentReopened);
             await _repository.UpdateAsync(session);
             QueryCache.InvalidatePrefix("sessions:");
         }
@@ -478,11 +478,8 @@ namespace KineGestion.Core.Services
 
         private static void AppendSystemNote(Session session, string action)
         {
-            var stamp = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm 'UTC'");
-            var note = $"[{stamp}] {action}";
-            session.InternalNotes = string.IsNullOrWhiteSpace(session.InternalNotes)
-                ? note
-                : session.InternalNotes + Environment.NewLine + note;
+            var note = SessionNotes.Format(DateTime.UtcNow, action);
+            session.InternalNotes = SessionNotes.Append(session.InternalNotes, note);
         }
 
         /// <summary>

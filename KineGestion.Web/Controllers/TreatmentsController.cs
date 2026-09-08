@@ -11,7 +11,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 namespace KineGestion.Web.Controllers
 {
     [Authorize(Roles = "Admin")]
-    public class TreatmentsController : Controller
+    public class TreatmentsController : BaseController
     {
         private readonly ITreatmentService _treatmentService;
         private readonly IPatientService _patientService;
@@ -79,8 +79,7 @@ namespace KineGestion.Web.Controllers
             }
             catch (BusinessValidationException ex)
             {
-                var key = string.IsNullOrWhiteSpace(ex.PropertyName) ? string.Empty : ex.PropertyName;
-                ModelState.AddModelError(key, ex.Message);
+                AddModelStateError(ex);
                 await LoadPatientsAsync(viewModel);
                 return View(viewModel);
             }
@@ -121,8 +120,7 @@ namespace KineGestion.Web.Controllers
             }
             catch (BusinessValidationException ex)
             {
-                var key = string.IsNullOrWhiteSpace(ex.PropertyName) ? string.Empty : ex.PropertyName;
-                ModelState.AddModelError(key, ex.Message);
+                AddModelStateError(ex);
                 await LoadPatientsAsync(viewModel);
                 return View(viewModel);
             }

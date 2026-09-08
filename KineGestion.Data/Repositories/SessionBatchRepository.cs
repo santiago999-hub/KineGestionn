@@ -34,7 +34,7 @@ namespace KineGestion.Data.Repositories
             if (normalizedIds.Count == 0)
                 return (0, 0);
 
-            var note = $"[{actionAtUtc:yyyy-MM-dd HH:mm 'UTC'}] COBRO_REGISTRADO";
+            var note = SessionNotes.Format(actionAtUtc, SessionNotes.PaymentRegistered);
             var candidates = _context.Sessions
                 .Where(s => normalizedIds.Contains(s.Id)
                     && s.Status == SessionStatus.Completed
@@ -59,7 +59,7 @@ namespace KineGestion.Data.Repositories
             if (normalizedIds.Count == 0)
                 return (0, 0);
 
-            var note = $"[{actionAtUtc:yyyy-MM-dd HH:mm 'UTC'}] COBRO_REABIERTO";
+            var note = SessionNotes.Format(actionAtUtc, SessionNotes.PaymentReopened);
             var candidates = _context.Sessions
                 .Where(s => normalizedIds.Contains(s.Id)
                     && s.PaymentStatus == PaymentStatus.Paid);
