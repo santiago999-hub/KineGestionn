@@ -202,7 +202,7 @@ Equipment:
 - ✅ Email + Contraseña (8+ caracteres, con dígitos)
 - ✅ Sesión cookie (8 horas duración)
 - ✅ Bloqueo de 10 minutos después de 5 intentos fallidos
-- ✅ Recuperación de contraseña via email
+- ⏳ Recuperación de contraseña por email (en backlog; hoy el reseteo es manual por un admin)
 
 ### Autorización (Roles)
 ```
@@ -298,11 +298,11 @@ Con optimizaciones:
 
 ### Complejidad
 ```
-Número de entidades:     8 (Patient, Professional, Session, Treatment, Office, Equipment, AuditLog, IdentityUser)
-Número de controladores: 8 (Patients, Sessions, Professionals, Treatments, Offices, Audit, Users, Account)
-Número de servicios:     6 (Patient, Session, Professional, Treatment, Office, AuditLog)
-Número de repositorios:  6 (uno por entidad principal)
-Total de DTOs:          5 (SessionListDto, PatientSelectDto, etc)
+Número de entidades:     9 (Patient, Professional, Session, Treatment, Office, Equipment, AuditLog, DispatchJob + IdentityUser)
+Número de controladores: 18 (Patients, Sessions, Professionals, Treatments, Offices, Equipments, Audit, Users, Account, Billing, BillingFollowUp, DispatchQueue, Reminders, ReminderFunnel, Segmentacion, Home, Localization, Base)
+Número de servicios:     25+ (8 de lógica de negocio en Core + servicios de infraestructura/operación en Web)
+Número de repositorios:  13 (uno por entidad principal + repos especializados de Session y DispatchJob)
+Total de DTOs:          13 (SessionListDto, PatientSelectDto, ReminderFunnelDto, etc)
 Lines of Code (LOC):    ~15.000+ (aproximado)
 ```
 

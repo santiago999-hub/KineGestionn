@@ -424,6 +424,90 @@ namespace KineGestion.Tests
                 () => _service.CancelAsync(session.Id, Core.CancellationReason.MotivoClinico, null));
         }
 
+        // ─── ConfirmByReminderAsync / CancelByReminderAsync ───────────────────────
+
+        [Fact]
+        public async Task CancelByReminderAsync_ShouldCancelAndSetTimingFields()
+        {
+            var session = BuildSession();
+            session.Status = Core.SessionStatus.Pending;
+
+            _sessionRepositoryMock
+                .Setup(r => r.GetByIdAsync(session.Id))
+                .ReturnsAsync(session);
+
+            _sessionRepositoryMock
+                .Setup(r => r.UpdateAsync(It.IsAny<Session>()))
+                .ReturnsAsync((Session s) => s);
+
+            await _service.CancelByReminderAsync(session.Id);
+
+            Assert.Equal(Core.SessionStatus.Canceled, session.Status);
+            Assert.Equal(Core.CancellationReason.PacienteNoPudoAsistir, session.CancellationReason);
+            Assert.NotNull(session.CancelledAt);
+            Assert.Contains(Core.SessionNotes.CanceledByPatient, session.InternalNotes);
+        }
+
+        [Fact]
+        public async Task CancelByReminderAsync_ShouldBeNoOp_WhenAlreadyCanceled()
+        {
+            var session = BuildSession();
+            session.Status = Core.SessionStatus.Canceled;
+            session.InternalNotes = null;
+
+            _sessionRepositoryMock
+                .Setup(r => r.GetByIdAsync(session.Id))
+                .ReturnsAsync(session);
+
+            await _service.CancelByReminderAsync(session.Id);
+
+            _sessionRepositoryMock.Verify(r => r.UpdateAsync(It.IsAny<Session>()), Times.Never);
+            Assert.Null(session.InternalNotes);
+        }
+
+        [Fact]
+        public async Task CancelByReminderAsync_ShouldThrow_WhenSessionCompleted()
+        {
+            var session = BuildSession();
+            session.Status = Core.SessionStatus.Completed;
+
+            _sessionRepositoryMock
+                .Setup(r => r.GetByIdAsync(session.Id))
+                .ReturnsAsync(session);
+
+            await Assert.ThrowsAsync<BusinessValidationException>(() => _service.CancelByReminderAsync(session.Id));
+        }
+
+        [Fact]
+        public async Task ConfirmByReminderAsync_ShouldBeNoOp_WhenSessionCompleted()
+        {
+            var session = BuildSession();
+            session.Status = Core.SessionStatus.Completed;
+            session.InternalNotes = null;
+
+            _sessionRepositoryMock
+                .Setup(r => r.GetByIdAsync(session.Id))
+                .ReturnsAsync(session);
+
+            await _service.ConfirmByReminderAsync(session.Id);
+
+            _sessionRepositoryMock.Verify(r => r.UpdateAsync(It.IsAny<Session>()), Times.Never);
+            Assert.Null(session.InternalNotes);
+        }
+
+        [Fact]
+        public async Task ConfirmByReminderAsync_ShouldThrow_WhenSessionCanceled()
+        {
+            var session = BuildSession();
+            session.Status = Core.SessionStatus.Canceled;
+
+            _sessionRepositoryMock
+                .Setup(r => r.GetByIdAsync(session.Id))
+                .ReturnsAsync(session);
+
+            await Assert.ThrowsAsync<BusinessValidationException>(() => _service.ConfirmByReminderAsync(session.Id));
+        }
+
         // ─── ReprogramAsync / SuggestAvailableSlotsAsync ──────────────────────────
 
         [Fact]

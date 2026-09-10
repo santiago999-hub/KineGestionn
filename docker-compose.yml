@@ -8,6 +8,7 @@
 #   MSSQL_SA_PASSWORD            contraseña del usuario sa de SQL Server
 #   KINEGESTION_ADMIN_EMAIL      email del admin inicial (seed)
 #   KINEGESTION_ADMIN_PASSWORD   contraseña del admin inicial (seed)
+#   KINEGESTION_ALLOWED_HOSTS    hosts permitidos (Host header validation); incluir el dominio real en producción
 
 name: kinegestion
 
@@ -45,6 +46,7 @@ services:
       Seed__AdminEmail: ${KINEGESTION_ADMIN_EMAIL:-admin@kinegestion.com}
       Seed__AdminPassword: ${KINEGESTION_ADMIN_PASSWORD:-KineGestion_Prod_2026!01}
       Seed__ResetAdminPasswordOnStartup: "false"
+      AllowedHosts__: ${KINEGESTION_ALLOWED_HOSTS:-localhost;127.0.0.1}
     volumes:
       - kinegestion-keys:/app/keyring
     healthcheck:

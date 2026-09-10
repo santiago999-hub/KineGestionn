@@ -120,7 +120,7 @@ await tx.CommitAsync();
 
 6. Equipment
 - Recurso fisico del consultorio.
-- Actualmente modelado en dominio y BD, con exposicion parcial en UI (ver seccion de incompletos).
+- CRUD completo implementado: IEquipmentRepository + EquipmentRepository, IEquipmentService + EquipmentService, EquipmentsController (Admin) con filtro por consultorio, vistas Index/Create/Edit/Delete/Details y tests unitarios/web.
 
 7. AuditLog
 - Trazabilidad completa: entidad, accion, usuario, fecha, valores anteriores/nuevos en JSON.
@@ -214,34 +214,24 @@ Cobertura funcional representativa:
 
 ### 8.1 Equipamiento (Equipment)
 Estado actual:
-- Existe entidad y relacion con Office.
-- Se muestra en perfil clinico de consultorio.
-- No existe modulo CRUD dedicado (controller/vistas/servicio especifico de Equipment).
+- CRUD completo implementado (repositorio, servicio, controlador Admin con filtro por consultorio, vistas y tests). El plan 8.1 propuesto originalmente quedo cerrado en su totalidad.
 
-Plan de cierre recomendado:
-1. Agregar IEquipmentRepository + EquipmentRepository.
-2. Agregar IEquipmentService + EquipmentService con validaciones.
-3. Crear EquipmentsController (Admin) con CRUD y filtros por office.
-4. Agregar vistas Index/Create/Edit/Delete/Details.
-5. Tests unitarios y web para autorizacion y validaciones.
+Siguiente mejora (post-tesis): agenda de mantenimiento y disponibilidad horaria del equipamiento por consultorio.
 
 ### 8.2 Escalado de procesamiento en lote
 Estado actual:
-- MarkPaidBatch procesa en loop secuencial.
+- Implementado con SessionBatchRepository.ExecuteUpdate (set-based, sin loop por item): cobranza por lote y notas de auditoria en una sola sentencia. El texto de las notas usa la clase SessionNotes (definicion unica), lo que mantiene sincronizado el camino individual y el batch.
 
-Mejora:
-1. Exponer metodo SetPaymentStatusBatchAsync en servicio/repositorio.
-2. Ejecutar actualizacion por lote en transaccion (set-based) para reducir roundtrips.
-3. Mantener logs de auditoria por item o por lote con detalle.
+Siguiente mejora (post-tesis): extender a mas operaciones masivas (p. ej. cancelacion por lote con motivo) y revisar comportamiento de locking bajo carga real.
 
 ### 8.3 Colas y mensajeria
 Estado actual:
-- Cola interna in-memory para recordatorios.
+- Cola durable (outbox) en SQL Server (entidad DispatchJob): claim de jobs con lease y timeout, deduplicacion a nivel BD por (SessionId, DispatchType, PayloadHash) con indice unico filtrado, reintentos con backoff configurable y limpieza automatica de jobs terminales. Tablero de observabilidad en /DispatchQueue con reintento/cancelacion manual y alerta por jobs estancados.
 
 Mejora para produccion multi-instancia:
-1. Migrar queue a backend persistente (ej. Redis/RabbitMQ/Azure Service Bus).
-2. Añadir idempotencia por SessionId+window para no duplicar envios.
-3. Añadir reintentos con backoff y dead-letter queue.
+1. Migrar la cola a un broker distribuido (Redis/RabbitMQ/Azure Service Bus) cuando haya mas de una instancia web consumiendo.
+2. Agregar dead-letter queue explicita / cuarentena para poison messages (hoy quedan en Failed para retry manual).
+3. Agregar idempotencia por ventana (SessionId + ventana operativa) a nivel de productor; hoy la dedup cubre contenido identico.
 
 ## 9) Escalabilidad futura (tecnica y de producto)
 
@@ -263,10 +253,17 @@ Horizonte 3 (si crece la red de clinicas)
 3. Read replicas para reportes intensivos.
 
 ### 9.2 Escalabilidad funcional
+Ya implementado:
 1. Motivos de cancelacion obligatorios y analitica por causa.
 2. Flujo de recaptura con sugerencia de reprogramacion inmediata.
-3. Automatizacion D+1 de cobranzas pendientes.
-4. Segmentacion de KPIs por profesional/franja/obra social.
+3. Automatizacion D+1 de cobranzas pendientes con mensajes por antiguedad.
+4. Segmentacion de KPIs por profesional y franja horaria (obra social como siguiente paso).
+5. Baseline de embudo de recordatorios (/ReminderFunnel) para experimentacion A/B de plantillas.
+
+Siguientes pasos de producto (post-tesis):
+1. Modelo de pagos completo (entidad Payment: montos, parciales, metodo de cobro, recibo).
+2. Reportes PDF y cierre de caja.
+3. Portal de autogestion del paciente (consulta de turnos, reprogramacion, pagos online).
 
 ## 10) Como defender este proyecto en tesis (mensaje profesional)
 
@@ -275,7 +272,7 @@ Mensaje recomendado:
 - Se optimizo rendimiento con estrategias medibles (pooling, projection, cache, warmup).
 - Tiene observabilidad y readiness para operar en entornos reales.
 - La arquitectura ya habilita escalado incremental sin ruptura.
-- Se identificaron gaps de producto y hay roadmap de cierre concreto (especialmente Equipment y automatizacion operativa).
+- Se identificaron gaps de producto y hay roadmap de cierre concreto (especialmente modelo de pagos, reportes y portal de autogestion; la deuda tecnica de infraestructura queda acotada a escalar a multi-instancia).
 
 Preguntas tipicas del jurado y respuesta corta:
 1. Como evitan doble asignacion de sesiones?
@@ -288,7 +285,7 @@ Preguntas tipicas del jurado y respuesta corta:
 - Monolito modular optimizado ahora; luego externalizar notificaciones y persistencia compartida de claves/colas para horizontalizar.
 
 4. Que quedo pendiente?
-- CRUD completo de Equipment, batch set-based de cobranzas y cola distribuida para recordatorios.
+- Equipment, batch set-based de cobranzas y cola durable (outbox) ya estan implementados. Pendientes reales: entidad Payment (historial de cobros, parciales, metodo), reportes PDF y recibo, portal de autogestion del paciente, y migracion a broker distribuido al escalar a multi-instancia.
 
 ## 11) Cierre
 

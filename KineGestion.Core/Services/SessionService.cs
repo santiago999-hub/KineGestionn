@@ -181,6 +181,10 @@ namespace KineGestion.Core.Services
             if (session.Status == SessionStatus.Canceled)
                 throw new BusinessValidationException("La sesión ya está cancelada.", nameof(Session.Status));
 
+            // Replay de confirmación sobre una sesión ya finalizada es no-op (idempotente).
+            if (session.Status == SessionStatus.Completed)
+                return;
+
             AppendSystemNote(session, SessionNotes.ConfirmedByPatient);
             await _repository.UpdateAsync(session);
             QueryCache.InvalidatePrefix("sessions:");
@@ -195,7 +199,14 @@ namespace KineGestion.Core.Services
             if (session.Status == SessionStatus.Canceled)
                 return;
 
+            // No se puede cancelar por recordatorio una sesión que ya se asistió:
+            // preserva cobranza y KPIs ante replays de un link vencido o malicioso.
+            if (session.Status == SessionStatus.Completed)
+                throw new BusinessValidationException("No se puede cancelar una sesión completada.", nameof(Session.Status));
+
             session.Status = SessionStatus.Canceled;
+            session.CancellationReason = CancellationReason.PacienteNoPudoAsistir;
+            session.CancelledAt = DateTime.UtcNow;
             AppendSystemNote(session, SessionNotes.CanceledByPatient);
             await _repository.UpdateAsync(session);
             QueryCache.InvalidatePrefix("sessions:");

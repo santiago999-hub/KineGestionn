@@ -97,6 +97,7 @@ builder.Services.AddHostedService<BillingFollowUpAutomationBackgroundService>();
 builder.Services.AddHostedService<CacheWarmupBackgroundService>();
 builder.Services.AddHostedService<AuditRetentionBackgroundService>();
 builder.Services.AddHealthChecks()
+    .AddCheck<AppLivenessHealthCheck>("liveness", tags: new[] { "live" })
     .AddCheck<DatabaseHealthCheck>("database", tags: new[] { "ready" })
     .AddCheck<DispatchQueueHealthCheck>("dispatch-queue", tags: new[] { "ready" });
 
@@ -334,9 +335,12 @@ if (pipelineProfileEnabled)
     });
 }
 
+// Liveness: solo verifica que el proceso responde (tag "live"). Si el proceso queda
+// colgado, el probe no responde y el orquestador reinicia el contenedor.
+// Readiness: DB + cola de despachos (tag "ready").
 app.MapHealthChecks("/health/live", new HealthCheckOptions
 {
-    Predicate = _ => false
+    Predicate = registration => registration.Tags.Contains("live")
 });
 
 app.MapHealthChecks("/health/ready", new HealthCheckOptions

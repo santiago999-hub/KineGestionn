@@ -94,8 +94,8 @@ namespace KineGestion.Web.Controllers
                     PacienteTelefono = c.PacienteTelefono,
                     ProfesionalNombre = c.ProfesionalNombre,
                     TratamientoDescripcion = c.TratamientoDescripcion,
-                    ConfirmUrl = BuildActionUrl(c.SessionId, "confirm"),
-                    CancelUrl = BuildActionUrl(c.SessionId, "cancel")
+                    ConfirmUrl = BuildActionUrl(c.SessionId, "confirm", c.FechaHora),
+                    CancelUrl = BuildActionUrl(c.SessionId, "cancel", c.FechaHora)
                 }).ToList()
             };
 
@@ -153,8 +153,8 @@ namespace KineGestion.Web.Controllers
                     PacienteTelefono = candidate.PacienteTelefono,
                     ProfesionalNombre = candidate.ProfesionalNombre,
                     TratamientoDescripcion = candidate.TratamientoDescripcion,
-                    ConfirmUrl = BuildActionUrl(candidate.SessionId, "confirm"),
-                    CancelUrl = BuildActionUrl(candidate.SessionId, "cancel"),
+                    ConfirmUrl = BuildActionUrl(candidate.SessionId, "confirm", candidate.FechaHora),
+                    CancelUrl = BuildActionUrl(candidate.SessionId, "cancel", candidate.FechaHora),
                     ChangedBy = User?.Identity?.Name,
                     EnqueuedAtUtc = DateTime.UtcNow
                 };
@@ -210,8 +210,8 @@ namespace KineGestion.Web.Controllers
                     PacienteTelefono = candidate.PacienteTelefono,
                     ProfesionalNombre = candidate.ProfesionalNombre,
                     TratamientoDescripcion = candidate.TratamientoDescripcion,
-                    ConfirmUrl = BuildActionUrl(candidate.SessionId, "confirm"),
-                    CancelUrl = BuildActionUrl(candidate.SessionId, "cancel"),
+                    ConfirmUrl = BuildActionUrl(candidate.SessionId, "confirm", candidate.FechaHora),
+                    CancelUrl = BuildActionUrl(candidate.SessionId, "cancel", candidate.FechaHora),
                     ChangedBy = User?.Identity?.Name,
                     EnqueuedAtUtc = DateTime.UtcNow
                 };
@@ -255,8 +255,8 @@ namespace KineGestion.Web.Controllers
                 PacienteTelefono = string.IsNullOrWhiteSpace(testPhone) ? candidate.PacienteTelefono : testPhone.Trim(),
                 ProfesionalNombre = candidate.ProfesionalNombre,
                 TratamientoDescripcion = candidate.TratamientoDescripcion,
-                ConfirmUrl = BuildActionUrl(candidate.SessionId, "confirm"),
-                CancelUrl = BuildActionUrl(candidate.SessionId, "cancel")
+                ConfirmUrl = BuildActionUrl(candidate.SessionId, "confirm", candidate.FechaHora),
+                CancelUrl = BuildActionUrl(candidate.SessionId, "cancel", candidate.FechaHora)
             };
 
             var preview = _reminderDeliveryService.BuildPreview(request);
@@ -395,10 +395,19 @@ namespace KineGestion.Web.Controllers
             });
         }
 
-        private string BuildActionUrl(int sessionId, string action)
+        private string BuildActionUrl(int sessionId, string action, DateTime sessionStartUtc)
         {
-            var expiresUtc = DateTime.UtcNow.AddDays(2);
-            var payload = string.Join("|", sessionId, action, expiresUtc.Ticks.ToString(CultureInfo.InvariantCulture));
+            // El enlace no puede actuar después de iniciado el turno: si la sesión ocurre
+            // antes del límite genérico (2 días), la expiración se ata al horario del turno.
+            // Así un link de confirmar/cancelar nunca queda válido para una sesión ya pasada.
+            var cutoffUtc = DateTime.UtcNow.AddDays(2);
+            var expiresUtc = sessionStartUtc < cutoffUtc ? sessionStartUtc : cutoffUtc;
+            var payload = string.Join(
+                "|",
+                sessionId,
+                action,
+                expiresUtc.Ticks.ToString(CultureInfo.InvariantCulture),
+                sessionStartUtc.Ticks.ToString(CultureInfo.InvariantCulture));
             var token = _protector.Protect(payload);
             return Url.Action(nameof(Respond), "Reminders", new { sessionId, action, token }, Request.Scheme) ?? string.Empty;
         }
@@ -408,8 +417,11 @@ namespace KineGestion.Web.Controllers
             try
             {
                 var payload = _protector.Unprotect(token);
+
+                // Formato legacy (3 partes): solo vencimiento. Formato actual (4 partes):
+                // además el enlace queda invalidado a partir del inicio del turno.
                 var parts = payload.Split('|');
-                if (parts.Length != 3) return false;
+                if (parts.Length != 3 && parts.Length != 4) return false;
 
                 if (!int.TryParse(parts[0], out var tokenSessionId) || tokenSessionId != sessionId)
                     return false;
@@ -421,7 +433,20 @@ namespace KineGestion.Web.Controllers
                     return false;
 
                 var expiresUtc = new DateTime(ticks, DateTimeKind.Utc);
-                return DateTime.UtcNow <= expiresUtc;
+                if (DateTime.UtcNow > expiresUtc)
+                    return false;
+
+                if (parts.Length == 4)
+                {
+                    if (!long.TryParse(parts[3], NumberStyles.Integer, CultureInfo.InvariantCulture, out var sessionStartTicks))
+                        return false;
+
+                    var sessionStartUtc = new DateTime(sessionStartTicks, DateTimeKind.Utc);
+                    if (DateTime.UtcNow >= sessionStartUtc)
+                        return false;
+                }
+
+                return true;
             }
             catch
             {

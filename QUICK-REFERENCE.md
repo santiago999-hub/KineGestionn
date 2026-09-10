@@ -221,7 +221,7 @@ AHORA:        Lectura rápida (5 min)
 KineGestion es un sistema de gestión clínica en ASP.NET Core con:
 
 ARQUITECTURA: 4 capas (Web → Services → Repositories → Database)
-ENTIDADES: 8 (Patient, Professional, Session, Treatment, Office, Equipment, AuditLog)
+ENTIDADES: 9 (Patient, Professional, Session, Treatment, Office, Equipment, AuditLog, DispatchJob)
 SEGURIDAD: ASP.NET Identity + Roles (Admin, Kinesiologo) + Auditoría automática
 INTELIGENCIA: Detección de conflictos de horarios + Evoluciones bloqueadas
 RENDIMIENTO: 700-800 usuarios concurrentes, 100K+ sesiones

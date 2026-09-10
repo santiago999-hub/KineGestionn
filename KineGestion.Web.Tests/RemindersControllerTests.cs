@@ -348,7 +348,7 @@ namespace KineGestion.Web.Tests
             sessionService.Setup(s => s.ConfirmByReminderAsync(5)).Returns(Task.CompletedTask);
 
             var controller = BuildController(sessionService.Object, reminderDispatchQueue.Object, reminderDeliveryService.Object, auditLogService.Object);
-            var token = BuildProtectedToken(5, "confirm", DateTime.UtcNow.AddHours(2));
+            var token = BuildProtectedToken(5, "confirm", DateTime.UtcNow.AddHours(2), DateTime.UtcNow.AddDays(1));
 
             var result = await controller.Respond(5, "confirm", token);
 
@@ -382,6 +382,30 @@ namespace KineGestion.Web.Tests
             Assert.False(model.Success);
             Assert.Equal("Enlace inválido", model.Title);
             sessionService.Verify(s => s.ConfirmByReminderAsync(It.IsAny<int>()), Times.Never);
+            sessionService.Verify(s => s.CancelByReminderAsync(It.IsAny<int>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task Respond_ShouldReturnInvalidLink_WhenSessionAlreadyStarted()
+        {
+            var sessionService = new Mock<ISessionService>();
+            var reminderDeliveryService = new Mock<IReminderDeliveryService>();
+            var reminderDispatchQueue = new Mock<IReminderDispatchQueue>();
+            var auditLogService = new Mock<IAuditLogService>();
+
+            auditLogService
+                .Setup(a => a.GetAllAsync("BillingBatch", null, null, "Create", It.IsAny<DateTime?>(), It.IsAny<DateTime?>()))
+                .ReturnsAsync(Array.Empty<AuditLog>());
+
+            var controller = BuildController(sessionService.Object, reminderDispatchQueue.Object, reminderDeliveryService.Object, auditLogService.Object);
+            var token = BuildProtectedToken(5, "cancel", DateTime.UtcNow.AddDays(2), DateTime.UtcNow.AddHours(-1));
+
+            var result = await controller.Respond(5, "cancel", token);
+
+            var view = Assert.IsType<ViewResult>(result);
+            var model = Assert.IsType<ReminderResponseViewModel>(view.Model);
+            Assert.False(model.Success);
+            Assert.Equal("Enlace inválido", model.Title);
             sessionService.Verify(s => s.CancelByReminderAsync(It.IsAny<int>()), Times.Never);
         }
 
@@ -522,9 +546,20 @@ namespace KineGestion.Web.Tests
             return service;
         }
 
-        private static string BuildProtectedToken(int sessionId, string action, DateTime expiresUtc)
+        private static string BuildProtectedToken(int sessionId, string action, DateTime expiresUtc, DateTime? sessionStartUtc = null)
         {
-            var payload = string.Join("|", sessionId, action, expiresUtc.Ticks.ToString(CultureInfo.InvariantCulture));
+            var parts = new List<string>
+            {
+                sessionId.ToString(CultureInfo.InvariantCulture),
+                action,
+                expiresUtc.Ticks.ToString(CultureInfo.InvariantCulture)
+            };
+
+            // Formato nuevo: incluye el inicio del turno para invalidar el enlace una vez que la sesión comenzó.
+            if (sessionStartUtc.HasValue)
+                parts.Add(sessionStartUtc.Value.Ticks.ToString(CultureInfo.InvariantCulture));
+
+            var payload = string.Join("|", parts);
             var protectedPayload = "p:" + payload;
             return Convert.ToBase64String(Encoding.UTF8.GetBytes(protectedPayload));
         }
