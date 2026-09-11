@@ -124,6 +124,138 @@ namespace KineGestion.Tests
         }
 
         [Fact]
+        public async Task ExistsOfficeConflictAsync_ShouldDetectOverlap_AndIgnoreCanceledAndOtherOffices()
+        {
+            var databaseName = $"KineGestion_Integration_{Guid.NewGuid():N}";
+            var connectionString = TestConnection.For(databaseName);
+            var options = new DbContextOptionsBuilder<AppDbContext>()
+                .UseSqlServer(connectionString)
+                .Options;
+
+            var targetDay = new DateTime(2026, 6, 10);
+            int professionalId, treatmentId, officeAId, officeBId, occupiedId;
+
+            await using (var setupContext = new AppDbContext(options))
+            {
+                await setupContext.Database.EnsureDeletedAsync();
+                await setupContext.Database.EnsureCreatedAsync();
+
+                var professional = new Professional
+                {
+                    Nombre = "Ana",
+                    Apellido = "Perez",
+                    Matricula = "MAT-300",
+                    Especialidad = "Kinesiologia"
+                };
+
+                var patient = new Patient
+                {
+                    Nombre = "Lucia",
+                    Apellido = "Gomez",
+                    DNI = "11222333",
+                    FechaNacimiento = new DateTime(1990, 1, 1)
+                };
+
+                var officeA = new Office { Name = "Consultorio 1" };
+                var officeB = new Office { Name = "Consultorio 2" };
+
+                setupContext.Professionals.Add(professional);
+                setupContext.Patients.Add(patient);
+                setupContext.Offices.AddRange(officeA, officeB);
+                await setupContext.SaveChangesAsync();
+
+                var treatment = new Treatment
+                {
+                    PatientId = patient.Id,
+                    Descripcion = "Rehabilitacion",
+                    CantidadSesionesTotales = 10,
+                    FechaInicio = targetDay
+                };
+
+                setupContext.Treatments.Add(treatment);
+                await setupContext.SaveChangesAsync();
+
+                professionalId = professional.Id;
+                treatmentId = treatment.Id;
+                officeAId = officeA.Id;
+                officeBId = officeB.Id;
+
+                // Turno ocupado a las 9 (ventana +/-45 => bloquea de 8:15 a 9:45).
+                var occupied = new Session
+                {
+                    FechaHora = targetDay.AddHours(9),
+                    PatientId = patient.Id,
+                    ProfessionalId = professional.Id,
+                    TreatmentId = treatment.Id,
+                    OfficeId = officeAId,
+                    NroSesionEnTratamiento = 1,
+                    Status = SessionStatus.Pending,
+                    PaymentStatus = PaymentStatus.Pending
+                };
+
+                // Cancelada en el mismo consultorio a las 10 NO bloquea (libera el turno).
+                setupContext.Sessions.Add(new Session
+                {
+                    FechaHora = targetDay.AddHours(10),
+                    PatientId = patient.Id,
+                    ProfessionalId = professional.Id,
+                    TreatmentId = treatment.Id,
+                    OfficeId = officeAId,
+                    NroSesionEnTratamiento = 2,
+                    Status = SessionStatus.Canceled,
+                    PaymentStatus = PaymentStatus.Pending,
+                    CancellationReason = CancellationReason.PacienteNoPudoAsistir,
+                    CancelledAt = targetDay.AddHours(9)
+                });
+
+                // Consultorio B ocupado a las 10: no afecta al consultorio A.
+                setupContext.Sessions.Add(new Session
+                {
+                    FechaHora = targetDay.AddHours(10),
+                    PatientId = patient.Id,
+                    ProfessionalId = professional.Id,
+                    TreatmentId = treatment.Id,
+                    OfficeId = officeBId,
+                    NroSesionEnTratamiento = 3,
+                    Status = SessionStatus.Pending,
+                    PaymentStatus = PaymentStatus.Pending
+                });
+
+                setupContext.Sessions.Add(occupied);
+                await setupContext.SaveChangesAsync();
+                occupiedId = occupied.Id;
+            }
+
+            await using (var testContext = new AppDbContext(options))
+            {
+                var repository = new SessionRepository(testContext);
+
+                // Colisión real: 9:20 cae dentro de la ventana del turno de las 9.
+                Assert.True(await repository.ExistsOfficeConflictAsync(officeAId, targetDay.AddHours(9).AddMinutes(20), 45, null));
+
+                // Autoexclusión: el propio turno no se detecta como conflicto.
+                Assert.False(await repository.ExistsOfficeConflictAsync(officeAId, targetDay.AddHours(9).AddMinutes(20), 45, occupiedId));
+
+                // La cancelada a las 10 libera el consultorio A.
+                Assert.False(await repository.ExistsOfficeConflictAsync(officeAId, targetDay.AddHours(10).AddMinutes(10), 45, null));
+
+                // Fuera de ventana: 11:00 libre en consultorio A.
+                Assert.False(await repository.ExistsOfficeConflictAsync(officeAId, targetDay.AddHours(11), 45, null));
+
+                // Consultorio B tiene su propio turno a las 10.
+                Assert.True(await repository.ExistsOfficeConflictAsync(officeBId, targetDay.AddHours(10), 45, null));
+
+                // Sin consultorio asignado nunca colisiona.
+                Assert.False(await repository.ExistsOfficeConflictAsync(null, targetDay.AddHours(9).AddMinutes(20), 45, null));
+            }
+
+            await using (var cleanupContext = new AppDbContext(options))
+            {
+                await cleanupContext.Database.EnsureDeletedAsync();
+            }
+        }
+
+        [Fact]
         public async Task AddAsync_ShouldThrowBusinessValidationException_WhenUniqueIndexConflictsWithCountBasedNumbering()
         {
             var databaseName = $"KineGestion_Integration_{Guid.NewGuid():N}";

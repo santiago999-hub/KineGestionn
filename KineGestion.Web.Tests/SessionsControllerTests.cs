@@ -114,6 +114,42 @@ namespace KineGestion.Web.Tests
         }
 
         [Fact]
+        public async Task Create_ShouldAddModelStateErrorOnOfficeId_WhenOfficeHasConflict()
+        {
+            var sessionService = new Mock<ISessionService>();
+            var patientService = new Mock<IPatientService>();
+            var professionalService = new Mock<IProfessionalService>();
+            var treatmentService = new Mock<ITreatmentService>();
+            var officeService = new Mock<IOfficeService>();
+
+            SetupSelectLists(patientService, professionalService, treatmentService, officeService);
+
+            const string message = "El consultorio ya tiene una sesion asignada en un rango de +/- 45 minutos para el horario seleccionado.";
+            sessionService
+                .Setup(s => s.CreateAsync(It.IsAny<Session>()))
+                .ThrowsAsync(new BusinessValidationException(message, nameof(Session.OfficeId)));
+
+            var controller = new SessionsController(
+                sessionService.Object,
+                patientService.Object,
+                professionalService.Object,
+                treatmentService.Object,
+                officeService.Object);
+            SetAuthenticatedUser(controller, "Admin");
+
+            var vm = BuildValidViewModel();
+            vm.OfficeId = 5;
+
+            var result = await controller.Create(vm);
+
+            var view = Assert.IsType<ViewResult>(result);
+            Assert.Same(vm, view.Model);
+            Assert.False(controller.ModelState.IsValid);
+            Assert.True(controller.ModelState.ContainsKey(nameof(Session.OfficeId)));
+            Assert.Contains(message, controller.ModelState[nameof(Session.OfficeId)]!.Errors.Select(e => e.ErrorMessage));
+        }
+
+        [Fact]
         public async Task Edit_ShouldAddModelStateError_WhenSessionServiceThrowsBusinessValidationException()
         {
             var sessionService = new Mock<ISessionService>();

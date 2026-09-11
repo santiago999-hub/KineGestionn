@@ -179,8 +179,11 @@ R: 4 capas: Presentación (Controllers) → Lógica de Negocio (Services)
 
 ### P: "¿Cómo se detectan conflictos de horarios?"
 ```
-R: Índice compuesto (ProfessionalId, FechaHora) + validación en 
-   SessionService + ventana de 45 minutos configurable
+R: Índices compuestos (ProfessionalId, FechaHora) y (OfficeId, FechaHora)
+   + validación en SessionService + ventana de 45 minutos configurable
+   por profesional (Scheduling:ProfessionalConflictWindowMinutes) y
+   por consultorio (Scheduling:OfficeConflictWindowMinutes). El conflicto
+   de consultorio ignora sesiones canceladas (liberan el turno).
 ```
 
 ### P: "¿Qué pasa si elimino un paciente?"

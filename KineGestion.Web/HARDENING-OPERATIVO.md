@@ -17,7 +17,8 @@ Ejemplo base:
     "ResetAdminPasswordOnStartup": false
   },
   "Scheduling": {
-    "ProfessionalConflictWindowMinutes": 45
+    "ProfessionalConflictWindowMinutes": 45,
+    "OfficeConflictWindowMinutes": 45
   },
   "Logging": {
     "LogLevel": {

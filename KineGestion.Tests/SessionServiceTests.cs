@@ -92,6 +92,91 @@ namespace KineGestion.Tests
         }
 
         [Fact]
+        public async Task CreateAsync_ShouldThrow_WhenOfficeHasConflict()
+        {
+            var session = BuildSession();
+            session.OfficeId = 5;
+
+            _sessionRepositoryMock
+                .Setup(r => r.ExistsOfficeConflictAsync(5, session.FechaHora, 45, null))
+                .ReturnsAsync(true);
+
+            await Assert.ThrowsAsync<BusinessValidationException>(() => _service.CreateAsync(session));
+
+            _sessionRepositoryMock.Verify(
+                r => r.ExistsOfficeConflictAsync(5, session.FechaHora, 45, null),
+                Times.Once);
+        }
+
+        [Fact]
+        public async Task CreateAsync_ShouldSkipOfficeCheck_WhenOfficeIsNull()
+        {
+            var session = BuildSession();
+            session.OfficeId = null;
+
+            _sessionRepositoryMock
+                .Setup(r => r.ExistsProfessionalConflictAsync(session.ProfessionalId, session.FechaHora, 45, null))
+                .ReturnsAsync(false);
+            _sessionRepositoryMock
+                .Setup(r => r.ExistsOfficeConflictAsync(It.IsAny<int?>(), It.IsAny<DateTime>(), It.IsAny<int>(), It.IsAny<int?>()))
+                .ReturnsAsync(true);
+            _sessionRepositoryMock
+                .Setup(r => r.AddAsync(It.IsAny<Session>()))
+                .ReturnsAsync((Session s) => s);
+
+            var created = await _service.CreateAsync(session);
+
+            _sessionRepositoryMock.Verify(
+                r => r.ExistsOfficeConflictAsync(It.IsAny<int?>(), It.IsAny<DateTime>(), It.IsAny<int>(), It.IsAny<int?>()),
+                Times.Never);
+            Assert.NotNull(created);
+        }
+
+        [Fact]
+        public async Task CreateAsync_ShouldUseConfiguredOfficeWindow()
+        {
+            var session = BuildSession();
+            session.OfficeId = 5;
+            var customWindow = 30;
+            var serviceWithCustomWindows = new SessionService(
+                _sessionRepositoryMock.Object,
+                _sessionMetricsRepositoryMock.Object,
+                _sessionQueryRepositoryMock.Object,
+                _sessionBatchRepositoryMock.Object,
+                _treatmentRepositoryMock.Object,
+                null,
+                45,
+                customWindow);
+
+            _sessionRepositoryMock
+                .Setup(r => r.ExistsOfficeConflictAsync(5, session.FechaHora, customWindow, null))
+                .ReturnsAsync(true);
+
+            await Assert.ThrowsAsync<BusinessValidationException>(() => serviceWithCustomWindows.CreateAsync(session));
+
+            _sessionRepositoryMock.Verify(
+                r => r.ExistsOfficeConflictAsync(5, session.FechaHora, customWindow, null),
+                Times.Once);
+        }
+
+        [Fact]
+        public async Task UpdateAsync_ShouldThrow_WhenOfficeHasConflict_ExcludingSelf()
+        {
+            var session = BuildSession();
+            session.Id = 10;
+            session.OfficeId = 5;
+
+            _sessionRepositoryMock
+                .Setup(r => r.GetByIdAsync(session.Id))
+                .ReturnsAsync(session);
+            _sessionRepositoryMock
+                .Setup(r => r.ExistsOfficeConflictAsync(5, session.FechaHora, 45, session.Id))
+                .ReturnsAsync(true);
+
+            await Assert.ThrowsAsync<BusinessValidationException>(() => _service.UpdateAsync(session));
+        }
+
+        [Fact]
         public async Task CreateAsync_ShouldThrow_WhenTreatmentSessionLimitReached()
         {
             var session = BuildSession();
@@ -583,6 +668,61 @@ namespace KineGestion.Tests
 
             await Assert.ThrowsAsync<BusinessValidationException>(
                 () => _service.ReprogramAsync(source.Id, newFechaHora));
+        }
+
+        [Fact]
+        public async Task ReprogramAsync_ShouldThrow_WhenOfficeConflict()
+        {
+            var source = BuildSession();
+            source.Id = 8;
+            source.Status = Core.SessionStatus.Canceled;
+            source.OfficeId = 5;
+
+            var newFechaHora = DateTime.UtcNow.AddDays(2).Date.AddHours(10);
+
+            _sessionRepositoryMock
+                .Setup(r => r.GetByIdAsync(source.Id))
+                .ReturnsAsync(source);
+            _sessionRepositoryMock
+                .Setup(r => r.ExistsOfficeConflictAsync(5, newFechaHora, 45, null))
+                .ReturnsAsync(true);
+
+            await Assert.ThrowsAsync<BusinessValidationException>(
+                () => _service.ReprogramAsync(source.Id, newFechaHora));
+        }
+
+        [Fact]
+        public async Task ReprogramAsync_ShouldPreserveOfficeId()
+        {
+            var source = BuildSession();
+            source.Id = 9;
+            source.Status = Core.SessionStatus.Canceled;
+            source.OfficeId = 5;
+
+            var newFechaHora = DateTime.UtcNow.AddDays(2).Date.AddHours(10);
+
+            _sessionRepositoryMock
+                .Setup(r => r.GetByIdAsync(source.Id))
+                .ReturnsAsync(source);
+            _sessionRepositoryMock
+                .Setup(r => r.ExistsProfessionalConflictAsync(source.ProfessionalId, newFechaHora, 45, null))
+                .ReturnsAsync(false);
+            _sessionRepositoryMock
+                .Setup(r => r.ExistsOfficeConflictAsync(5, newFechaHora, 45, null))
+                .ReturnsAsync(false);
+            _sessionRepositoryMock
+                .Setup(r => r.CountByTreatmentIdAsync(source.TreatmentId))
+                .ReturnsAsync(0);
+            _treatmentRepositoryMock
+                .Setup(r => r.GetByIdAsync(source.TreatmentId))
+                .ReturnsAsync(new Treatment { Id = source.TreatmentId, CantidadSesionesTotales = 10, Descripcion = "Plan" });
+            _sessionRepositoryMock
+                .Setup(r => r.AddAsync(It.IsAny<Session>()))
+                .ReturnsAsync((Session s) => s);
+
+            var created = await _service.ReprogramAsync(source.Id, newFechaHora);
+
+            Assert.Equal(5, created.OfficeId);
         }
 
         [Fact]

@@ -129,6 +129,13 @@ builder.Services.AddScoped<ISessionService>(sp =>
         defaultValue: 45,
         min: 5,
         max: 240);
+    var officeWindow = OperationalConfig.ReadBoundedInt(
+        builder.Configuration,
+        startupLogger,
+        "Scheduling:OfficeConflictWindowMinutes",
+        defaultValue: 45,
+        min: 5,
+        max: 240);
     return new SessionService(
         repository,
         metricsRepository,
@@ -136,7 +143,8 @@ builder.Services.AddScoped<ISessionService>(sp =>
         batchRepository,
         treatmentRepository,
         currentUserProvider,
-        conflictWindow);
+        conflictWindow,
+        officeWindow);
 });
 
 builder.Services.AddScoped<ITreatmentRepository, TreatmentRepository>();

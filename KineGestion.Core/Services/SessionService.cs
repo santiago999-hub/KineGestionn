@@ -19,6 +19,7 @@ namespace KineGestion.Core.Services
         private readonly ITreatmentRepository _treatmentRepository;
         private readonly ICurrentUserProvider _currentUserProvider;
         private readonly int _professionalConflictWindowMinutes;
+        private readonly int _officeConflictWindowMinutes;
 
         public SessionService(
             ISessionRepository repository,
@@ -27,7 +28,8 @@ namespace KineGestion.Core.Services
             ISessionBatchRepository batchRepository,
             ITreatmentRepository treatmentRepository,
             ICurrentUserProvider? currentUserProvider = null,
-            int professionalConflictWindowMinutes = 45)
+            int professionalConflictWindowMinutes = 45,
+            int officeConflictWindowMinutes = 45)
         {
             _repository = repository;
             _metricsRepository = metricsRepository;
@@ -37,6 +39,9 @@ namespace KineGestion.Core.Services
             _currentUserProvider = currentUserProvider ?? new AnonymousCurrentUserProvider();
             _professionalConflictWindowMinutes = professionalConflictWindowMinutes > 0
                 ? professionalConflictWindowMinutes
+                : 45;
+            _officeConflictWindowMinutes = officeConflictWindowMinutes > 0
+                ? officeConflictWindowMinutes
                 : 45;
         }
 
@@ -246,6 +251,7 @@ namespace KineGestion.Core.Services
                 throw new BusinessValidationException("Solo se puede reprogramar una sesión cancelada.", nameof(Session.Status));
 
             await ValidateProfessionalAvailabilityAsync(source.ProfessionalId, newFechaHora);
+    await ValidateOfficeAvailabilityAsync(source.OfficeId, newFechaHora);
 
             int sesionesEnTratamiento = await _repository.CountByTreatmentIdAsync(source.TreatmentId);
             var treatment = await _treatmentRepository.GetByIdAsync(source.TreatmentId);
@@ -402,6 +408,7 @@ namespace KineGestion.Core.Services
         public async Task<Session> CreateAsync(Session session)
         {
             await ValidateProfessionalAvailabilityAsync(session.ProfessionalId, session.FechaHora);
+            await ValidateOfficeAvailabilityAsync(session.OfficeId, session.FechaHora);
 
             int sesionesExistentes = await _repository.CountByTreatmentIdAsync(session.TreatmentId);
 
@@ -422,6 +429,7 @@ namespace KineGestion.Core.Services
         public async Task<Session> UpdateAsync(Session session)
         {
             await ValidateProfessionalAvailabilityAsync(session.ProfessionalId, session.FechaHora, session.Id);
+            await ValidateOfficeAvailabilityAsync(session.OfficeId, session.FechaHora, session.Id);
 
             // Si cambió el tratamiento, recalcular el número de sesión en el nuevo tratamiento
             var original = await _repository.GetByIdAsync(session.Id);
@@ -484,6 +492,26 @@ namespace KineGestion.Core.Services
                 throw new BusinessValidationException(
                     $"El profesional ya tiene una sesion asignada en un rango de +/- {_professionalConflictWindowMinutes} minutos para el horario seleccionado.",
                     nameof(Session.FechaHora));
+            }
+        }
+
+        private async Task ValidateOfficeAvailabilityAsync(int? officeId, DateTime fechaHora, int? excludeSessionId = null)
+        {
+            // Sin consultorio asignado no hay conflicto posible de infraestructura.
+            if (!officeId.HasValue)
+                return;
+
+            bool hasConflict = await _repository.ExistsOfficeConflictAsync(
+                officeId,
+                fechaHora,
+                windowInMinutes: _officeConflictWindowMinutes,
+                excludeSessionId: excludeSessionId);
+
+            if (hasConflict)
+            {
+                throw new BusinessValidationException(
+                    $"El consultorio ya tiene una sesion asignada en un rango de +/- {_officeConflictWindowMinutes} minutos para el horario seleccionado.",
+                    nameof(Session.OfficeId));
             }
         }
 

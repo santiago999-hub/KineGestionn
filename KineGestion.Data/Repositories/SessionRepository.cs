@@ -103,6 +103,25 @@ namespace KineGestion.Data.Repositories
                                              && s.FechaHora <= maxFecha);
         }
 
+        public async Task<bool> ExistsOfficeConflictAsync(int? officeId, DateTime fechaHora, int windowInMinutes = 45, int? excludeSessionId = null)
+        {
+            if (!officeId.HasValue)
+                return false;
+
+            var minFecha = fechaHora.AddMinutes(-windowInMinutes);
+            var maxFecha = fechaHora.AddMinutes(windowInMinutes);
+
+            // Sesiones canceladas no ocupan el consultorio (liberan el turno),
+            // a diferencia del chequeo por profesional que conserva el bloqueo.
+            return await _context.Sessions
+                                 .AsNoTracking()
+                                 .AnyAsync(s => s.OfficeId == officeId
+                                             && s.Id != excludeSessionId
+                                             && s.Status != SessionStatus.Canceled
+                                             && s.FechaHora >= minFecha
+                                             && s.FechaHora <= maxFecha);
+        }
+
         public async Task<IReadOnlyList<DateTime>> GetProfessionalBusyTimesAsync(int professionalId, DateTime fromInclusiveUtc, DateTime toExclusiveUtc)
             => await _context.Sessions
                              .AsNoTracking()

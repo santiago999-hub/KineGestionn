@@ -148,10 +148,11 @@ Equipment:
 
 ### CASO 2: Agendar Sesión (Con validación de conflictos)
 ```
-1. Admin selecciona Paciente, Profesional, Fecha/Hora
+1. Admin selecciona Paciente, Profesional, Fecha/Hora, Consultorio (opcional)
 2. Sistema detecta conflictos:
    - ¿El profesional tiene otra sesión en ese horario?
-   - Ventana de buffer: 45 minutos entre sesiones
+   - ¿El consultorio asignado tiene otra sesión en ese horario? (no evalúa canceladas)
+   - Ventana de buffer: 45 minutos entre sesiones (configurable por profesional y por consultorio)
    - Si hay conflicto → rechaza con mensaje claro
 3. Si válido: crea Session en BD
 4. AuditLog registra la creación

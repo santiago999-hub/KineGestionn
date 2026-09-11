@@ -60,16 +60,20 @@ Ejemplos de reglas reales:
 - Bloquear modificacion de evolucion clinica firmada.
 - Invalidad caches tras operaciones de escritura.
 
-Ejemplo simplificado de regla de conflicto horario:
+Ejemplo simplificado de regla de conflicto horario (por profesional y por consultorio):
 ~~~csharp
 bool hasConflict = await _repository.ExistsProfessionalConflictAsync(
-    professionalId,
-    fechaHora,
+    professionalId, fechaHora,
     windowInMinutes: _professionalConflictWindowMinutes,
     excludeSessionId: excludeSessionId);
 
-if (hasConflict)
-    throw new BusinessValidationException("El profesional ya tiene una sesion...", nameof(Session.FechaHora));
+bool hasOfficeConflict = await _repository.ExistsOfficeConflictAsync(
+    officeId, fechaHora,
+    windowInMinutes: _officeConflictWindowMinutes,
+    excludeSessionId: excludeSessionId); // ignora sesiones canceladas: liberan el turno
+
+if (hasConflict || hasOfficeConflict)
+    throw new BusinessValidationException("El profesional/consultorio ya tiene una sesion...", nameof(Session.FechaHora));
 ~~~
 
 ### 2.3 Data Layer

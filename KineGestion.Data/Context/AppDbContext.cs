@@ -129,6 +129,7 @@ namespace KineGestion.Data.Context
                 entity.HasIndex(s => s.PatientId);
                 entity.HasIndex(s => s.TreatmentId);
                 entity.HasIndex(s => new { s.ProfessionalId, s.FechaHora });
+                entity.HasIndex(s => new { s.OfficeId, s.FechaHora });
                 entity.HasIndex(s => new { s.TreatmentId, s.NroSesionEnTratamiento }).IsUnique();
                 entity.HasIndex(s => new { s.Status, s.FechaHora });
                 entity.HasIndex(s => new { s.PaymentStatus, s.FechaHora });
