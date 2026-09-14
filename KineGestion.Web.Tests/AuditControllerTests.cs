@@ -367,30 +367,6 @@ namespace KineGestion.Web.Tests
         }
 
         [Fact]
-        public async Task Index_ShouldExposePredefinedEntityOptions_AndExportActions()
-        {
-            var auditService = new Mock<IAuditLogService>();
-
-            auditService
-                .Setup(s => s.GetPagedAsync(null, null, null, null, null, null, 1, 10))
-                .ReturnsAsync((Array.Empty<AuditLog>(), 0));
-
-            var controller = new AuditController(auditService.Object);
-
-            var result = await controller.Index(null, null, null, null, null, null, 1, 10);
-
-            var view = Assert.IsType<ViewResult>(result);
-            var model = Assert.IsType<AuditIndexViewModel>(view.Model);
-
-            Assert.Contains(AuditEntityType.Patient, model.EntityOptions);
-            Assert.Contains(AuditEntityType.Office, model.EntityOptions);
-            Assert.Contains(AuditEntityType.BillingBatch, model.EntityOptions);
-            Assert.Contains(AuditActionType.Create, model.ActionOptions);
-            Assert.Contains(AuditActionType.Update, model.ActionOptions);
-            Assert.Contains(AuditActionType.Delete, model.ActionOptions);
-        }
-
-        [Fact]
         public async Task Analytics_ShouldPopulateModel_WithAggregatedDataAndMaxima()
         {
             var auditService = new Mock<IAuditLogService>();

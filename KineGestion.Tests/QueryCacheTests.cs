@@ -13,16 +13,27 @@ namespace KineGestion.Tests
         public async Task GetOrCreateAsync_ShouldExecuteFactoryOnce_WhenConcurrentMisses()
         {
             var callCount = 0;
+            var factoryStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var releaseFactory = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
 
             async Task<int> Factory()
             {
                 Interlocked.Increment(ref callCount);
-                await Task.Delay(75);
+                factoryStarted.TrySetResult();
+                await releaseFactory.Task;
                 return 42;
             }
 
             var tasks = Enumerable.Range(0, 8)
-                .Select(_ => QueryCache.GetOrCreateAsync("querycache-test:concurrency", Factory, TimeSpan.FromSeconds(2)));
+                .Select(_ => QueryCache.GetOrCreateAsync("querycache-test:concurrency", Factory, TimeSpan.FromSeconds(2)))
+                .ToArray();
+
+            // Esperamos a que el primer llamador entre a la fábrica (single-flight en vuelo).
+            // Mientras la fábrica está bloqueada, el keyLock queda tomado y los demás llamadores se encolan.
+            await factoryStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            await Task.Delay(100); // da tiempo a que el resto de llamadores lleguen al keyLock
+
+            releaseFactory.SetResult();
 
             var results = await Task.WhenAll(tasks);
 
@@ -62,9 +73,9 @@ namespace KineGestion.Tests
                 return callCount;
             }
 
-            var first = await QueryCache.GetOrCreateAsync("querycache-test:expiring", Factory, TimeSpan.FromMilliseconds(20));
-            await Task.Delay(50);
-            var second = await QueryCache.GetOrCreateAsync("querycache-test:expiring", Factory, TimeSpan.FromMilliseconds(20));
+            var first = await QueryCache.GetOrCreateAsync("querycache-test:expiring", Factory, TimeSpan.FromMilliseconds(5));
+            await Task.Delay(75); // margen amplio (>10x) para asegurar el vencimiento del TTL
+            var second = await QueryCache.GetOrCreateAsync("querycache-test:expiring", Factory, TimeSpan.FromMilliseconds(5));
 
             Assert.Equal(1, first);
             Assert.Equal(2, second);

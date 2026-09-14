@@ -13,51 +13,25 @@ using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Moq;
+using System.Collections.Generic;
 
 namespace KineGestion.Web.Tests
 {
     public class HomeControllerTests
     {
+        private static HomeTestContext BuildDefaultContext()
+        {
+            var ctx = new HomeTestContext();
+            ctx.SetupDefaultMetrics();
+            return ctx;
+        }
+
         [Fact]
         public async Task Index_ShouldPopulateAllDashboardMetrics()
         {
-            var logger = new Mock<ILogger<HomeController>>();
-            var patientService = new Mock<IPatientService>();
-            var professionalService = new Mock<IProfessionalService>();
-            var treatmentService = new Mock<ITreatmentService>();
-            var sessionService = new Mock<ISessionService>();
-            var auditLogService = new Mock<IAuditLogService>();
-            var billingAlertService = new Mock<IBillingOperationalAlertService>();
-            var memoryCache = new MemoryCache(new MemoryCacheOptions());
+            var ctx = BuildDefaultContext();
 
-            patientService.Setup(s => s.CountActiveAsync()).ReturnsAsync(12);
-            professionalService.Setup(s => s.CountActiveAsync()).ReturnsAsync(4);
-            treatmentService.Setup(s => s.CountAsync()).ReturnsAsync(18);
-            sessionService.Setup(s => s.CountAsync()).ReturnsAsync(60);
-            sessionService.Setup(s => s.CountTodayAsync(It.IsAny<DateTime>())).ReturnsAsync(7);
-            sessionService.Setup(s => s.CountByStatusOnDateAsync(SessionStatus.Completed, It.IsAny<DateTime>())).ReturnsAsync(3);
-            sessionService.Setup(s => s.CountByStatusOnDateAsync(SessionStatus.Canceled, It.IsAny<DateTime>())).ReturnsAsync(2);
-            sessionService.Setup(s => s.CountByStatusAndPaymentStatusAsync(SessionStatus.Completed, PaymentStatus.Pending)).ReturnsAsync(9);
-            sessionService.Setup(s => s.CountByStatusAsync(SessionStatus.Pending)).ReturnsAsync(5);
-            sessionService.Setup(s => s.CountByStatusInRangeAsync(SessionStatus.Completed, It.IsAny<DateTime>(), It.IsAny<DateTime>())).ReturnsAsync(20);
-            sessionService.Setup(s => s.CountByStatusAndPaymentStatusInRangeAsync(SessionStatus.Completed, PaymentStatus.Paid, It.IsAny<DateTime>(), It.IsAny<DateTime>())).ReturnsAsync(15);
-            sessionService.Setup(s => s.CountInRangeAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>())).ReturnsAsync(20);
-            sessionService.Setup(s => s.CountByStatusInRangeAsync(SessionStatus.Canceled, It.IsAny<DateTime>(), It.IsAny<DateTime>())).ReturnsAsync(2);
-            auditLogService.Setup(s => s.GetPagedAsync("OperationalAlert", null, null, "Create", It.IsAny<DateTime?>(), It.IsAny<DateTime?>(), 1, 1)).ReturnsAsync((Array.Empty<AuditLog>().AsEnumerable(), 0));
-            auditLogService.Setup(s => s.GetPagedAsync("OperationalAlert", null, null, "Create", null, null, 1, 3)).ReturnsAsync((Array.Empty<AuditLog>().AsEnumerable(), 0));
-            billingAlertService.Setup(s => s.GetSnapshotAsync(It.IsAny<DateTime>(), default)).ReturnsAsync(new BillingOperationalAlertSnapshot { ThresholdPct = 70m, HasConsecutiveLowWeeks = false });
-
-            var controller = new HomeController(
-                logger.Object,
-                memoryCache,
-                patientService.Object,
-                professionalService.Object,
-                treatmentService.Object,
-                sessionService.Object,
-                auditLogService.Object,
-                billingAlertService.Object);
-
-            var result = await controller.Index();
+            var result = await ctx.Controller.Index();
 
             var view = Assert.IsType<ViewResult>(result);
             var model = Assert.IsType<HomeDashboardViewModel>(view.Model);
@@ -76,43 +50,10 @@ namespace KineGestion.Web.Tests
         [Fact]
         public async Task Index_ShouldReturnZeroForMetric_WhenAServiceFails()
         {
-            var logger = new Mock<ILogger<HomeController>>();
-            var patientService = new Mock<IPatientService>();
-            var professionalService = new Mock<IProfessionalService>();
-            var treatmentService = new Mock<ITreatmentService>();
-            var sessionService = new Mock<ISessionService>();
-            var auditLogService = new Mock<IAuditLogService>();
-            var billingAlertService = new Mock<IBillingOperationalAlertService>();
-            var memoryCache = new MemoryCache(new MemoryCacheOptions());
+            var ctx = BuildDefaultContext();
+            ctx.SessionService.Setup(s => s.CountAsync()).ThrowsAsync(new InvalidOperationException("boom"));
 
-            patientService.Setup(s => s.CountActiveAsync()).ReturnsAsync(12);
-            professionalService.Setup(s => s.CountActiveAsync()).ReturnsAsync(4);
-            treatmentService.Setup(s => s.CountAsync()).ReturnsAsync(18);
-            sessionService.Setup(s => s.CountAsync()).ThrowsAsync(new InvalidOperationException("boom"));
-            sessionService.Setup(s => s.CountTodayAsync(It.IsAny<DateTime>())).ReturnsAsync(7);
-            sessionService.Setup(s => s.CountByStatusOnDateAsync(SessionStatus.Completed, It.IsAny<DateTime>())).ReturnsAsync(3);
-            sessionService.Setup(s => s.CountByStatusOnDateAsync(SessionStatus.Canceled, It.IsAny<DateTime>())).ReturnsAsync(2);
-            sessionService.Setup(s => s.CountByStatusAndPaymentStatusAsync(SessionStatus.Completed, PaymentStatus.Pending)).ReturnsAsync(9);
-            sessionService.Setup(s => s.CountByStatusAsync(SessionStatus.Pending)).ReturnsAsync(5);
-            sessionService.Setup(s => s.CountByStatusInRangeAsync(SessionStatus.Completed, It.IsAny<DateTime>(), It.IsAny<DateTime>())).ReturnsAsync(20);
-            sessionService.Setup(s => s.CountByStatusAndPaymentStatusInRangeAsync(SessionStatus.Completed, PaymentStatus.Paid, It.IsAny<DateTime>(), It.IsAny<DateTime>())).ReturnsAsync(15);
-            sessionService.Setup(s => s.CountInRangeAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>())).ReturnsAsync(20);
-            sessionService.Setup(s => s.CountByStatusInRangeAsync(SessionStatus.Canceled, It.IsAny<DateTime>(), It.IsAny<DateTime>())).ReturnsAsync(2);
-            auditLogService.Setup(s => s.GetPagedAsync("OperationalAlert", null, null, "Create", It.IsAny<DateTime?>(), It.IsAny<DateTime?>(), 1, 1)).ReturnsAsync((Array.Empty<AuditLog>().AsEnumerable(), 0));
-            auditLogService.Setup(s => s.GetPagedAsync("OperationalAlert", null, null, "Create", null, null, 1, 3)).ReturnsAsync((Array.Empty<AuditLog>().AsEnumerable(), 0));
-            billingAlertService.Setup(s => s.GetSnapshotAsync(It.IsAny<DateTime>(), default)).ReturnsAsync(new BillingOperationalAlertSnapshot { ThresholdPct = 70m, HasConsecutiveLowWeeks = false });
-
-            var controller = new HomeController(
-                logger.Object,
-                memoryCache,
-                patientService.Object,
-                professionalService.Object,
-                treatmentService.Object,
-                sessionService.Object,
-                auditLogService.Object,
-                billingAlertService.Object);
-
-            var result = await controller.Index();
+            var result = await ctx.Controller.Index();
 
             var view = Assert.IsType<ViewResult>(result);
             var model = Assert.IsType<HomeDashboardViewModel>(view.Model);
@@ -131,99 +72,50 @@ namespace KineGestion.Web.Tests
         [Fact]
         public async Task Index_ShouldReuseCachedDashboard_OnSecondCall()
         {
-            var logger = new Mock<ILogger<HomeController>>();
-            var patientService = new Mock<IPatientService>();
-            var professionalService = new Mock<IProfessionalService>();
-            var treatmentService = new Mock<ITreatmentService>();
-            var sessionService = new Mock<ISessionService>();
-            var auditLogService = new Mock<IAuditLogService>();
-            var billingAlertService = new Mock<IBillingOperationalAlertService>();
-            var memoryCache = new MemoryCache(new MemoryCacheOptions());
+            var ctx = BuildDefaultContext();
 
-            patientService.Setup(s => s.CountActiveAsync()).ReturnsAsync(12);
-            professionalService.Setup(s => s.CountActiveAsync()).ReturnsAsync(4);
-            treatmentService.Setup(s => s.CountAsync()).ReturnsAsync(18);
-            sessionService.Setup(s => s.CountAsync()).ReturnsAsync(60);
-            sessionService.Setup(s => s.CountTodayAsync(It.IsAny<DateTime>())).ReturnsAsync(7);
-            sessionService.Setup(s => s.CountByStatusOnDateAsync(SessionStatus.Completed, It.IsAny<DateTime>())).ReturnsAsync(3);
-            sessionService.Setup(s => s.CountByStatusOnDateAsync(SessionStatus.Canceled, It.IsAny<DateTime>())).ReturnsAsync(2);
-            sessionService.Setup(s => s.CountByStatusAndPaymentStatusAsync(SessionStatus.Completed, PaymentStatus.Pending)).ReturnsAsync(9);
-            sessionService.Setup(s => s.CountByStatusAsync(SessionStatus.Pending)).ReturnsAsync(5);
-            sessionService.Setup(s => s.CountByStatusInRangeAsync(SessionStatus.Completed, It.IsAny<DateTime>(), It.IsAny<DateTime>())).ReturnsAsync(20);
-            sessionService.Setup(s => s.CountByStatusAndPaymentStatusInRangeAsync(SessionStatus.Completed, PaymentStatus.Paid, It.IsAny<DateTime>(), It.IsAny<DateTime>())).ReturnsAsync(15);
-            sessionService.Setup(s => s.CountInRangeAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>())).ReturnsAsync(20);
-            sessionService.Setup(s => s.CountByStatusInRangeAsync(SessionStatus.Canceled, It.IsAny<DateTime>(), It.IsAny<DateTime>())).ReturnsAsync(2);
-            auditLogService.Setup(s => s.GetPagedAsync("OperationalAlert", null, null, "Create", It.IsAny<DateTime?>(), It.IsAny<DateTime?>(), 1, 1)).ReturnsAsync((Array.Empty<AuditLog>().AsEnumerable(), 0));
-            auditLogService.Setup(s => s.GetPagedAsync("OperationalAlert", null, null, "Create", null, null, 1, 3)).ReturnsAsync((Array.Empty<AuditLog>().AsEnumerable(), 0));
-            billingAlertService.Setup(s => s.GetSnapshotAsync(It.IsAny<DateTime>(), default)).ReturnsAsync(new BillingOperationalAlertSnapshot { ThresholdPct = 70m, HasConsecutiveLowWeeks = false });
-
-            var controller = new HomeController(
-                logger.Object,
-                memoryCache,
-                patientService.Object,
-                professionalService.Object,
-                treatmentService.Object,
-                sessionService.Object,
-                auditLogService.Object,
-                billingAlertService.Object);
-
-            var firstResult = await controller.Index();
-            var secondResult = await controller.Index();
+            var firstResult = await ctx.Controller.Index();
+            var secondResult = await ctx.Controller.Index();
 
             Assert.IsType<ViewResult>(firstResult);
             Assert.IsType<ViewResult>(secondResult);
-            patientService.Verify(s => s.CountActiveAsync(), Times.Once);
-            professionalService.Verify(s => s.CountActiveAsync(), Times.Once);
-            treatmentService.Verify(s => s.CountAsync(), Times.Once);
-            sessionService.Verify(s => s.CountAsync(), Times.Once);
+
+            // Al estar cacheado, la segunda llamada no debe volver a consultar ningún dato.
+            ctx.PatientService.Verify(s => s.CountActiveAsync(), Times.Once);
+            ctx.ProfessionalService.Verify(s => s.CountActiveAsync(), Times.Once);
+            ctx.TreatmentService.Verify(s => s.CountAsync(), Times.Once);
+            ctx.SessionService.Verify(s => s.CountAsync(), Times.Once);
+            ctx.SessionService.Verify(s => s.CountTodayAsync(It.IsAny<DateTime>()), Times.Once);
+            ctx.SessionService.Verify(s => s.CountByStatusOnDateAsync(SessionStatus.Completed, It.IsAny<DateTime>()), Times.Once);
+            ctx.SessionService.Verify(s => s.CountByStatusOnDateAsync(SessionStatus.Canceled, It.IsAny<DateTime>()), Times.Once);
+            ctx.SessionService.Verify(s => s.CountByStatusAndPaymentStatusAsync(SessionStatus.Completed, PaymentStatus.Pending), Times.Once);
+            ctx.SessionService.Verify(s => s.CountByStatusAsync(SessionStatus.Pending), Times.Once);
+            ctx.SessionService.Verify(s => s.CountByStatusInRangeAsync(SessionStatus.Completed, It.IsAny<DateTime>(), It.IsAny<DateTime>()), Times.Once);
+            ctx.SessionService.Verify(s => s.CountByStatusAndPaymentStatusInRangeAsync(SessionStatus.Completed, PaymentStatus.Paid, It.IsAny<DateTime>(), It.IsAny<DateTime>()), Times.Once);
+            ctx.SessionService.Verify(s => s.CountInRangeAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>()), Times.Once);
+            ctx.SessionService.Verify(s => s.CountByStatusInRangeAsync(SessionStatus.Canceled, It.IsAny<DateTime>(), It.IsAny<DateTime>()), Times.Once);
+            ctx.SessionService.Verify(s => s.CountByCancellationReasonInRangeAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>()), Times.Once);
+            ctx.BillingAlertService.Verify(s => s.GetSnapshotAsync(It.IsAny<DateTime>(), default), Times.Once);
+            ctx.AuditLogService.Verify(s => s.GetPagedAsync("OperationalAlert", null, null, "Create", It.IsAny<DateTime?>(), It.IsAny<DateTime?>(), 1, 1), Times.Once);
+            ctx.AuditLogService.Verify(s => s.GetPagedAsync("OperationalAlert", null, null, "Create", null, null, 1, 3), Times.Once);
         }
 
         [Fact]
         public async Task Index_ShouldExposeBillingOperationalAlertStatus_WhenDetectedAndSentToday()
         {
-            var logger = new Mock<ILogger<HomeController>>();
-            var patientService = new Mock<IPatientService>();
-            var professionalService = new Mock<IProfessionalService>();
-            var treatmentService = new Mock<ITreatmentService>();
-            var sessionService = new Mock<ISessionService>();
-            var auditLogService = new Mock<IAuditLogService>();
-            var billingAlertService = new Mock<IBillingOperationalAlertService>();
-            var memoryCache = new MemoryCache(new MemoryCacheOptions());
-
-            patientService.Setup(s => s.CountActiveAsync()).ReturnsAsync(1);
-            professionalService.Setup(s => s.CountActiveAsync()).ReturnsAsync(1);
-            treatmentService.Setup(s => s.CountAsync()).ReturnsAsync(1);
-            sessionService.Setup(s => s.CountAsync()).ReturnsAsync(1);
-            sessionService.Setup(s => s.CountTodayAsync(It.IsAny<DateTime>())).ReturnsAsync(1);
-            sessionService.Setup(s => s.CountByStatusOnDateAsync(It.IsAny<SessionStatus>(), It.IsAny<DateTime>())).ReturnsAsync(1);
-            sessionService.Setup(s => s.CountByStatusAndPaymentStatusAsync(It.IsAny<SessionStatus>(), It.IsAny<PaymentStatus>())).ReturnsAsync(1);
-            sessionService.Setup(s => s.CountByStatusAsync(It.IsAny<SessionStatus>())).ReturnsAsync(1);
-            sessionService.Setup(s => s.CountByStatusInRangeAsync(It.IsAny<SessionStatus>(), It.IsAny<DateTime>(), It.IsAny<DateTime>())).ReturnsAsync(1);
-            sessionService.Setup(s => s.CountByStatusAndPaymentStatusInRangeAsync(It.IsAny<SessionStatus>(), It.IsAny<PaymentStatus>(), It.IsAny<DateTime>(), It.IsAny<DateTime>())).ReturnsAsync(1);
-            sessionService.Setup(s => s.CountInRangeAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>())).ReturnsAsync(1);
-
-            billingAlertService
+            var ctx = BuildDefaultContext();
+            ctx.BillingAlertService
                 .Setup(s => s.GetSnapshotAsync(It.IsAny<DateTime>(), default))
                 .ReturnsAsync(new BillingOperationalAlertSnapshot { ThresholdPct = 70m, HasConsecutiveLowWeeks = true });
 
-            auditLogService
+            ctx.AuditLogService
                 .Setup(s => s.GetPagedAsync("OperationalAlert", null, null, "Create", It.IsAny<DateTime?>(), It.IsAny<DateTime?>(), 1, 1))
                 .ReturnsAsync((new[] { new AuditLog { EntityName = "OperationalAlert", Action = "Create", ChangedAt = DateTime.UtcNow } }.AsEnumerable(), 1));
-            auditLogService
+            ctx.AuditLogService
                 .Setup(s => s.GetPagedAsync("OperationalAlert", null, null, "Create", null, null, 1, 3))
                 .ReturnsAsync((new[] { new AuditLog { EntityName = "OperationalAlert", Action = "Create", ChangedAt = DateTime.UtcNow.AddMinutes(-5), ChangedBy = "system" } }.AsEnumerable(), 1));
 
-            var controller = new HomeController(
-                logger.Object,
-                memoryCache,
-                patientService.Object,
-                professionalService.Object,
-                treatmentService.Object,
-                sessionService.Object,
-                auditLogService.Object,
-                billingAlertService.Object);
-
-            var result = await controller.Index();
+            var result = await ctx.Controller.Index();
 
             var view = Assert.IsType<ViewResult>(result);
             var model = Assert.IsType<HomeDashboardViewModel>(view.Model);
@@ -239,35 +131,15 @@ namespace KineGestion.Web.Tests
         [Fact]
         public async Task Index_ShouldClassifyRecentBillingOperationalAlertAsManual_WhenChangedByIsUser()
         {
-            var logger = new Mock<ILogger<HomeController>>();
-            var patientService = new Mock<IPatientService>();
-            var professionalService = new Mock<IProfessionalService>();
-            var treatmentService = new Mock<ITreatmentService>();
-            var sessionService = new Mock<ISessionService>();
-            var auditLogService = new Mock<IAuditLogService>();
-            var billingAlertService = new Mock<IBillingOperationalAlertService>();
-            var memoryCache = new MemoryCache(new MemoryCacheOptions());
-
-            patientService.Setup(s => s.CountActiveAsync()).ReturnsAsync(1);
-            professionalService.Setup(s => s.CountActiveAsync()).ReturnsAsync(1);
-            treatmentService.Setup(s => s.CountAsync()).ReturnsAsync(1);
-            sessionService.Setup(s => s.CountAsync()).ReturnsAsync(1);
-            sessionService.Setup(s => s.CountTodayAsync(It.IsAny<DateTime>())).ReturnsAsync(1);
-            sessionService.Setup(s => s.CountByStatusOnDateAsync(It.IsAny<SessionStatus>(), It.IsAny<DateTime>())).ReturnsAsync(1);
-            sessionService.Setup(s => s.CountByStatusAndPaymentStatusAsync(It.IsAny<SessionStatus>(), It.IsAny<PaymentStatus>())).ReturnsAsync(1);
-            sessionService.Setup(s => s.CountByStatusAsync(It.IsAny<SessionStatus>())).ReturnsAsync(1);
-            sessionService.Setup(s => s.CountByStatusInRangeAsync(It.IsAny<SessionStatus>(), It.IsAny<DateTime>(), It.IsAny<DateTime>())).ReturnsAsync(1);
-            sessionService.Setup(s => s.CountByStatusAndPaymentStatusInRangeAsync(It.IsAny<SessionStatus>(), It.IsAny<PaymentStatus>(), It.IsAny<DateTime>(), It.IsAny<DateTime>())).ReturnsAsync(1);
-            sessionService.Setup(s => s.CountInRangeAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>())).ReturnsAsync(1);
-
-            billingAlertService
+            var ctx = BuildDefaultContext();
+            ctx.BillingAlertService
                 .Setup(s => s.GetSnapshotAsync(It.IsAny<DateTime>(), default))
                 .ReturnsAsync(new BillingOperationalAlertSnapshot { ThresholdPct = 70m, HasConsecutiveLowWeeks = true });
 
-            auditLogService
+            ctx.AuditLogService
                 .Setup(s => s.GetPagedAsync("OperationalAlert", null, null, "Create", It.IsAny<DateTime?>(), It.IsAny<DateTime?>(), 1, 1))
                 .ReturnsAsync((new[] { new AuditLog { EntityName = "OperationalAlert", Action = "Create", ChangedAt = DateTime.UtcNow } }.AsEnumerable(), 1));
-            auditLogService
+            ctx.AuditLogService
                 .Setup(s => s.GetPagedAsync("OperationalAlert", null, null, "Create", null, null, 1, 3))
                 .ReturnsAsync((new[]
                 {
@@ -280,17 +152,7 @@ namespace KineGestion.Web.Tests
                     }
                 }.AsEnumerable(), 1));
 
-            var controller = new HomeController(
-                logger.Object,
-                memoryCache,
-                patientService.Object,
-                professionalService.Object,
-                treatmentService.Object,
-                sessionService.Object,
-                auditLogService.Object,
-                billingAlertService.Object);
-
-            var result = await controller.Index();
+            var result = await ctx.Controller.Index();
 
             var view = Assert.IsType<ViewResult>(result);
             var model = Assert.IsType<HomeDashboardViewModel>(view.Model);
@@ -302,32 +164,13 @@ namespace KineGestion.Web.Tests
         [Fact]
         public async Task TriggerBillingOperationalAlert_ShouldSetSuccess_WhenQueued()
         {
-            var logger = new Mock<ILogger<HomeController>>();
-            var patientService = new Mock<IPatientService>();
-            var professionalService = new Mock<IProfessionalService>();
-            var treatmentService = new Mock<ITreatmentService>();
-            var sessionService = new Mock<ISessionService>();
-            var auditLogService = new Mock<IAuditLogService>();
-            var billingAlertService = new Mock<IBillingOperationalAlertService>();
-            var memoryCache = new MemoryCache(new MemoryCacheOptions());
-
-            billingAlertService
+            var ctx = new HomeTestContext();
+            ctx.BillingAlertService
                 .Setup(s => s.QueueAlertIfNeededAsync(It.IsAny<string?>(), It.IsAny<DateTime>(), default))
                 .ReturnsAsync(new BillingOperationalAlertDispatchResult { Queued = true, Message = "Alerta operativa de cobranzas encolada para administración." });
 
-            var controller = new HomeController(
-                logger.Object,
-                memoryCache,
-                patientService.Object,
-                professionalService.Object,
-                treatmentService.Object,
-                sessionService.Object,
-                auditLogService.Object,
-                billingAlertService.Object)
-            {
-                ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() }
-            };
-
+            var controller = ctx.Controller;
+            controller.ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() };
             controller.TempData = new TempDataDictionary(controller.HttpContext, Mock.Of<ITempDataProvider>());
 
             var result = await controller.TriggerBillingOperationalAlert();
@@ -335,6 +178,49 @@ namespace KineGestion.Web.Tests
             var redirect = Assert.IsType<RedirectToActionResult>(result);
             Assert.Equal("Index", redirect.ActionName);
             Assert.Equal("Alerta operativa de cobranzas encolada para administración.", controller.TempData["Success"]);
+        }
+
+        private sealed class HomeTestContext
+        {
+            public Mock<ILogger<HomeController>> Logger { get; } = new();
+            public Mock<IPatientService> PatientService { get; } = new();
+            public Mock<IProfessionalService> ProfessionalService { get; } = new();
+            public Mock<ITreatmentService> TreatmentService { get; } = new();
+            public Mock<ISessionService> SessionService { get; } = new();
+            public Mock<IAuditLogService> AuditLogService { get; } = new();
+            public Mock<IBillingOperationalAlertService> BillingAlertService { get; } = new();
+            public MemoryCache Cache { get; } = new(new MemoryCacheOptions());
+
+            public HomeController Controller => new(
+                Logger.Object,
+                Cache,
+                PatientService.Object,
+                ProfessionalService.Object,
+                TreatmentService.Object,
+                SessionService.Object,
+                AuditLogService.Object,
+                BillingAlertService.Object);
+
+            public void SetupDefaultMetrics()
+            {
+                PatientService.Setup(s => s.CountActiveAsync()).ReturnsAsync(12);
+                ProfessionalService.Setup(s => s.CountActiveAsync()).ReturnsAsync(4);
+                TreatmentService.Setup(s => s.CountAsync()).ReturnsAsync(18);
+                SessionService.Setup(s => s.CountAsync()).ReturnsAsync(60);
+                SessionService.Setup(s => s.CountTodayAsync(It.IsAny<DateTime>())).ReturnsAsync(7);
+                SessionService.Setup(s => s.CountByStatusOnDateAsync(SessionStatus.Completed, It.IsAny<DateTime>())).ReturnsAsync(3);
+                SessionService.Setup(s => s.CountByStatusOnDateAsync(SessionStatus.Canceled, It.IsAny<DateTime>())).ReturnsAsync(2);
+                SessionService.Setup(s => s.CountByStatusAndPaymentStatusAsync(SessionStatus.Completed, PaymentStatus.Pending)).ReturnsAsync(9);
+                SessionService.Setup(s => s.CountByStatusAsync(SessionStatus.Pending)).ReturnsAsync(5);
+                SessionService.Setup(s => s.CountByStatusInRangeAsync(SessionStatus.Completed, It.IsAny<DateTime>(), It.IsAny<DateTime>())).ReturnsAsync(20);
+                SessionService.Setup(s => s.CountByStatusAndPaymentStatusInRangeAsync(SessionStatus.Completed, PaymentStatus.Paid, It.IsAny<DateTime>(), It.IsAny<DateTime>())).ReturnsAsync(15);
+                SessionService.Setup(s => s.CountInRangeAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>())).ReturnsAsync(20);
+                SessionService.Setup(s => s.CountByStatusInRangeAsync(SessionStatus.Canceled, It.IsAny<DateTime>(), It.IsAny<DateTime>())).ReturnsAsync(2);
+                SessionService.Setup(s => s.CountByCancellationReasonInRangeAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>())).ReturnsAsync(new Dictionary<CancellationReason, int>());
+                AuditLogService.Setup(s => s.GetPagedAsync("OperationalAlert", null, null, "Create", It.IsAny<DateTime?>(), It.IsAny<DateTime?>(), 1, 1)).ReturnsAsync((Array.Empty<AuditLog>().AsEnumerable(), 0));
+                AuditLogService.Setup(s => s.GetPagedAsync("OperationalAlert", null, null, "Create", null, null, 1, 3)).ReturnsAsync((Array.Empty<AuditLog>().AsEnumerable(), 0));
+                BillingAlertService.Setup(s => s.GetSnapshotAsync(It.IsAny<DateTime>(), default)).ReturnsAsync(new BillingOperationalAlertSnapshot { ThresholdPct = 70m, HasConsecutiveLowWeeks = false });
+            }
         }
     }
 }

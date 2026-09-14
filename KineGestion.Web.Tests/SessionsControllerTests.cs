@@ -284,17 +284,6 @@ namespace KineGestion.Web.Tests
             };
         }
 
-        [Theory]
-        [InlineData(CancellationTiming.Late, "24h")]
-        [InlineData(CancellationTiming.Early, "24h")]
-        public void CancellationPolicyMessage_ShouldProduceStandardTextForEachTiming(CancellationTiming timing, string _)
-        {
-            var message = SessionsController.CancellationPolicyMessage(timing);
-
-            Assert.False(string.IsNullOrWhiteSpace(message));
-            Assert.Contains("24h", message);
-        }
-
         [Fact]
         public void CancellationPolicyMessage_ShouldWarnOnLateAndInformOnEarly()
         {

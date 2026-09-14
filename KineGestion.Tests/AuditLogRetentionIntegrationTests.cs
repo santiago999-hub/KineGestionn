@@ -10,29 +10,11 @@ namespace KineGestion.Tests
 {
     public class AuditLogRetentionIntegrationTests
     {
-        private static Task<DbContextOptions<AppDbContext>> BuildOptionsAsync(string databaseName)
-        {
-            var connectionString = TestConnection.For(databaseName);
-            return Task.FromResult(new DbContextOptionsBuilder<AppDbContext>()
-                .UseSqlServer(connectionString)
-                .Options);
-        }
-
-        private static async Task<AppDbContext> CreateDatabaseAsync(string databaseName)
-        {
-            var options = await BuildOptionsAsync(databaseName);
-
-            var context = new AppDbContext(options);
-            await context.Database.EnsureDeletedAsync();
-            await context.Database.MigrateAsync();
-            return context;
-        }
-
         [Fact]
         public async Task DeleteOlderThanAsync_ShouldDeleteOnlyRowsStrictlyOlderThanCutoff()
         {
             var databaseName = $"KineGestion_Integration_{Guid.NewGuid():N}";
-            await using var context = await CreateDatabaseAsync(databaseName);
+            await using var context = await IntegrationTestDatabase.CreateMigratedAsync(databaseName);
             try
             {
                 var repository = new AuditLogRepository(context);
@@ -60,7 +42,7 @@ namespace KineGestion.Tests
         public async Task DeleteOlderThanAsync_ShouldIterateInBatches_AndReturnTotalDeleted()
         {
             var databaseName = $"KineGestion_Integration_{Guid.NewGuid():N}";
-            await using var context = await CreateDatabaseAsync(databaseName);
+            await using var context = await IntegrationTestDatabase.CreateMigratedAsync(databaseName);
             try
             {
                 var repository = new AuditLogRepository(context);

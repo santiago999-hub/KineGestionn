@@ -22,6 +22,11 @@ namespace KineGestion.Web.Tests
         [InlineData(typeof(AuditController), "Admin")]
         [InlineData(typeof(HomeController), "Admin,Kinesiologo,Asistente")]
         [InlineData(typeof(SessionsController), "Admin,Kinesiologo,Asistente")]
+        [InlineData(typeof(BillingController), "Admin")]
+        [InlineData(typeof(BillingFollowUpController), "Admin")]
+        [InlineData(typeof(RemindersController), "Admin")]
+        [InlineData(typeof(DispatchQueueController), "Admin")]
+        [InlineData(typeof(ReminderFunnelController), "Admin")]
         public void Controller_ShouldHaveExpectedRoles(Type controllerType, string expectedRoles)
         {
             var attr = controllerType.GetCustomAttribute<AuthorizeAttribute>();

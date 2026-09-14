@@ -16,10 +16,7 @@ namespace KineGestion.Tests
         public async Task CountByStatusOnDateAsync_ShouldCountOnlyMatchingStatusAndDay()
         {
             var databaseName = $"KineGestion_Integration_{Guid.NewGuid():N}";
-            var connectionString = TestConnection.For(databaseName);
-            var options = new DbContextOptionsBuilder<AppDbContext>()
-                .UseSqlServer(connectionString)
-                .Options;
+            var options = IntegrationTestDatabase.BuildOptions(databaseName);
 
             var targetDay = new DateTime(2026, 5, 8);
 
@@ -28,34 +25,14 @@ namespace KineGestion.Tests
                 await setupContext.Database.EnsureDeletedAsync();
                 await setupContext.Database.EnsureCreatedAsync();
 
-                var patient = new Patient
-                {
-                    Nombre = "Maria",
-                    Apellido = "Lopez",
-                    DNI = "87654321",
-                    FechaNacimiento = new DateTime(1989, 4, 10)
-                };
-
-                var professional = new Professional
-                {
-                    Nombre = "Jose",
-                    Apellido = "Diaz",
-                    Matricula = "MAT-200",
-                    Especialidad = "Kinesiologia"
-                };
+                var patient = NewPatient();
+                var professional = NewProfessional();
 
                 setupContext.Patients.Add(patient);
                 setupContext.Professionals.Add(professional);
                 await setupContext.SaveChangesAsync();
 
-                var treatment = new Treatment
-                {
-                    PatientId = patient.Id,
-                    Descripcion = "Postoperatorio",
-                    CantidadSesionesTotales = 12,
-                    FechaInicio = targetDay
-                };
-
+                var treatment = NewTreatment(patient.Id, targetDay);
                 setupContext.Treatments.Add(treatment);
                 await setupContext.SaveChangesAsync();
 
@@ -127,10 +104,7 @@ namespace KineGestion.Tests
         public async Task ExistsOfficeConflictAsync_ShouldDetectOverlap_AndIgnoreCanceledAndOtherOffices()
         {
             var databaseName = $"KineGestion_Integration_{Guid.NewGuid():N}";
-            var connectionString = TestConnection.For(databaseName);
-            var options = new DbContextOptionsBuilder<AppDbContext>()
-                .UseSqlServer(connectionString)
-                .Options;
+            var options = IntegrationTestDatabase.BuildOptions(databaseName);
 
             var targetDay = new DateTime(2026, 6, 10);
             int professionalId, treatmentId, officeAId, officeBId, occupiedId;
@@ -259,10 +233,7 @@ namespace KineGestion.Tests
         public async Task AddAsync_ShouldThrowBusinessValidationException_WhenUniqueIndexConflictsWithCountBasedNumbering()
         {
             var databaseName = $"KineGestion_Integration_{Guid.NewGuid():N}";
-            var connectionString = TestConnection.For(databaseName);
-            var options = new DbContextOptionsBuilder<AppDbContext>()
-                .UseSqlServer(connectionString)
-                .Options;
+            var options = IntegrationTestDatabase.BuildOptions(databaseName);
 
             await using (var setupContext = new AppDbContext(options))
             {
@@ -359,10 +330,7 @@ namespace KineGestion.Tests
         public async Task MarkCompletedPendingAsPaidBatchAsync_ShouldUpdateOnlyEligibleSessions_UsingSetBasedUpdate()
         {
             var databaseName = $"KineGestion_Integration_{Guid.NewGuid():N}";
-            var connectionString = TestConnection.For(databaseName);
-            var options = new DbContextOptionsBuilder<AppDbContext>()
-                .UseSqlServer(connectionString)
-                .Options;
+            var options = IntegrationTestDatabase.BuildOptions(databaseName);
 
             int eligibleId;
             int alreadyPaidId;
@@ -484,10 +452,7 @@ namespace KineGestion.Tests
         public async Task GetBillingFollowUpCandidatesAsync_ShouldReturnCompletedPendingSessionsInAgeWindow()
         {
             var databaseName = $"KineGestion_Integration_{Guid.NewGuid():N}";
-            var connectionString = TestConnection.For(databaseName);
-            var options = new DbContextOptionsBuilder<AppDbContext>()
-                .UseSqlServer(connectionString)
-                .Options;
+            var options = IntegrationTestDatabase.BuildOptions(databaseName);
 
             var asOfUtc = new DateTime(2026, 7, 20, 12, 0, 0, DateTimeKind.Utc);
 
@@ -611,10 +576,7 @@ namespace KineGestion.Tests
         public async Task GetKpiSegmentsByProfessionalAsync_ShouldAggregateKpisPerProfessional()
         {
             var databaseName = $"KineGestion_Integration_{Guid.NewGuid():N}";
-            var connectionString = TestConnection.For(databaseName);
-            var options = new DbContextOptionsBuilder<AppDbContext>()
-                .UseSqlServer(connectionString)
-                .Options;
+            var options = IntegrationTestDatabase.BuildOptions(databaseName);
 
             var from = new DateTime(2026, 6, 1);
             var to = new DateTime(2026, 7, 1);
@@ -624,41 +586,16 @@ namespace KineGestion.Tests
                 await setupContext.Database.EnsureDeletedAsync();
                 await setupContext.Database.EnsureCreatedAsync();
 
-                var patient = new Patient
-                {
-                    Nombre = "Maria",
-                    Apellido = "Lopez",
-                    DNI = "87654321",
-                    FechaNacimiento = new DateTime(1989, 4, 10)
-                };
+                var patient = NewPatient();
 
-                var prof1 = new Professional
-                {
-                    Nombre = "Jose",
-                    Apellido = "Diaz",
-                    Matricula = "MAT-200",
-                    Especialidad = "Kinesiologia"
-                };
-
-                var prof2 = new Professional
-                {
-                    Nombre = "Ana",
-                    Apellido = "Gomez",
-                    Matricula = "MAT-201",
-                    Especialidad = "Kinesiologia"
-                };
+                var prof1 = NewProfessional("MAT-200");
+                var prof2 = NewProfessional("MAT-201", "Ana", "Gomez");
 
                 setupContext.Patients.Add(patient);
                 setupContext.Professionals.AddRange(prof1, prof2);
                 await setupContext.SaveChangesAsync();
 
-                var treatment = new Treatment
-                {
-                    PatientId = patient.Id,
-                    Descripcion = "Postoperatorio",
-                    CantidadSesionesTotales = 12,
-                    FechaInicio = from
-                };
+                var treatment = NewTreatment(patient.Id, from);
                 setupContext.Treatments.Add(treatment);
                 await setupContext.SaveChangesAsync();
 
@@ -723,10 +660,7 @@ namespace KineGestion.Tests
         public async Task GetKpiSegmentsByTimeSlotAsync_ShouldAggregateKpisByHour()
         {
             var databaseName = $"KineGestion_Integration_{Guid.NewGuid():N}";
-            var connectionString = TestConnection.For(databaseName);
-            var options = new DbContextOptionsBuilder<AppDbContext>()
-                .UseSqlServer(connectionString)
-                .Options;
+            var options = IntegrationTestDatabase.BuildOptions(databaseName);
 
             var from = new DateTime(2026, 6, 1);
             var to = new DateTime(2026, 7, 1);
@@ -736,33 +670,15 @@ namespace KineGestion.Tests
                 await setupContext.Database.EnsureDeletedAsync();
                 await setupContext.Database.EnsureCreatedAsync();
 
-                var patient = new Patient
-                {
-                    Nombre = "Maria",
-                    Apellido = "Lopez",
-                    DNI = "87654321",
-                    FechaNacimiento = new DateTime(1989, 4, 10)
-                };
+                var patient = NewPatient();
 
-                var prof = new Professional
-                {
-                    Nombre = "Jose",
-                    Apellido = "Diaz",
-                    Matricula = "MAT-200",
-                    Especialidad = "Kinesiologia"
-                };
+                var prof = NewProfessional("MAT-200");
 
                 setupContext.Patients.Add(patient);
                 setupContext.Professionals.Add(prof);
                 await setupContext.SaveChangesAsync();
 
-                var treatment = new Treatment
-                {
-                    PatientId = patient.Id,
-                    Descripcion = "Postoperatorio",
-                    CantidadSesionesTotales = 12,
-                    FechaInicio = from
-                };
+                var treatment = NewTreatment(patient.Id, from);
                 setupContext.Treatments.Add(treatment);
                 await setupContext.SaveChangesAsync();
 
@@ -819,10 +735,7 @@ namespace KineGestion.Tests
         public async Task CountLateCancellationsInRangeAsync_ShouldCountOnlyCancelationsWithLessThan24hLead()
         {
             var databaseName = $"KineGestion_Integration_{Guid.NewGuid():N}";
-            var connectionString = TestConnection.For(databaseName);
-            var options = new DbContextOptionsBuilder<AppDbContext>()
-                .UseSqlServer(connectionString)
-                .Options;
+            var options = IntegrationTestDatabase.BuildOptions(databaseName);
 
             var from = new DateTime(2026, 5, 1);
             var to = new DateTime(2026, 6, 1);
@@ -832,33 +745,15 @@ namespace KineGestion.Tests
                 await setupContext.Database.EnsureDeletedAsync();
                 await setupContext.Database.EnsureCreatedAsync();
 
-                var patient = new Patient
-                {
-                    Nombre = "Maria",
-                    Apellido = "Lopez",
-                    DNI = "87654321",
-                    FechaNacimiento = new DateTime(1989, 4, 10)
-                };
+                var patient = NewPatient();
 
-                var professional = new Professional
-                {
-                    Nombre = "Jose",
-                    Apellido = "Diaz",
-                    Matricula = "MAT-200",
-                    Especialidad = "Kinesiologia"
-                };
+                var professional = NewProfessional("MAT-200");
 
                 setupContext.Patients.Add(patient);
                 setupContext.Professionals.Add(professional);
                 await setupContext.SaveChangesAsync();
 
-                var treatment = new Treatment
-                {
-                    PatientId = patient.Id,
-                    Descripcion = "Postoperatorio",
-                    CantidadSesionesTotales = 12,
-                    FechaInicio = from
-                };
+                var treatment = NewTreatment(patient.Id, from);
                 setupContext.Treatments.Add(treatment);
                 await setupContext.SaveChangesAsync();
 
@@ -908,10 +803,7 @@ namespace KineGestion.Tests
         public async Task GetSessionFunnelOutcomesAsync_ShouldClassifyConfirmedAndCanceled_WithinSentRange()
         {
             var databaseName = $"KineGestion_Integration_{Guid.NewGuid():N}";
-            var connectionString = TestConnection.For(databaseName);
-            var options = new DbContextOptionsBuilder<AppDbContext>()
-                .UseSqlServer(connectionString)
-                .Options;
+            var options = IntegrationTestDatabase.BuildOptions(databaseName);
 
             var fromSent = new DateTime(2026, 5, 1);
             var toSent = new DateTime(2026, 6, 1);
@@ -1002,5 +894,29 @@ namespace KineGestion.Tests
                 await cleanupContext.Database.EnsureDeletedAsync();
             }
         }
+
+        private static Patient NewPatient() => new()
+        {
+            Nombre = "Maria",
+            Apellido = "Lopez",
+            DNI = "87654321",
+            FechaNacimiento = new DateTime(1989, 4, 10)
+        };
+
+        private static Professional NewProfessional(string matricula = "MAT-200", string nombre = "Jose", string apellido = "Diaz") => new()
+        {
+            Nombre = nombre,
+            Apellido = apellido,
+            Matricula = matricula,
+            Especialidad = "Kinesiologia"
+        };
+
+        private static Treatment NewTreatment(int patientId, DateTime fechaInicio, string descripcion = "Postoperatorio", int totalSesiones = 12) => new()
+        {
+            PatientId = patientId,
+            Descripcion = descripcion,
+            CantidadSesionesTotales = totalSesiones,
+            FechaInicio = fechaInicio
+        };
     }
 }

@@ -10,26 +10,6 @@ namespace KineGestion.Tests
 {
     public class DispatchJobRepositoryIntegrationTests
     {
-        private static Task<DbContextOptions<AppDbContext>> BuildOptionsAsync(string databaseName)
-        {
-            var connectionString = TestConnection.For(databaseName);
-            return Task.FromResult(new DbContextOptionsBuilder<AppDbContext>()
-                .UseSqlServer(connectionString)
-                .Options);
-        }
-
-        private static async Task<AppDbContext> CreateDatabaseAsync(string databaseName)
-        {
-            var options = await BuildOptionsAsync(databaseName);
-
-            var context = new AppDbContext(options);
-            await context.Database.EnsureDeletedAsync();
-
-            // Migrate, no EnsureCreated: se verifica el esquema real (incluye el índice único filtrado).
-            await context.Database.MigrateAsync();
-            return context;
-        }
-
         private static DispatchJob NewJob(int sessionId, string dispatchType, string payloadHash = "ABC")
             => new DispatchJob
             {
@@ -46,7 +26,7 @@ namespace KineGestion.Tests
         public async Task AddAndFindOpen_ShouldReturnJobByDedupeKey()
         {
             var databaseName = $"KineGestion_Integration_{Guid.NewGuid():N}";
-            await using var context = await CreateDatabaseAsync(databaseName);
+            await using var context = await IntegrationTestDatabase.CreateMigratedAsync(databaseName);
             try
             {
                 var repository = new DispatchJobRepository(context);
@@ -76,7 +56,7 @@ namespace KineGestion.Tests
             var databaseName = $"KineGestion_Integration_{Guid.NewGuid():N}";
 
             // Fase 1: el índice único filtrado rechaza un segundo job abierto idéntico.
-            await using (var context = await CreateDatabaseAsync(databaseName))
+            await using (var context = await IntegrationTestDatabase.CreateMigratedAsync(databaseName))
             {
                 var repository = new DispatchJobRepository(context);
                 await repository.AddAsync(NewJob(7, "BillingFollowUp:Firm", "DUP"), default);
@@ -86,7 +66,7 @@ namespace KineGestion.Tests
 
             // Fase 2 (contexto/scope nuevo, como en producción): al marcar el job como
             // terminal, un job idéntico vuelve a ser válido (solo bloquea jobs abiertos).
-            await using (var context = new AppDbContext(await BuildOptionsAsync(databaseName)))
+            await using (var context = new AppDbContext(IntegrationTestDatabase.BuildOptions(databaseName)))
             {
                 var repository = new DispatchJobRepository(context);
                 var id = (await repository.FindOpenAsync(7, "BillingFollowUp:Firm", "DUP", default))!.Id;
@@ -95,7 +75,7 @@ namespace KineGestion.Tests
                 await repository.AddAsync(NewJob(7, "BillingFollowUp:Firm", "DUP"), default);
             }
 
-            await using (var cleanup = new AppDbContext(await BuildOptionsAsync(databaseName)))
+            await using (var cleanup = new AppDbContext(IntegrationTestDatabase.BuildOptions(databaseName)))
             {
                 await cleanup.Database.EnsureDeletedAsync();
             }
@@ -105,7 +85,7 @@ namespace KineGestion.Tests
         public async Task ClaimNextBatchAsync_ShouldClaimPendingInOrder_AndSkipClaimedJobs()
         {
             var databaseName = $"KineGestion_Integration_{Guid.NewGuid():N}";
-            await using var context = await CreateDatabaseAsync(databaseName);
+            await using var context = await IntegrationTestDatabase.CreateMigratedAsync(databaseName);
             try
             {
                 var repository = new DispatchJobRepository(context);
@@ -142,7 +122,7 @@ namespace KineGestion.Tests
         public async Task MarkFailedAsync_ShouldRetryUntilMaxAttempts_ThenBecomeTerminal()
         {
             var databaseName = $"KineGestion_Integration_{Guid.NewGuid():N}";
-            await using var context = await CreateDatabaseAsync(databaseName);
+            await using var context = await IntegrationTestDatabase.CreateMigratedAsync(databaseName);
             try
             {
                 var repository = new DispatchJobRepository(context);
@@ -179,7 +159,7 @@ namespace KineGestion.Tests
         public async Task CleanupTerminalAsync_ShouldRemoveOnlyOldSucceededJobs()
         {
             var databaseName = $"KineGestion_Integration_{Guid.NewGuid():N}";
-            await using var context = await CreateDatabaseAsync(databaseName);
+            await using var context = await IntegrationTestDatabase.CreateMigratedAsync(databaseName);
             try
             {
                 var repository = new DispatchJobRepository(context);
@@ -210,7 +190,7 @@ namespace KineGestion.Tests
         public async Task GetDispatchedBillingTypesAsync_ShouldReturnOnlyOpenOrSucceededBillingTypes()
         {
             var databaseName = $"KineGestion_Integration_{Guid.NewGuid():N}";
-            await using var context = await CreateDatabaseAsync(databaseName);
+            await using var context = await IntegrationTestDatabase.CreateMigratedAsync(databaseName);
             try
             {
                 var repository = new DispatchJobRepository(context);
@@ -243,7 +223,7 @@ namespace KineGestion.Tests
         public async Task GetStatsAsync_ShouldCountByStatusAndFlagStuckPending()
         {
             var databaseName = $"KineGestion_Integration_{Guid.NewGuid():N}";
-            await using var context = await CreateDatabaseAsync(databaseName);
+            await using var context = await IntegrationTestDatabase.CreateMigratedAsync(databaseName);
             try
             {
                 var repository = new DispatchJobRepository(context);
@@ -289,7 +269,7 @@ namespace KineGestion.Tests
         public async Task GetJobsAsync_ShouldFilterStatusDispatchTypeSearch_AndPaginateDescending()
         {
             var databaseName = $"KineGestion_Integration_{Guid.NewGuid():N}";
-            await using var context = await CreateDatabaseAsync(databaseName);
+            await using var context = await IntegrationTestDatabase.CreateMigratedAsync(databaseName);
             try
             {
                 var repository = new DispatchJobRepository(context);
@@ -343,7 +323,7 @@ namespace KineGestion.Tests
         public async Task ResetForRetryAsync_ShouldResetFailedJobs_AndIgnoreTerminalOthers()
         {
             var databaseName = $"KineGestion_Integration_{Guid.NewGuid():N}";
-            await using var context = await CreateDatabaseAsync(databaseName);
+            await using var context = await IntegrationTestDatabase.CreateMigratedAsync(databaseName);
             try
             {
                 var repository = new DispatchJobRepository(context);
@@ -386,7 +366,7 @@ namespace KineGestion.Tests
         public async Task CancelAsync_ShouldCancelOpenJobs_AndLeaveTerminalUntouched()
         {
             var databaseName = $"KineGestion_Integration_{Guid.NewGuid():N}";
-            await using var context = await CreateDatabaseAsync(databaseName);
+            await using var context = await IntegrationTestDatabase.CreateMigratedAsync(databaseName);
             try
             {
                 var repository = new DispatchJobRepository(context);
