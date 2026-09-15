@@ -1,6 +1,5 @@
 using System.Globalization;
 using System.Text;
-using System.Text.Json;
 using KineGestion.Core.Entities;
 using KineGestion.Core.Interfaces;
 using KineGestion.Web.Models.ViewModels;
@@ -33,18 +32,21 @@ namespace KineGestion.Web.Services
     {
         private const string SnapshotCacheKeyPrefix = "BillingOperationalAlertService.Snapshot";
 
-        private readonly IAuditLogService _auditLogService;
+        private readonly IBillingBatchEventRepository _billingBatchEventRepository;
+        private readonly IDispatchEventRepository _dispatchEventRepository;
         private readonly IReminderDispatchQueue _reminderDispatchQueue;
         private readonly IConfiguration _configuration;
         private readonly IMemoryCache _memoryCache;
 
         public BillingOperationalAlertService(
-            IAuditLogService auditLogService,
+            IBillingBatchEventRepository billingBatchEventRepository,
+            IDispatchEventRepository dispatchEventRepository,
             IReminderDispatchQueue reminderDispatchQueue,
             IConfiguration configuration,
             IMemoryCache memoryCache)
         {
-            _auditLogService = auditLogService;
+            _billingBatchEventRepository = billingBatchEventRepository;
+            _dispatchEventRepository = dispatchEventRepository;
             _reminderDispatchQueue = reminderDispatchQueue;
             _configuration = configuration;
             _memoryCache = memoryCache;
@@ -65,15 +67,9 @@ namespace KineGestion.Web.Services
             var windowStart = referenceUtc.Date.AddDays(-27);
             var windowEnd = referenceUtc.Date;
 
-            var billingBatchLogs = await _auditLogService.GetAllAsync(
-                entityName: "BillingBatch",
-                entityId: null,
-                changedBy: null,
-                action: "Create",
-                dateFrom: windowStart,
-                dateTo: windowEnd);
+            var billingBatchEvents = await _billingBatchEventRepository.GetByDateRangeAsync(windowStart, windowEnd);
 
-            var trendPoints = BuildBillingWeeklyTrend(billingBatchLogs, windowEnd, weeks: 4);
+            var trendPoints = BuildBillingWeeklyTrend(billingBatchEvents, windowEnd, weeks: 4);
 
             var snapshot = new BillingOperationalAlertSnapshot
             {
@@ -104,19 +100,14 @@ namespace KineGestion.Web.Services
                 return new BillingOperationalAlertDispatchResult { Message = string.Empty };
             }
 
-            var dailyAlertId = $"BillingBatchLowEffectiveness:{nowUtc:yyyyMMdd}";
             var todayStart = nowUtc.Date;
-            var todayEnd = todayStart.AddDays(1).AddTicks(-1);
 
-            var existingAlerts = await _auditLogService.GetAllAsync(
-                entityName: "OperationalAlert",
-                entityId: dailyAlertId,
-                changedBy: null,
-                action: "Create",
-                dateFrom: todayStart,
-                dateTo: todayEnd);
+            var sentTodayCount = await _dispatchEventRepository.CountByTypeAsync(
+                "BillingBatchLowEffectivenessAlert",
+                todayStart,
+                todayStart);
 
-            if (existingAlerts.Any())
+            if (sentTodayCount > 0)
             {
                 return new BillingOperationalAlertDispatchResult
                 {
@@ -152,8 +143,6 @@ namespace KineGestion.Web.Services
                 ChangedBy = changedBy,
                 EnqueuedAtUtc = nowUtc,
                 DispatchType = "BillingBatchLowEffectivenessAlert",
-                AuditEntityName = "OperationalAlert",
-                AuditEntityId = dailyAlertId,
                 EmailSubjectOverride = BuildSubject(),
                 EmailBodyOverride = BuildEmailBody(snapshot),
                 WhatsAppBodyOverride = BuildWhatsAppBody(snapshot)
@@ -166,7 +155,7 @@ namespace KineGestion.Web.Services
             };
         }
 
-        private static List<ReminderBillingTrendPointViewModel> BuildBillingWeeklyTrend(IEnumerable<AuditLog> logs, DateTime endDateInclusiveUtc, int weeks)
+        private static List<ReminderBillingTrendPointViewModel> BuildBillingWeeklyTrend(IEnumerable<BillingBatchEvent> events, DateTime endDateInclusiveUtc, int weeks)
         {
             var points = new List<ReminderBillingTrendPointViewModel>();
 
@@ -180,14 +169,11 @@ namespace KineGestion.Web.Services
                     Label = $"{weekStart:dd/MM}-{weekEnd:dd/MM}"
                 };
 
-                foreach (var log in logs.Where(l => l.ChangedAt.Date >= weekStart && l.ChangedAt.Date <= weekEnd))
+                foreach (var batchEvent in events.Where(e => e.CreatedAtUtc.Date >= weekStart && e.CreatedAtUtc.Date <= weekEnd))
                 {
-                    if (!TryReadBatchCounters(log.NewValuesJson, out var requested, out var updated, out var skipped))
-                        continue;
-
-                    point.RequestedCount += requested;
-                    point.UpdatedCount += updated;
-                    point.SkippedCount += skipped;
+                    point.RequestedCount += batchEvent.RequestedCount;
+                    point.UpdatedCount += batchEvent.UpdatedCount;
+                    point.SkippedCount += batchEvent.SkippedCount;
                 }
 
                 points.Add(point);
@@ -215,43 +201,6 @@ namespace KineGestion.Web.Services
             }
 
             return false;
-        }
-
-        private static bool TryReadBatchCounters(string? json, out int requested, out int updated, out int skipped)
-        {
-            requested = 0;
-            updated = 0;
-            skipped = 0;
-
-            if (string.IsNullOrWhiteSpace(json))
-                return false;
-
-            try
-            {
-                using var doc = JsonDocument.Parse(json);
-                var root = doc.RootElement;
-                requested = ReadInt(root, "RequestedCount");
-                updated = ReadInt(root, "UpdatedCount");
-                skipped = ReadInt(root, "SkippedCount");
-                return true;
-            }
-            catch
-            {
-                return false;
-            }
-        }
-
-        private static int ReadInt(JsonElement parent, string propertyName)
-        {
-            if (!parent.TryGetProperty(propertyName, out var property))
-                return 0;
-
-            return property.ValueKind switch
-            {
-                JsonValueKind.Number when property.TryGetInt32(out var value) => value,
-                JsonValueKind.String when int.TryParse(property.GetString(), out var parsed) => parsed,
-                _ => 0
-            };
         }
 
         private static string BuildSubject()

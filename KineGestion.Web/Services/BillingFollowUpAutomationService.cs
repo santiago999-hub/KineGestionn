@@ -111,8 +111,7 @@ namespace KineGestion.Web.Services
                 DispatchType = "BillingFollowUp:" + tier.Tier,
                 EmailSubjectOverride = tier.EmailSubject,
                 EmailBodyOverride = tier.EmailBody,
-                WhatsAppBodyOverride = tier.WhatsAppBody,
-                AuditEntityName = "BillingFollowUp"
+                WhatsAppBodyOverride = tier.WhatsAppBody
             };
 
         private static BillingFollowUpTier? MaxDispatchedTier(IReadOnlyList<string> dispatchTypes)

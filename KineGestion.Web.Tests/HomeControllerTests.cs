@@ -96,8 +96,8 @@ namespace KineGestion.Web.Tests
             ctx.SessionService.Verify(s => s.CountByStatusInRangeAsync(SessionStatus.Canceled, It.IsAny<DateTime>(), It.IsAny<DateTime>()), Times.Once);
             ctx.SessionService.Verify(s => s.CountByCancellationReasonInRangeAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>()), Times.Once);
             ctx.BillingAlertService.Verify(s => s.GetSnapshotAsync(It.IsAny<DateTime>(), default), Times.Once);
-            ctx.AuditLogService.Verify(s => s.GetPagedAsync("OperationalAlert", null, null, "Create", It.IsAny<DateTime?>(), It.IsAny<DateTime?>(), 1, 1), Times.Once);
-            ctx.AuditLogService.Verify(s => s.GetPagedAsync("OperationalAlert", null, null, "Create", null, null, 1, 3), Times.Once);
+            ctx.DispatchEventRepository.Verify(r => r.CountByTypeAsync("BillingBatchLowEffectivenessAlert", It.IsAny<DateTime?>(), It.IsAny<DateTime?>()), Times.Once);
+            ctx.DispatchEventRepository.Verify(r => r.GetByTypeAsync("BillingBatchLowEffectivenessAlert", null, null), Times.Once);
         }
 
         [Fact]
@@ -108,12 +108,20 @@ namespace KineGestion.Web.Tests
                 .Setup(s => s.GetSnapshotAsync(It.IsAny<DateTime>(), default))
                 .ReturnsAsync(new BillingOperationalAlertSnapshot { ThresholdPct = 70m, HasConsecutiveLowWeeks = true });
 
-            ctx.AuditLogService
-                .Setup(s => s.GetPagedAsync("OperationalAlert", null, null, "Create", It.IsAny<DateTime?>(), It.IsAny<DateTime?>(), 1, 1))
-                .ReturnsAsync((new[] { new AuditLog { EntityName = "OperationalAlert", Action = "Create", ChangedAt = DateTime.UtcNow } }.AsEnumerable(), 1));
-            ctx.AuditLogService
-                .Setup(s => s.GetPagedAsync("OperationalAlert", null, null, "Create", null, null, 1, 3))
-                .ReturnsAsync((new[] { new AuditLog { EntityName = "OperationalAlert", Action = "Create", ChangedAt = DateTime.UtcNow.AddMinutes(-5), ChangedBy = "system" } }.AsEnumerable(), 1));
+            ctx.DispatchEventRepository
+                .Setup(r => r.CountByTypeAsync("BillingBatchLowEffectivenessAlert", It.IsAny<DateTime?>(), It.IsAny<DateTime?>()))
+                .ReturnsAsync(1);
+            ctx.DispatchEventRepository
+                .Setup(r => r.GetByTypeAsync("BillingBatchLowEffectivenessAlert", null, null))
+                .ReturnsAsync(new[]
+                {
+                    new DispatchEvent
+                    {
+                        DispatchType = "BillingBatchLowEffectivenessAlert",
+                        SentAtUtc = DateTime.UtcNow.AddMinutes(-5),
+                        ChangedBy = "system"
+                    }
+                });
 
             var result = await ctx.Controller.Index();
 
@@ -136,21 +144,20 @@ namespace KineGestion.Web.Tests
                 .Setup(s => s.GetSnapshotAsync(It.IsAny<DateTime>(), default))
                 .ReturnsAsync(new BillingOperationalAlertSnapshot { ThresholdPct = 70m, HasConsecutiveLowWeeks = true });
 
-            ctx.AuditLogService
-                .Setup(s => s.GetPagedAsync("OperationalAlert", null, null, "Create", It.IsAny<DateTime?>(), It.IsAny<DateTime?>(), 1, 1))
-                .ReturnsAsync((new[] { new AuditLog { EntityName = "OperationalAlert", Action = "Create", ChangedAt = DateTime.UtcNow } }.AsEnumerable(), 1));
-            ctx.AuditLogService
-                .Setup(s => s.GetPagedAsync("OperationalAlert", null, null, "Create", null, null, 1, 3))
-                .ReturnsAsync((new[]
+            ctx.DispatchEventRepository
+                .Setup(r => r.CountByTypeAsync("BillingBatchLowEffectivenessAlert", It.IsAny<DateTime?>(), It.IsAny<DateTime?>()))
+                .ReturnsAsync(1);
+            ctx.DispatchEventRepository
+                .Setup(r => r.GetByTypeAsync("BillingBatchLowEffectivenessAlert", null, null))
+                .ReturnsAsync(new[]
                 {
-                    new AuditLog
+                    new DispatchEvent
                     {
-                        EntityName = "OperationalAlert",
-                        Action = "Create",
-                        ChangedAt = DateTime.UtcNow.AddMinutes(-3),
+                        DispatchType = "BillingBatchLowEffectivenessAlert",
+                        SentAtUtc = DateTime.UtcNow.AddMinutes(-3),
                         ChangedBy = "admin@kinegestion.local"
                     }
-                }.AsEnumerable(), 1));
+                });
 
             var result = await ctx.Controller.Index();
 
@@ -187,7 +194,7 @@ namespace KineGestion.Web.Tests
             public Mock<IProfessionalService> ProfessionalService { get; } = new();
             public Mock<ITreatmentService> TreatmentService { get; } = new();
             public Mock<ISessionService> SessionService { get; } = new();
-            public Mock<IAuditLogService> AuditLogService { get; } = new();
+            public Mock<IDispatchEventRepository> DispatchEventRepository { get; } = new();
             public Mock<IBillingOperationalAlertService> BillingAlertService { get; } = new();
             public MemoryCache Cache { get; } = new(new MemoryCacheOptions());
 
@@ -198,7 +205,7 @@ namespace KineGestion.Web.Tests
                 ProfessionalService.Object,
                 TreatmentService.Object,
                 SessionService.Object,
-                AuditLogService.Object,
+                DispatchEventRepository.Object,
                 BillingAlertService.Object);
 
             public void SetupDefaultMetrics()
@@ -217,8 +224,8 @@ namespace KineGestion.Web.Tests
                 SessionService.Setup(s => s.CountInRangeAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>())).ReturnsAsync(20);
                 SessionService.Setup(s => s.CountByStatusInRangeAsync(SessionStatus.Canceled, It.IsAny<DateTime>(), It.IsAny<DateTime>())).ReturnsAsync(2);
                 SessionService.Setup(s => s.CountByCancellationReasonInRangeAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>())).ReturnsAsync(new Dictionary<CancellationReason, int>());
-                AuditLogService.Setup(s => s.GetPagedAsync("OperationalAlert", null, null, "Create", It.IsAny<DateTime?>(), It.IsAny<DateTime?>(), 1, 1)).ReturnsAsync((Array.Empty<AuditLog>().AsEnumerable(), 0));
-                AuditLogService.Setup(s => s.GetPagedAsync("OperationalAlert", null, null, "Create", null, null, 1, 3)).ReturnsAsync((Array.Empty<AuditLog>().AsEnumerable(), 0));
+                DispatchEventRepository.Setup(r => r.CountByTypeAsync("BillingBatchLowEffectivenessAlert", It.IsAny<DateTime?>(), It.IsAny<DateTime?>())).ReturnsAsync(0);
+                DispatchEventRepository.Setup(r => r.GetByTypeAsync("BillingBatchLowEffectivenessAlert", null, null)).ReturnsAsync(Array.Empty<DispatchEvent>());
                 BillingAlertService.Setup(s => s.GetSnapshotAsync(It.IsAny<DateTime>(), default)).ReturnsAsync(new BillingOperationalAlertSnapshot { ThresholdPct = 70m, HasConsecutiveLowWeeks = false });
             }
         }

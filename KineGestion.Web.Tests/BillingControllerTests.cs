@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.Json;
 using System.Threading.Tasks;
 using KineGestion.Core;
 using KineGestion.Core.DTOs;
@@ -80,12 +79,12 @@ namespace KineGestion.Web.Tests
         public async Task MarkPaidBatch_ShouldMarkDistinctPositiveIds_AsPaid()
         {
             var sessionService = new Mock<ISessionService>();
-            var auditLogService = BuildAuditLogServiceMock();
+            var batchRepository = BuildBatchRepositoryMock();
             sessionService
                 .Setup(s => s.MarkCompletedPendingAsPaidBatchAsync(It.IsAny<IReadOnlyCollection<int>>()))
                 .ReturnsAsync((2, 0));
 
-            var controller = BuildController(sessionService.Object, new ConfigurationBuilder().Build(), auditLogService);
+            var controller = BuildController(sessionService.Object, new ConfigurationBuilder().Build(), batchRepository);
 
             var result = await controller.MarkPaidBatch(new List<int> { 7, 7, 0, -2, 9 }, null, null, null);
 
@@ -95,8 +94,8 @@ namespace KineGestion.Web.Tests
             sessionService.Verify(
                 s => s.MarkCompletedPendingAsPaidBatchAsync(It.Is<IReadOnlyCollection<int>>(ids => ids.Count == 2 && ids.Contains(7) && ids.Contains(9))),
                 Times.Once);
-            auditLogService.Verify(
-                s => s.AddAsync(It.Is<AuditLog>(a => a.EntityName == "BillingBatch" && a.Action == "Create" && a.NewValuesJson != null && a.NewValuesJson.Contains("MarkPaidBatch"))),
+            batchRepository.Verify(
+                s => s.AddAsync(It.Is<BillingBatchEvent>(e => e.Operation == "MarkPaidBatch" && e.RequestedCount == 2 && e.UpdatedCount == 2 && e.SkippedCount == 0)),
                 Times.Once);
         }
 
@@ -158,7 +157,7 @@ namespace KineGestion.Web.Tests
         public async Task Index_ShouldExposeLastBatchKpi_WhenTempDataIsPresent()
         {
             var sessionService = new Mock<ISessionService>();
-            var auditLogService = BuildAuditLogServiceMock();
+            var batchRepository = BuildBatchRepositoryMock();
             var configuration = new ConfigurationBuilder().Build();
 
             sessionService.Setup(s => s.CountByPaymentStatusInRangeAsync(PaymentStatus.Pending, It.IsAny<DateTime>(), It.IsAny<DateTime>())).ReturnsAsync(0);
@@ -176,7 +175,7 @@ namespace KineGestion.Web.Tests
                     "desc"))
                 .ReturnsAsync((Enumerable.Empty<SessionListDto>(), 0));
 
-            var controller = BuildController(sessionService.Object, configuration, auditLogService);
+            var controller = BuildController(sessionService.Object, configuration, batchRepository);
             controller.TempData["BillingBatchRequestedCount"] = 10;
             controller.TempData["BillingBatchUpdatedCount"] = 7;
             controller.TempData["BillingBatchSkippedCount"] = 3;
@@ -192,10 +191,10 @@ namespace KineGestion.Web.Tests
         }
 
         [Fact]
-        public async Task Index_ShouldAggregateWeeklyBatchMetrics_FromAuditLogEntries()
+        public async Task Index_ShouldAggregateWeeklyBatchMetrics_FromBillingBatchEvents()
         {
             var sessionService = new Mock<ISessionService>();
-            var auditLogService = BuildAuditLogServiceMock();
+            var batchRepository = BuildBatchRepositoryMock();
             var configuration = new ConfigurationBuilder()
                 .AddInMemoryCollection(new Dictionary<string, string?>
                 {
@@ -218,31 +217,33 @@ namespace KineGestion.Web.Tests
                     "desc"))
                 .ReturnsAsync((Enumerable.Empty<SessionListDto>(), 0));
 
-            var auditItems = new[]
+            var batchEvents = new[]
             {
-                new AuditLog
+                new BillingBatchEvent
                 {
-                    EntityName = "BillingBatch",
-                    Action = "Create",
-                    ChangedAt = DateTime.UtcNow,
-                    ChangedBy = "admin@local",
-                    NewValuesJson = "{\"RequestedCount\":10,\"UpdatedCount\":7,\"SkippedCount\":3}"
+                    Operation = "MarkPaidBatch",
+                    RequestedCount = 10,
+                    UpdatedCount = 7,
+                    SkippedCount = 3,
+                    CreatedAtUtc = DateTime.UtcNow,
+                    ChangedBy = "admin@local"
                 },
-                new AuditLog
+                new BillingBatchEvent
                 {
-                    EntityName = "BillingBatch",
-                    Action = "Create",
-                    ChangedAt = DateTime.UtcNow,
-                    ChangedBy = "admin@local",
-                    NewValuesJson = "{\"RequestedCount\":5,\"UpdatedCount\":2,\"SkippedCount\":3}"
+                    Operation = "MarkPaidBatch",
+                    RequestedCount = 5,
+                    UpdatedCount = 2,
+                    SkippedCount = 3,
+                    CreatedAtUtc = DateTime.UtcNow,
+                    ChangedBy = "admin@local"
                 }
             };
 
-            auditLogService
-                .Setup(s => s.GetAllAsync("BillingBatch", null, null, "Create", It.IsAny<DateTime?>(), It.IsAny<DateTime?>()))
-                .ReturnsAsync(auditItems);
+            batchRepository
+                .Setup(s => s.GetByDateRangeAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>()))
+                .ReturnsAsync(batchEvents);
 
-            var controller = BuildController(sessionService.Object, configuration, auditLogService);
+            var controller = BuildController(sessionService.Object, configuration, batchRepository);
 
             var result = await controller.Index(null, null, null);
 
@@ -262,7 +263,7 @@ namespace KineGestion.Web.Tests
         public async Task Index_ShouldMarkTwoConsecutiveLowWeeks_WhenTrendFallsBelowThresholdTwiceInARow()
         {
             var sessionService = new Mock<ISessionService>();
-            var auditLogService = BuildAuditLogServiceMock();
+            var batchRepository = BuildBatchRepositoryMock();
             var configuration = new ConfigurationBuilder()
                 .AddInMemoryCollection(new Dictionary<string, string?>
                 {
@@ -285,31 +286,33 @@ namespace KineGestion.Web.Tests
                     "desc"))
                 .ReturnsAsync((Enumerable.Empty<SessionListDto>(), 0));
 
-            var auditItems = new[]
+            var batchEvents = new[]
             {
-                new AuditLog
+                new BillingBatchEvent
                 {
-                    EntityName = "BillingBatch",
-                    Action = "Create",
-                    ChangedAt = DateTime.UtcNow.AddDays(-8),
-                    ChangedBy = "admin@local",
-                    NewValuesJson = "{\"RequestedCount\":10,\"UpdatedCount\":5,\"SkippedCount\":5}"
+                    Operation = "MarkPaidBatch",
+                    RequestedCount = 10,
+                    UpdatedCount = 5,
+                    SkippedCount = 5,
+                    CreatedAtUtc = DateTime.UtcNow.AddDays(-8),
+                    ChangedBy = "admin@local"
                 },
-                new AuditLog
+                new BillingBatchEvent
                 {
-                    EntityName = "BillingBatch",
-                    Action = "Create",
-                    ChangedAt = DateTime.UtcNow.AddDays(-1),
-                    ChangedBy = "admin@local",
-                    NewValuesJson = "{\"RequestedCount\":8,\"UpdatedCount\":4,\"SkippedCount\":4}"
+                    Operation = "MarkPaidBatch",
+                    RequestedCount = 8,
+                    UpdatedCount = 4,
+                    SkippedCount = 4,
+                    CreatedAtUtc = DateTime.UtcNow.AddDays(-1),
+                    ChangedBy = "admin@local"
                 }
             };
 
-            auditLogService
-                .Setup(s => s.GetAllAsync("BillingBatch", null, null, "Create", It.IsAny<DateTime?>(), It.IsAny<DateTime?>()))
-                .ReturnsAsync(auditItems);
+            batchRepository
+                .Setup(s => s.GetByDateRangeAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>()))
+                .ReturnsAsync(batchEvents);
 
-            var controller = BuildController(sessionService.Object, configuration, auditLogService);
+            var controller = BuildController(sessionService.Object, configuration, batchRepository);
 
             var result = await controller.Index(null, null, null);
 
@@ -320,12 +323,12 @@ namespace KineGestion.Web.Tests
             Assert.Equal(4, model.WeeklyTrendPoints.Count);
         }
 
-        private static BillingController BuildController(ISessionService sessionService, IConfiguration configuration, Mock<IAuditLogService>? auditLogService = null, Mock<ILogger<BillingController>>? logger = null)
+        private static BillingController BuildController(ISessionService sessionService, IConfiguration configuration, Mock<IBillingBatchEventRepository>? billingBatchEventRepository = null, Mock<ILogger<BillingController>>? logger = null)
         {
-            var resolvedAuditLogService = auditLogService ?? BuildAuditLogServiceMock();
+            var resolvedBatchRepository = billingBatchEventRepository ?? BuildBatchRepositoryMock();
             var resolvedLogger = logger ?? new Mock<ILogger<BillingController>>();
 
-            var controller = new BillingController(sessionService, configuration, resolvedAuditLogService.Object, resolvedLogger.Object)
+            var controller = new BillingController(sessionService, configuration, resolvedBatchRepository.Object, resolvedLogger.Object)
             {
                 ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() }
             };
@@ -334,16 +337,16 @@ namespace KineGestion.Web.Tests
             return controller;
         }
 
-        private static Mock<IAuditLogService> BuildAuditLogServiceMock()
+        private static Mock<IBillingBatchEventRepository> BuildBatchRepositoryMock()
         {
-            var auditLogService = new Mock<IAuditLogService>();
-            auditLogService
-                .Setup(s => s.GetAllAsync(It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<DateTime?>(), It.IsAny<DateTime?>()))
-                .ReturnsAsync(Enumerable.Empty<AuditLog>());
-            auditLogService
-                .Setup(s => s.AddAsync(It.IsAny<AuditLog>()))
-                .ReturnsAsync((AuditLog entry) => entry);
-            return auditLogService;
+            var batchRepository = new Mock<IBillingBatchEventRepository>();
+            batchRepository
+                .Setup(s => s.GetByDateRangeAsync(It.IsAny<DateTime?>(), It.IsAny<DateTime?>()))
+                .ReturnsAsync(Array.Empty<BillingBatchEvent>());
+            batchRepository
+                .Setup(s => s.AddAsync(It.IsAny<BillingBatchEvent>()))
+                .Returns(Task.CompletedTask);
+            return batchRepository;
         }
     }
 }

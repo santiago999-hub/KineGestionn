@@ -42,6 +42,8 @@ namespace KineGestion.Data.Context
         public DbSet<Equipment> Equipments { get; set; }
         public DbSet<AuditLog> AuditLogs { get; set; }
         public DbSet<DispatchJob> DispatchJobs { get; set; }
+        public DbSet<BillingBatchEvent> BillingBatchEvents { get; set; }
+        public DbSet<DispatchEvent> DispatchEvents { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -209,6 +211,25 @@ namespace KineGestion.Data.Context
                 entity.HasIndex(j => new { j.Status, j.NextAttemptAtUtc, j.CreatedAtUtc });
                 entity.HasIndex(j => j.CreatedAtUtc);
             });
+
+            modelBuilder.Entity<BillingBatchEvent>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Operation).IsRequired().HasMaxLength(32);
+                entity.Property(e => e.FilterSearch).HasMaxLength(200);
+                entity.Property(e => e.ChangedBy).IsRequired().HasMaxLength(256);
+                entity.HasIndex(e => e.CreatedAtUtc);
+            });
+
+            modelBuilder.Entity<DispatchEvent>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.DispatchType).IsRequired().HasMaxLength(64);
+                entity.Property(e => e.ChangedBy).IsRequired().HasMaxLength(256);
+                entity.Property(e => e.Errors).HasMaxLength(2000);
+                entity.HasIndex(e => new { e.DispatchType, e.SentAtUtc });
+                entity.HasIndex(e => e.SessionId);
+            });
         }
 
         public override int SaveChanges()
@@ -321,6 +342,8 @@ namespace KineGestion.Data.Context
                 .Entries()
                 .Where(e => e.Entity is not AuditLog
                             && e.Entity is not DispatchJob
+                            && e.Entity is not DispatchEvent
+                            && e.Entity is not BillingBatchEvent
                             && e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted
                             && !(e.Entity is IdentityUser)
                             && !e.Metadata.IsOwned())

@@ -64,7 +64,6 @@ namespace KineGestion.Web.Tests
             Assert.Equal("BillingFollowUp:Reminder", queued.Single(q => q.SessionId == 11).DispatchType);
             Assert.Equal("BillingFollowUp:Firm", queued.Single(q => q.SessionId == 13).DispatchType);
             Assert.All(queued, q => Assert.Equal("system:automation", q.ChangedBy));
-            Assert.All(queued, q => Assert.Equal("BillingFollowUp", q.AuditEntityName));
         }
 
         [Fact]

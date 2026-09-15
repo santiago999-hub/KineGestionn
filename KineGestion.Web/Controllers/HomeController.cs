@@ -23,7 +23,7 @@ public class HomeController : Controller
     private readonly IProfessionalService _professionalService;
     private readonly ITreatmentService _treatmentService;
     private readonly ISessionService _sessionService;
-    private readonly IAuditLogService _auditLogService;
+    private readonly IDispatchEventRepository _dispatchEventRepository;
     private readonly IBillingOperationalAlertService _billingOperationalAlertService;
 
     public HomeController(
@@ -33,7 +33,7 @@ public class HomeController : Controller
         IProfessionalService professionalService,
         ITreatmentService treatmentService,
         ISessionService sessionService,
-        IAuditLogService auditLogService,
+        IDispatchEventRepository dispatchEventRepository,
         IBillingOperationalAlertService billingOperationalAlertService)
     {
         _logger = logger;
@@ -42,7 +42,7 @@ public class HomeController : Controller
         _professionalService = professionalService;
         _treatmentService = treatmentService;
         _sessionService = sessionService;
-        _auditLogService = auditLogService;
+        _dispatchEventRepository = dispatchEventRepository;
         _billingOperationalAlertService = billingOperationalAlertService;
     }
 
@@ -201,20 +201,13 @@ public class HomeController : Controller
         {
             try
             {
-                var latest = await _auditLogService.GetPagedAsync(
-                    entityName: "OperationalAlert",
-                    entityId: null,
-                    changedBy: null,
-                    action: "Create",
-                    dateFrom: null,
-                    dateTo: null,
-                    page: 1,
-                    pageSize: 3);
+                var latest = await _dispatchEventRepository.GetByTypeAsync("BillingBatchLowEffectivenessAlert", null, null);
 
-                return latest.Items
+                return latest
+                    .Take(3)
                     .Select(item => new BillingOperationalAlertHistoryItemViewModel
                     {
-                        ChangedAtUtc = item.ChangedAt,
+                        ChangedAtUtc = item.SentAtUtc,
                         ChangedBy = string.IsNullOrWhiteSpace(item.ChangedBy) ? "system" : item.ChangedBy
                     })
                     .ToList();
@@ -230,18 +223,7 @@ public class HomeController : Controller
         async Task<int> CountOperationalAlertsTodayAsync()
         {
             var dayStart = today.Date;
-            var dayEnd = dayStart.AddDays(1).AddTicks(-1);
-            var (_, totalCount) = await _auditLogService.GetPagedAsync(
-                entityName: "OperationalAlert",
-                entityId: null,
-                changedBy: null,
-                action: "Create",
-                dateFrom: dayStart,
-                dateTo: dayEnd,
-                page: 1,
-                pageSize: 1);
-
-            return totalCount;
+            return await _dispatchEventRepository.CountByTypeAsync("BillingBatchLowEffectivenessAlert", dayStart, dayStart);
         }
 
         async Task<List<CancellationReasonCountViewModel>> SafeGetCancellationReasonsAsync()

@@ -33,10 +33,10 @@ namespace KineGestion.Web.Tests
                     Candidate(3, days: 9)   // Firm
                 });
 
-            var auditLogService = new Mock<IAuditLogService>();
-            auditLogService
-                .Setup(a => a.GetPagedAsync("BillingFollowUp", null, null, "Create", null, null, 1, 20))
-                .ReturnsAsync((Enumerable.Empty<AuditLog>(), 0));
+            var dispatchRepository = new Mock<IDispatchEventRepository>();
+            dispatchRepository
+                .Setup(r => r.GetByTypePrefixAsync("BillingFollowUp:", null, null))
+                .ReturnsAsync(Array.Empty<DispatchEvent>());
 
             var queued = new List<ReminderDispatchWorkItem>();
 
@@ -45,7 +45,7 @@ namespace KineGestion.Web.Tests
                 new BillingFollowUpService(BuildEmptyConfiguration()),
                 BuildQueueMock(queued).Object,
                 new Mock<IReminderDeliveryService>().Object,
-                auditLogService.Object,
+                dispatchRepository.Object,
                 BuildEmptyConfiguration(),
                 new Mock<ILogger<BillingFollowUpController>>().Object)
             {
@@ -86,7 +86,7 @@ namespace KineGestion.Web.Tests
                 new BillingFollowUpService(BuildEmptyConfiguration()),
                 BuildQueueMock(queued).Object,
                 new Mock<IReminderDeliveryService>().Object,
-                new Mock<IAuditLogService>().Object,
+                new Mock<IDispatchEventRepository>().Object,
                 BuildEmptyConfiguration(),
                 new Mock<ILogger<BillingFollowUpController>>().Object)
             {
@@ -117,7 +117,7 @@ namespace KineGestion.Web.Tests
                 new BillingFollowUpService(BuildEmptyConfiguration()),
                 BuildQueueMock(queued).Object,
                 new Mock<IReminderDeliveryService>().Object,
-                new Mock<IAuditLogService>().Object,
+                new Mock<IDispatchEventRepository>().Object,
                 BuildEmptyConfiguration(),
                 new Mock<ILogger<BillingFollowUpController>>().Object)
             {
@@ -151,7 +151,7 @@ namespace KineGestion.Web.Tests
                 new BillingFollowUpService(BuildEmptyConfiguration()),
                 BuildQueueMock(queued).Object,
                 new Mock<IReminderDeliveryService>().Object,
-                new Mock<IAuditLogService>().Object,
+                new Mock<IDispatchEventRepository>().Object,
                 BuildEmptyConfiguration(),
                 new Mock<ILogger<BillingFollowUpController>>().Object)
             {
@@ -192,7 +192,7 @@ namespace KineGestion.Web.Tests
                 new BillingFollowUpService(BuildEmptyConfiguration()),
                 BuildQueueMock(new List<ReminderDispatchWorkItem>()).Object,
                 delivery.Object,
-                new Mock<IAuditLogService>().Object,
+                new Mock<IDispatchEventRepository>().Object,
                 BuildEmptyConfiguration(),
                 new Mock<ILogger<BillingFollowUpController>>().Object)
             {
@@ -211,40 +211,45 @@ namespace KineGestion.Web.Tests
         }
 
         [Fact]
-        public async Task Index_ShouldParseEmailAndWhatsAppFromAuditHistoryJson()
+        public async Task Index_ShouldMapDispatchEventHistoryFromRepository()
         {
             var sessionService = new Mock<ISessionService>();
             sessionService
                 .Setup(s => s.GetBillingFollowUpCandidatesAsync(It.IsAny<DateTime>(), It.IsAny<int>(), It.IsAny<int>()))
                 .ReturnsAsync(Array.Empty<BillingFollowUpCandidateDto>());
 
-            var auditLogService = new Mock<IAuditLogService>();
-            auditLogService
-                .Setup(a => a.GetPagedAsync("BillingFollowUp", null, null, "Create", null, null, 1, 20))
-                .ReturnsAsync((new[]
+            var dispatchRepository = new Mock<IDispatchEventRepository>();
+            dispatchRepository
+                .Setup(r => r.GetByTypePrefixAsync("BillingFollowUp:", null, null))
+                .ReturnsAsync(new[]
                 {
-                    new AuditLog
+                    new DispatchEvent
                     {
-                        EntityId = "42",
-                        ChangedAt = new DateTime(2026, 9, 7, 10, 0, 0, DateTimeKind.Utc),
+                        DispatchType = "BillingFollowUp:Soft",
+                        SessionId = 42,
+                        SentAtUtc = new DateTime(2026, 9, 7, 10, 0, 0, DateTimeKind.Utc),
                         ChangedBy = "admin@local",
-                        NewValuesJson = "{\"EmailSent\":true,\"WhatsAppSent\":true}"
+                        EmailSent = true,
+                        WhatsAppSent = true
                     },
-                    new AuditLog
+                    new DispatchEvent
                     {
-                        EntityId = "43",
-                        ChangedAt = new DateTime(2026, 9, 7, 11, 0, 0, DateTimeKind.Utc),
+                        DispatchType = "BillingFollowUp:Firm",
+                        SessionId = 43,
+                        SentAtUtc = new DateTime(2026, 9, 7, 11, 0, 0, DateTimeKind.Utc),
                         ChangedBy = "admin@local",
-                        NewValuesJson = "{\"EmailSent\":false,\"WhatsAppSent\":false,\"Errors\":[\"boom\"]}"
+                        EmailSent = false,
+                        WhatsAppSent = false,
+                        Errors = "boom"
                     }
-                }.AsEnumerable(), 2));
+                });
 
             var controller = new BillingFollowUpController(
                 sessionService.Object,
                 new BillingFollowUpService(BuildEmptyConfiguration()),
                 BuildQueueMock(new List<ReminderDispatchWorkItem>()).Object,
                 new Mock<IReminderDeliveryService>().Object,
-                auditLogService.Object,
+                dispatchRepository.Object,
                 BuildEmptyConfiguration(),
                 new Mock<ILogger<BillingFollowUpController>>().Object)
             {
@@ -263,36 +268,40 @@ namespace KineGestion.Web.Tests
             Assert.Equal("Error", model.History[1].Status);
             Assert.Contains("boom", model.History[1].ErrorSummary);
             Assert.Equal(42, model.History[0].SessionId);
+            dispatchRepository.Verify(r => r.GetByTypePrefixAsync("BillingFollowUp:", null, null), Times.Once);
         }
 
         [Fact]
-        public async Task Index_ShouldHandleMalformedHistoryJsonGracefully()
+        public async Task Index_ShouldHandleDispatchEventsWithoutSessionId_AndWithoutErrors()
         {
             var sessionService = new Mock<ISessionService>();
             sessionService
                 .Setup(s => s.GetBillingFollowUpCandidatesAsync(It.IsAny<DateTime>(), It.IsAny<int>(), It.IsAny<int>()))
                 .ReturnsAsync(Array.Empty<BillingFollowUpCandidateDto>());
 
-            var auditLogService = new Mock<IAuditLogService>();
-            auditLogService
-                .Setup(a => a.GetPagedAsync("BillingFollowUp", null, null, "Create", null, null, 1, 20))
-                .ReturnsAsync((new[]
+            var dispatchRepository = new Mock<IDispatchEventRepository>();
+            dispatchRepository
+                .Setup(r => r.GetByTypePrefixAsync("BillingFollowUp:", null, null))
+                .ReturnsAsync(new[]
                 {
-                    new AuditLog
+                    new DispatchEvent
                     {
-                        EntityId = "abc",
-                        ChangedAt = DateTime.UtcNow,
+                        DispatchType = "BillingFollowUp:Soft",
+                        SessionId = null,
+                        SentAtUtc = DateTime.UtcNow,
                         ChangedBy = "admin@local",
-                        NewValuesJson = "not-json"
+                        EmailSent = false,
+                        WhatsAppSent = false,
+                        Errors = null
                     }
-                }.AsEnumerable(), 1));
+                });
 
             var controller = new BillingFollowUpController(
                 sessionService.Object,
                 new BillingFollowUpService(BuildEmptyConfiguration()),
                 BuildQueueMock(new List<ReminderDispatchWorkItem>()).Object,
                 new Mock<IReminderDeliveryService>().Object,
-                auditLogService.Object,
+                dispatchRepository.Object,
                 BuildEmptyConfiguration(),
                 new Mock<ILogger<BillingFollowUpController>>().Object)
             {
@@ -306,7 +315,9 @@ namespace KineGestion.Web.Tests
 
             var item = Assert.Single(model.History);
             Assert.Equal("Error", item.Status);
-            Assert.Contains("No se pudo interpretar", item.ErrorSummary);
+            Assert.Equal("Sin envío", item.ChannelSummary);
+            Assert.Null(item.ErrorSummary);
+            Assert.Equal(0, item.SessionId);
         }
 
         private static Mock<IReminderDispatchQueue> BuildQueueMock(List<ReminderDispatchWorkItem> queued)

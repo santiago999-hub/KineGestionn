@@ -1,6 +1,5 @@
 using System;
 using System.Linq;
-using System.Text.Json;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 using KineGestion.Core;
@@ -18,14 +17,14 @@ namespace KineGestion.Web.Controllers
     {
         private readonly ISessionService _sessionService;
         private readonly IConfiguration _configuration;
-        private readonly IAuditLogService _auditLogService;
+        private readonly IBillingBatchEventRepository _billingBatchEventRepository;
         private readonly ILogger<BillingController> _logger;
 
-        public BillingController(ISessionService sessionService, IConfiguration configuration, IAuditLogService auditLogService, ILogger<BillingController> logger)
+        public BillingController(ISessionService sessionService, IConfiguration configuration, IBillingBatchEventRepository billingBatchEventRepository, ILogger<BillingController> logger)
         {
             _sessionService = sessionService;
             _configuration = configuration;
-            _auditLogService = auditLogService;
+            _billingBatchEventRepository = billingBatchEventRepository;
             _logger = logger;
         }
 
@@ -69,31 +68,22 @@ namespace KineGestion.Web.Controllers
 
             var weeklyBatchTo = DateTime.UtcNow.Date;
             var weeklyBatchFrom = weeklyBatchTo.AddDays(-6);
-            var weeklyBatchLogs = await _auditLogService.GetAllAsync(
-                entityName: "BillingBatch",
-                entityId: null,
-                changedBy: null,
-                action: "Create",
-                dateFrom: weeklyBatchFrom,
-                dateTo: weeklyBatchTo);
+            var weeklyBatchEvents = await _billingBatchEventRepository.GetByDateRangeAsync(weeklyBatchFrom, weeklyBatchTo);
 
             var weeklyRuns = 0;
             var weeklyRequested = 0;
             var weeklyUpdated = 0;
             var weeklySkipped = 0;
 
-            foreach (var log in weeklyBatchLogs)
+            foreach (var batchEvent in weeklyBatchEvents)
             {
-                if (!TryReadBatchCounters(log.NewValuesJson, out var requested, out var updated, out var skipped))
-                    continue;
-
                 weeklyRuns++;
-                weeklyRequested += requested;
-                weeklyUpdated += updated;
-                weeklySkipped += skipped;
+                weeklyRequested += batchEvent.RequestedCount;
+                weeklyUpdated += batchEvent.UpdatedCount;
+                weeklySkipped += batchEvent.SkippedCount;
             }
 
-            var weeklyTrendPoints = BuildWeeklyTrend(weeklyBatchLogs, weeklyBatchTo, weeks: 4);
+            var weeklyTrendPoints = BuildWeeklyTrend(weeklyBatchEvents, weeklyBatchTo, weeks: 4);
             var hasTwoConsecutiveLowWeeks = HasConsecutiveLowWeeks(weeklyTrendPoints, batchWarnThresholdPct, requiredConsecutiveWeeks: 2);
 
             if (hasTwoConsecutiveLowWeeks)
@@ -256,80 +246,27 @@ namespace KineGestion.Web.Controllers
         {
             try
             {
-                var payload = new
+                await _billingBatchEventRepository.AddAsync(new BillingBatchEvent
                 {
                     Operation = operation,
                     RequestedCount = requestedCount,
                     UpdatedCount = updatedCount,
                     SkippedCount = skippedCount,
-                    EffectivenessPct = requestedCount > 0
-                        ? Math.Round((decimal)updatedCount * 100m / requestedCount, 2)
-                        : 0m,
-                    Filters = new
-                    {
-                        DateFrom = dateFrom?.ToString("yyyy-MM-dd"),
-                        DateTo = dateTo?.ToString("yyyy-MM-dd"),
-                        Search = search,
-                        OnlyCompletedPending = onlyCompletedPending
-                    }
-                };
-
-                await _auditLogService.AddAsync(new AuditLog
-                {
-                    EntityName = "BillingBatch",
-                    EntityId = Guid.NewGuid().ToString("N"),
-                    Action = "Create",
+                    FilterDateFrom = dateFrom?.Date,
+                    FilterDateTo = dateTo?.Date,
+                    FilterSearch = search,
+                    OnlyCompletedPending = onlyCompletedPending,
                     ChangedBy = User?.Identity?.Name ?? "system",
-                    ChangedAt = DateTime.UtcNow,
-                    NewValuesJson = JsonSerializer.Serialize(payload)
+                    CreatedAtUtc = DateTime.UtcNow
                 });
             }
             catch
             {
-                // La auditoría explícita no debe interrumpir la operación de cobranza.
+                // El registro del evento operativo no debe interrumpir la operación de cobranza.
             }
         }
 
-        private static bool TryReadBatchCounters(string? json, out int requested, out int updated, out int skipped)
-        {
-            requested = 0;
-            updated = 0;
-            skipped = 0;
-
-            if (string.IsNullOrWhiteSpace(json))
-                return false;
-
-            try
-            {
-                using var document = JsonDocument.Parse(json);
-                var root = document.RootElement;
-
-                requested = ReadInt(root, "RequestedCount");
-                updated = ReadInt(root, "UpdatedCount");
-                skipped = ReadInt(root, "SkippedCount");
-
-                return true;
-            }
-            catch
-            {
-                return false;
-            }
-        }
-
-        private static int ReadInt(JsonElement parent, string propertyName)
-        {
-            if (!parent.TryGetProperty(propertyName, out var property))
-                return 0;
-
-            return property.ValueKind switch
-            {
-                JsonValueKind.Number when property.TryGetInt32(out var value) => value,
-                JsonValueKind.String when int.TryParse(property.GetString(), out var value) => value,
-                _ => 0
-            };
-        }
-
-        private static List<BillingBatchTrendPointViewModel> BuildWeeklyTrend(IEnumerable<AuditLog> logs, DateTime endDateInclusiveUtc, int weeks)
+        private static List<BillingBatchTrendPointViewModel> BuildWeeklyTrend(IEnumerable<BillingBatchEvent> events, DateTime endDateInclusiveUtc, int weeks)
         {
             var points = new List<BillingBatchTrendPointViewModel>();
 
@@ -343,14 +280,11 @@ namespace KineGestion.Web.Controllers
                     Label = $"{weekStart:dd/MM}-{weekEnd:dd/MM}"
                 };
 
-                foreach (var log in logs.Where(l => l.ChangedAt.Date >= weekStart && l.ChangedAt.Date <= weekEnd))
+                foreach (var batchEvent in events.Where(e => e.CreatedAtUtc.Date >= weekStart && e.CreatedAtUtc.Date <= weekEnd))
                 {
-                    if (!TryReadBatchCounters(log.NewValuesJson, out var requested, out var updated, out var skipped))
-                        continue;
-
-                    point.RequestedCount += requested;
-                    point.UpdatedCount += updated;
-                    point.SkippedCount += skipped;
+                    point.RequestedCount += batchEvent.RequestedCount;
+                    point.UpdatedCount += batchEvent.UpdatedCount;
+                    point.SkippedCount += batchEvent.SkippedCount;
                 }
 
                 points.Add(point);

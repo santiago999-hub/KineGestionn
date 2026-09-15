@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Linq;
 using System.Text;
 using System.Text.Json;
 using KineGestion.Core.Entities;
@@ -29,8 +30,6 @@ namespace KineGestion.Web.Services
         public string? EmailSubjectOverride { get; set; }
         public string? EmailBodyOverride { get; set; }
         public string? WhatsAppBodyOverride { get; set; }
-        public string AuditEntityName { get; set; } = "ReminderDispatch";
-        public string? AuditEntityId { get; set; }
     }
 
     /// <summary>
@@ -107,8 +106,6 @@ namespace KineGestion.Web.Services
                 ["ConfirmUrl"] = workItem.ConfirmUrl,
                 ["CancelUrl"] = workItem.CancelUrl,
                 ["DispatchType"] = workItem.DispatchType,
-                ["AuditEntityName"] = workItem.AuditEntityName,
-                ["AuditEntityId"] = workItem.AuditEntityId ?? string.Empty,
                 ["EmailSubjectOverride"] = workItem.EmailSubjectOverride ?? string.Empty,
                 ["EmailBodyOverride"] = workItem.EmailBodyOverride ?? string.Empty,
                 ["WhatsAppBodyOverride"] = workItem.WhatsAppBodyOverride ?? string.Empty
@@ -206,14 +203,14 @@ namespace KineGestion.Web.Services
                     else
                     {
                         var deliveryService = scope.ServiceProvider.GetRequiredService<IReminderDeliveryService>();
-                        var auditLogService = scope.ServiceProvider.GetRequiredService<IAuditLogService>();
+                        var dispatchEventRepository = scope.ServiceProvider.GetRequiredService<IDispatchEventRepository>();
 
                         foreach (var job in jobs)
                         {
                             if (stoppingToken.IsCancellationRequested)
                                 break;
 
-                            await ProcessJobAsync(job, deliveryService, auditLogService, repository, nowUtc, stoppingToken);
+                            await ProcessJobAsync(job, deliveryService, dispatchEventRepository, repository, nowUtc, stoppingToken);
                         }
                     }
                 }
@@ -240,7 +237,7 @@ namespace KineGestion.Web.Services
         private async Task ProcessJobAsync(
             DispatchJob job,
             IReminderDeliveryService deliveryService,
-            IAuditLogService auditLogService,
+            IDispatchEventRepository dispatchEventRepository,
             IDispatchJobRepository repository,
             DateTime nowUtc,
             CancellationToken cancellationToken)
@@ -280,28 +277,17 @@ namespace KineGestion.Web.Services
                     WhatsAppBodyOverride = workItem.WhatsAppBodyOverride
                 }, cancellationToken);
 
-                await auditLogService.AddAsync(new KineGestion.Core.Entities.AuditLog
+                await dispatchEventRepository.AddAsync(new DispatchEvent
                 {
-                    EntityName = string.IsNullOrWhiteSpace(workItem.AuditEntityName) ? "ReminderDispatch" : workItem.AuditEntityName,
-                    EntityId = string.IsNullOrWhiteSpace(workItem.AuditEntityId)
-                        ? workItem.SessionId.ToString(CultureInfo.InvariantCulture)
-                        : workItem.AuditEntityId,
-                    Action = "Create",
+                    DispatchType = workItem.DispatchType,
+                    SessionId = workItem.DispatchType == "BillingBatchLowEffectivenessAlert" ? null : workItem.SessionId,
                     ChangedBy = string.IsNullOrWhiteSpace(workItem.ChangedBy) ? "system" : workItem.ChangedBy,
-                    ChangedAt = nowUtc,
-                    NewValuesJson = JsonSerializer.Serialize(new
-                    {
-                        workItem.DispatchType,
-                        workItem.SessionId,
-                        workItem.FechaHora,
-                        workItem.PacienteNombre,
-                        workItem.PacienteEmail,
-                        workItem.PacienteTelefono,
-                        EmailSent = result.EmailSent,
-                        WhatsAppSent = result.WhatsAppSent,
-                        Errors = result.Errors,
-                        workItem.EnqueuedAtUtc
-                    })
+                    SentAtUtc = nowUtc,
+                    EmailSent = result.EmailSent,
+                    WhatsAppSent = result.WhatsAppSent,
+                    Errors = result.Errors.Count == 0
+                        ? null
+                        : string.Join(" | ", result.Errors.Take(2))
                 });
 
                 await repository.MarkSucceededAsync(job.Id, JsonSerializer.Serialize(result), nowUtc, cancellationToken);

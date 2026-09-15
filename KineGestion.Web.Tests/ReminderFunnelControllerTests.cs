@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.Json;
 using System.Threading.Tasks;
 using KineGestion.Core.DTOs;
 using KineGestion.Core.Entities;
@@ -19,64 +18,39 @@ namespace KineGestion.Web.Tests
         [Fact]
         public async Task Index_ShouldReturnFunnel_ForSentPatientRemindersInRange()
         {
-            var auditLogService = new Mock<IAuditLogService>();
+            var dispatchRepository = new Mock<IDispatchEventRepository>();
             var sessionService = new Mock<ISessionService>();
 
             var from = new DateTime(2026, 8, 1);
             var toExclusive = new DateTime(2026, 9, 1);
 
-            var dispatches = new List<AuditLog>
+            var dispatches = new List<DispatchEvent>
             {
-                new AuditLog
+                new DispatchEvent
                 {
-                    EntityName = "ReminderDispatch",
-                    EntityId = "1",
-                    Action = "Create",
-                    NewValuesJson = JsonSerializer.Serialize(new
-                    {
-                        DispatchType = "PatientReminder",
-                        SessionId = 1,
-                        EmailSent = true,
-                        WhatsAppSent = false
-                    })
+                    DispatchType = "PatientReminder",
+                    SessionId = 1,
+                    EmailSent = true,
+                    WhatsAppSent = false
                 },
-                new AuditLog
+                new DispatchEvent
                 {
-                    EntityName = "ReminderDispatch",
-                    EntityId = "2",
-                    Action = "Create",
-                    NewValuesJson = JsonSerializer.Serialize(new
-                    {
-                        DispatchType = "PatientReminder",
-                        SessionId = 2,
-                        EmailSent = false,
-                        WhatsAppSent = false
-                    })
-                },
-                new AuditLog
-                {
-                    EntityName = "ReminderDispatch",
-                    EntityId = "3",
-                    Action = "Create",
-                    NewValuesJson = JsonSerializer.Serialize(new
-                    {
-                        DispatchType = "BillingFollowUp:T1",
-                        SessionId = 3,
-                        EmailSent = true,
-                        WhatsAppSent = false
-                    })
+                    DispatchType = "PatientReminder",
+                    SessionId = 2,
+                    EmailSent = false,
+                    WhatsAppSent = false
                 }
             };
 
-            auditLogService
-                .Setup(a => a.GetAllAsync("ReminderDispatch", null, null, "Create", from, new DateTime(2026, 8, 31)))
+            dispatchRepository
+                .Setup(r => r.GetByTypeAsync("PatientReminder", from, new DateTime(2026, 8, 31)))
                 .ReturnsAsync(dispatches);
 
             sessionService
                 .Setup(s => s.BuildReminderFunnelAsync(It.Is<IReadOnlyCollection<int>>(ids => ids.Count == 1), from, toExclusive))
                 .ReturnsAsync(new ReminderFunnelDto(1, 1, 1) { Canceled = 0 });
 
-            var controller = new ReminderFunnelController(sessionService.Object, auditLogService.Object);
+            var controller = new ReminderFunnelController(sessionService.Object, dispatchRepository.Object);
 
             var result = await controller.Index(from, new DateTime(2026, 8, 31));
 
@@ -86,67 +60,68 @@ namespace KineGestion.Web.Tests
             Assert.Equal(1, model.Funnel.Confirmed);
             Assert.Equal(1, model.Funnel.Attended);
 
-            // Solo la sesión 1 se contó (envío real de paciente); la 2 no se envió y la 3 es de cobranza.
+            // Solo la sesión 1 se contó (envío real); la 2 no se envió.
             sessionService.Verify(s => s.BuildReminderFunnelAsync(
                 It.Is<IReadOnlyCollection<int>>(ids => ids.Count == 1 && ids.Contains(1)),
                 from,
                 toExclusive), Times.Once);
+            dispatchRepository.Verify(r => r.GetByTypeAsync("PatientReminder", from, new DateTime(2026, 8, 31)), Times.Once);
         }
 
         [Fact]
-        public async Task Index_ShouldIgnoreInvalidEntityIds_AndMalformedPayloads()
+        public async Task Index_ShouldIgnoreSessionsWithoutId_AndUnsentEvents()
         {
-            var auditLogService = new Mock<IAuditLogService>();
+            var dispatchRepository = new Mock<IDispatchEventRepository>();
             var sessionService = new Mock<ISessionService>();
 
             var from = new DateTime(2026, 8, 1);
             var toExclusive = new DateTime(2026, 9, 1);
 
-            var dispatches = new List<AuditLog>
+            var dispatches = new List<DispatchEvent>
             {
-                // EntityId no numérico: se descarta aunque el payload indique envío.
-                new AuditLog
+                // Sin SessionId: se descarta aunque el evento indique envío.
+                new DispatchEvent
                 {
-                    EntityName = "ReminderDispatch",
-                    EntityId = "abc",
-                    Action = "Create",
-                    NewValuesJson = JsonSerializer.Serialize(new { DispatchType = "PatientReminder", SessionId = 99, EmailSent = true, WhatsAppSent = false })
+                    DispatchType = "PatientReminder",
+                    SessionId = null,
+                    EmailSent = true,
+                    WhatsAppSent = false
                 },
-                // JSON malformado: WasActuallySent=false, se descarta.
-                new AuditLog
+                // No enviado por ningún canal: se descarta.
+                new DispatchEvent
                 {
-                    EntityName = "ReminderDispatch",
-                    EntityId = "4",
-                    Action = "Create",
-                    NewValuesJson = "not-json"
+                    DispatchType = "PatientReminder",
+                    SessionId = 4,
+                    EmailSent = false,
+                    WhatsAppSent = false
                 },
-                // Sin DispatchType (default PatientReminder) pero enviado: se cuenta.
-                new AuditLog
+                // Enviado por email: se cuenta.
+                new DispatchEvent
                 {
-                    EntityName = "ReminderDispatch",
-                    EntityId = "5",
-                    Action = "Create",
-                    NewValuesJson = JsonSerializer.Serialize(new { SessionId = 5, EmailSent = true, WhatsAppSent = false })
+                    DispatchType = "PatientReminder",
+                    SessionId = 5,
+                    EmailSent = true,
+                    WhatsAppSent = false
                 },
                 // Enviado por WhatsApp: se cuenta.
-                new AuditLog
+                new DispatchEvent
                 {
-                    EntityName = "ReminderDispatch",
-                    EntityId = "6",
-                    Action = "Create",
-                    NewValuesJson = JsonSerializer.Serialize(new { DispatchType = "PatientReminder", SessionId = 6, EmailSent = false, WhatsAppSent = true })
+                    DispatchType = "PatientReminder",
+                    SessionId = 6,
+                    EmailSent = false,
+                    WhatsAppSent = true
                 }
             };
 
-            auditLogService
-                .Setup(a => a.GetAllAsync("ReminderDispatch", null, null, "Create", from, new DateTime(2026, 8, 31)))
+            dispatchRepository
+                .Setup(r => r.GetByTypeAsync("PatientReminder", from, new DateTime(2026, 8, 31)))
                 .ReturnsAsync(dispatches);
 
             sessionService
                 .Setup(s => s.BuildReminderFunnelAsync(It.IsAny<IReadOnlyCollection<int>>(), from, toExclusive))
                 .ReturnsAsync(new ReminderFunnelDto(0, 0, 0));
 
-            var controller = new ReminderFunnelController(sessionService.Object, auditLogService.Object);
+            var controller = new ReminderFunnelController(sessionService.Object, dispatchRepository.Object);
 
             var result = await controller.Index(from, new DateTime(2026, 8, 31));
 
@@ -161,19 +136,19 @@ namespace KineGestion.Web.Tests
         [Fact]
         public async Task Index_ShouldDefaultToLast30Days_WhenNoDatesProvided()
         {
-            var auditLogService = new Mock<IAuditLogService>();
+            var dispatchRepository = new Mock<IDispatchEventRepository>();
             var sessionService = new Mock<ISessionService>();
 
             // Sin despachos, el funnel queda vacío (ceros).
-            auditLogService
-                .Setup(a => a.GetAllAsync("ReminderDispatch", null, null, "Create", It.IsAny<DateTime>(), It.IsAny<DateTime>()))
-                .ReturnsAsync(Array.Empty<AuditLog>());
+            dispatchRepository
+                .Setup(r => r.GetByTypeAsync("PatientReminder", It.IsAny<DateTime?>(), It.IsAny<DateTime?>()))
+                .ReturnsAsync(Array.Empty<DispatchEvent>());
 
             sessionService
                 .Setup(s => s.BuildReminderFunnelAsync(It.IsAny<IReadOnlyCollection<int>>(), It.IsAny<DateTime>(), It.IsAny<DateTime>()))
                 .ReturnsAsync(new ReminderFunnelDto(0, 0, 0));
 
-            var controller = new ReminderFunnelController(sessionService.Object, auditLogService.Object);
+            var controller = new ReminderFunnelController(sessionService.Object, dispatchRepository.Object);
 
             var result = await controller.Index(null, null);
 

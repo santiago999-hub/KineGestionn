@@ -1,7 +1,6 @@
 using System;
 using System.Globalization;
 using System.Linq;
-using System.Text.Json;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 using KineGestion.Core.DTOs;
@@ -23,7 +22,7 @@ namespace KineGestion.Web.Controllers
         private readonly IBillingFollowUpService _billingFollowUpService;
         private readonly IReminderDispatchQueue _reminderDispatchQueue;
         private readonly IReminderDeliveryService _reminderDeliveryService;
-        private readonly IAuditLogService _auditLogService;
+        private readonly IDispatchEventRepository _dispatchEventRepository;
         private readonly IConfiguration _configuration;
         private readonly ILogger<BillingFollowUpController> _logger;
 
@@ -32,7 +31,7 @@ namespace KineGestion.Web.Controllers
             IBillingFollowUpService billingFollowUpService,
             IReminderDispatchQueue reminderDispatchQueue,
             IReminderDeliveryService reminderDeliveryService,
-            IAuditLogService auditLogService,
+            IDispatchEventRepository dispatchEventRepository,
             IConfiguration configuration,
             ILogger<BillingFollowUpController> logger)
         {
@@ -40,7 +39,7 @@ namespace KineGestion.Web.Controllers
             _billingFollowUpService = billingFollowUpService;
             _reminderDispatchQueue = reminderDispatchQueue;
             _reminderDeliveryService = reminderDeliveryService;
-            _auditLogService = auditLogService;
+            _dispatchEventRepository = dispatchEventRepository;
             _configuration = configuration;
             _logger = logger;
         }
@@ -76,17 +75,11 @@ namespace KineGestion.Web.Controllers
                 }).ToList()
             };
 
-            var history = await _auditLogService.GetPagedAsync(
-                entityName: "BillingFollowUp",
-                entityId: null,
-                changedBy: null,
-                action: "Create",
-                dateFrom: null,
-                dateTo: null,
-                page: 1,
-                pageSize: 20);
+            var history = (await _dispatchEventRepository.GetByTypePrefixAsync("BillingFollowUp:", null, null))
+                .Take(20)
+                .ToList();
 
-            model.History = history.Items.Select(MapHistoryItem).ToList();
+            model.History = history.Select(MapHistoryItem).ToList();
 
             return View(model);
         }
@@ -252,8 +245,7 @@ namespace KineGestion.Web.Controllers
                 DispatchType = $"BillingFollowUp:{tier.Tier}",
                 EmailSubjectOverride = tier.EmailSubject,
                 EmailBodyOverride = tier.EmailBody,
-                WhatsAppBodyOverride = tier.WhatsAppBody,
-                AuditEntityName = "BillingFollowUp"
+                WhatsAppBodyOverride = tier.WhatsAppBody
             };
 
         private static BillingFollowUpItemViewModel MapItem(BillingFollowUpCandidateDto c, BillingFollowUpTierDefinition tier)
@@ -272,48 +264,19 @@ namespace KineGestion.Web.Controllers
                 WhatsAppBody = tier.WhatsAppBody
             };
 
-        private static BillingFollowUpDispatchHistoryItemViewModel MapHistoryItem(AuditLog log)
+        private static BillingFollowUpDispatchHistoryItemViewModel MapHistoryItem(DispatchEvent dispatchEvent)
         {
             var item = new BillingFollowUpDispatchHistoryItemViewModel
             {
-                ChangedAt = log.ChangedAt,
-                ChangedBy = log.ChangedBy,
-                SessionId = int.TryParse(log.EntityId, out var sessionId) ? sessionId : 0,
-                ChannelSummary = "-",
-                Status = "Error",
-                ErrorSummary = null
+                ChangedAt = dispatchEvent.SentAtUtc,
+                ChangedBy = dispatchEvent.ChangedBy,
+                SessionId = dispatchEvent.SessionId ?? 0,
+                ChannelSummary = (dispatchEvent.EmailSent && dispatchEvent.WhatsAppSent)
+                    ? "Email + WhatsApp"
+                    : dispatchEvent.EmailSent ? "Email" : dispatchEvent.WhatsAppSent ? "WhatsApp" : "Sin envío",
+                Status = (dispatchEvent.EmailSent || dispatchEvent.WhatsAppSent) ? "Enviado" : "Error",
+                ErrorSummary = string.IsNullOrWhiteSpace(dispatchEvent.Errors) ? null : dispatchEvent.Errors
             };
-
-            try
-            {
-                if (!string.IsNullOrWhiteSpace(log.NewValuesJson))
-                {
-                    using var doc = JsonDocument.Parse(log.NewValuesJson);
-                    var root = doc.RootElement;
-                    var emailSent = root.TryGetProperty("EmailSent", out var emailProp) && emailProp.GetBoolean();
-                    var whatsappSent = root.TryGetProperty("WhatsAppSent", out var waProp) && waProp.GetBoolean();
-
-                    item.ChannelSummary = (emailSent && whatsappSent)
-                        ? "Email + WhatsApp"
-                        : emailSent ? "Email" : whatsappSent ? "WhatsApp" : "Sin envío";
-                    item.Status = (emailSent || whatsappSent) ? "Enviado" : "Error";
-
-                    if (root.TryGetProperty("Errors", out var errorsProp) && errorsProp.ValueKind == JsonValueKind.Array)
-                    {
-                        var errors = errorsProp
-                            .EnumerateArray()
-                            .Select(e => e.GetString())
-                            .Where(s => !string.IsNullOrWhiteSpace(s))
-                            .Take(2)
-                            .ToList();
-                        item.ErrorSummary = errors.Count == 0 ? null : string.Join(" | ", errors);
-                    }
-                }
-            }
-            catch
-            {
-                item.ErrorSummary = "No se pudo interpretar el detalle del evento.";
-            }
 
             return item;
         }

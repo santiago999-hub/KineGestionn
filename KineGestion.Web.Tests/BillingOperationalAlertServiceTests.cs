@@ -17,19 +17,19 @@ namespace KineGestion.Web.Tests
         private static readonly DateTime Reference = new(2026, 9, 8, 12, 0, 0, DateTimeKind.Utc);
 
         [Fact]
-        public async Task GetSnapshotAsync_ShouldDetectConsecutiveLowWeeks_FromBillingBatchLogs()
+        public async Task GetSnapshotAsync_ShouldDetectConsecutiveLowWeeks_FromBillingBatchEvents()
         {
-            var auditLogService = new Mock<IAuditLogService>();
-            auditLogService
-                .Setup(a => a.GetAllAsync("BillingBatch", null, null, "Create", It.IsAny<DateTime?>(), It.IsAny<DateTime?>()))
+            var batchRepository = new Mock<IBillingBatchEventRepository>();
+            batchRepository
+                .Setup(r => r.GetByDateRangeAsync(It.IsAny<DateTime?>(), It.IsAny<DateTime?>()))
                 .ReturnsAsync(new[]
                 {
                     // Dos semanas consecutivas recientes con efectividad baja
-                    BatchLog(new DateTime(2026, 9, 2, 10, 0, 0), requested: 10, updated: 2),
-                    BatchLog(new DateTime(2026, 8, 28, 10, 0, 0), requested: 8, updated: 1)
+                    BatchEvent(new DateTime(2026, 9, 2, 10, 0, 0), requested: 10, updated: 2),
+                    BatchEvent(new DateTime(2026, 8, 28, 10, 0, 0), requested: 8, updated: 1)
                 });
 
-            var service = BuildService(auditLogService, BuildEmptyConfiguration(), new MemoryCache(new MemoryCacheOptions()));
+            var service = BuildService(batchRepository, BuildEmptyConfiguration(), new MemoryCache(new MemoryCacheOptions()));
 
             var snapshot = await service.GetSnapshotAsync(Reference);
 
@@ -41,12 +41,12 @@ namespace KineGestion.Web.Tests
         [Fact]
         public async Task GetSnapshotAsync_Should_NotFlag_WhenNoBatches()
         {
-            var auditLogService = new Mock<IAuditLogService>();
-            auditLogService
-                .Setup(a => a.GetAllAsync("BillingBatch", null, null, "Create", It.IsAny<DateTime?>(), It.IsAny<DateTime?>()))
-                .ReturnsAsync(Enumerable.Empty<AuditLog>());
+            var batchRepository = new Mock<IBillingBatchEventRepository>();
+            batchRepository
+                .Setup(r => r.GetByDateRangeAsync(It.IsAny<DateTime?>(), It.IsAny<DateTime?>()))
+                .ReturnsAsync(Array.Empty<BillingBatchEvent>());
 
-            var service = BuildService(auditLogService, BuildEmptyConfiguration(), new MemoryCache(new MemoryCacheOptions()));
+            var service = BuildService(batchRepository, BuildEmptyConfiguration(), new MemoryCache(new MemoryCacheOptions()));
 
             var snapshot = await service.GetSnapshotAsync(Reference);
 
@@ -56,13 +56,13 @@ namespace KineGestion.Web.Tests
         [Fact]
         public async Task QueueAlertIfNeededAsync_ShouldNotQueue_WhenNoConsecutiveLowWeeks()
         {
-            var auditLogService = new Mock<IAuditLogService>();
-            auditLogService
-                .Setup(a => a.GetAllAsync("BillingBatch", null, null, "Create", It.IsAny<DateTime?>(), It.IsAny<DateTime?>()))
-                .ReturnsAsync(Enumerable.Empty<AuditLog>());
+            var batchRepository = new Mock<IBillingBatchEventRepository>();
+            batchRepository
+                .Setup(r => r.GetByDateRangeAsync(It.IsAny<DateTime?>(), It.IsAny<DateTime?>()))
+                .ReturnsAsync(Array.Empty<BillingBatchEvent>());
 
             var queue = new Mock<IReminderDispatchQueue>();
-            var service = BuildService(auditLogService, BuildEmptyConfiguration(), new MemoryCache(new MemoryCacheOptions()), queue);
+            var service = BuildService(batchRepository, BuildEmptyConfiguration(), new MemoryCache(new MemoryCacheOptions()), queue);
 
             var result = await service.QueueAlertIfNeededAsync("admin@local", Reference);
 
@@ -74,17 +74,19 @@ namespace KineGestion.Web.Tests
         [Fact]
         public async Task QueueAlertIfNeededAsync_ShouldQueue_WhenConsecutiveLowWeeksAndAdminConfigured()
         {
-            var auditLogService = new Mock<IAuditLogService>();
-            auditLogService
-                .Setup(a => a.GetAllAsync("BillingBatch", null, null, "Create", It.IsAny<DateTime?>(), It.IsAny<DateTime?>()))
+            var batchRepository = new Mock<IBillingBatchEventRepository>();
+            batchRepository
+                .Setup(r => r.GetByDateRangeAsync(It.IsAny<DateTime?>(), It.IsAny<DateTime?>()))
                 .ReturnsAsync(new[]
                 {
-                    BatchLog(new DateTime(2026, 9, 2, 10, 0, 0), requested: 10, updated: 2),
-                    BatchLog(new DateTime(2026, 8, 28, 10, 0, 0), requested: 8, updated: 1)
+                    BatchEvent(new DateTime(2026, 9, 2, 10, 0, 0), requested: 10, updated: 2),
+                    BatchEvent(new DateTime(2026, 8, 28, 10, 0, 0), requested: 8, updated: 1)
                 });
-            auditLogService
-                .Setup(a => a.GetAllAsync("OperationalAlert", It.IsAny<string?>(), null, "Create", It.IsAny<DateTime?>(), It.IsAny<DateTime?>()))
-                .ReturnsAsync(Enumerable.Empty<AuditLog>());
+
+            var dispatchRepository = new Mock<IDispatchEventRepository>();
+            dispatchRepository
+                .Setup(r => r.CountByTypeAsync("BillingBatchLowEffectivenessAlert", It.IsAny<DateTime?>(), It.IsAny<DateTime?>()))
+                .ReturnsAsync(0);
 
             ReminderDispatchWorkItem? queuedItem = null;
             var queue = new Mock<IReminderDispatchQueue>();
@@ -99,7 +101,7 @@ namespace KineGestion.Web.Tests
                 ["Reminders:OperationalAlerts:AdminEmail"] = "admin@clinic.com"
             });
 
-            var service = BuildService(auditLogService, config, new MemoryCache(new MemoryCacheOptions()), queue);
+            var service = BuildService(batchRepository, config, new MemoryCache(new MemoryCacheOptions()), queue, dispatchRepository);
 
             var result = await service.QueueAlertIfNeededAsync("admin@local", Reference);
 
@@ -107,27 +109,31 @@ namespace KineGestion.Web.Tests
             Assert.NotNull(queuedItem);
             Assert.Equal("admin@clinic.com", queuedItem!.PacienteEmail);
             Assert.Equal("BillingBatchLowEffectivenessAlert", queuedItem.DispatchType);
-            Assert.Equal("OperationalAlert", queuedItem.AuditEntityName);
             Assert.Contains($"Umbral configurado: {70m:N2}%", queuedItem.EmailBodyOverride);
+            dispatchRepository.Verify(
+                r => r.CountByTypeAsync("BillingBatchLowEffectivenessAlert", It.IsAny<DateTime?>(), It.IsAny<DateTime?>()),
+                Times.Once);
         }
 
         [Fact]
         public async Task QueueAlertIfNeededAsync_ShouldNotDuplicate_WhenAlertAlreadySentToday()
         {
-            var auditLogService = new Mock<IAuditLogService>();
-            auditLogService
-                .Setup(a => a.GetAllAsync("BillingBatch", null, null, "Create", It.IsAny<DateTime?>(), It.IsAny<DateTime?>()))
+            var batchRepository = new Mock<IBillingBatchEventRepository>();
+            batchRepository
+                .Setup(r => r.GetByDateRangeAsync(It.IsAny<DateTime?>(), It.IsAny<DateTime?>()))
                 .ReturnsAsync(new[]
                 {
-                    BatchLog(new DateTime(2026, 9, 2, 10, 0, 0), requested: 10, updated: 2),
-                    BatchLog(new DateTime(2026, 8, 28, 10, 0, 0), requested: 8, updated: 1)
+                    BatchEvent(new DateTime(2026, 9, 2, 10, 0, 0), requested: 10, updated: 2),
+                    BatchEvent(new DateTime(2026, 8, 28, 10, 0, 0), requested: 8, updated: 1)
                 });
-            auditLogService
-                .Setup(a => a.GetAllAsync("OperationalAlert", It.IsAny<string?>(), null, "Create", It.IsAny<DateTime?>(), It.IsAny<DateTime?>()))
-                .ReturnsAsync(new[] { new AuditLog { EntityName = "OperationalAlert", Action = "Create" } });
+
+            var dispatchRepository = new Mock<IDispatchEventRepository>();
+            dispatchRepository
+                .Setup(r => r.CountByTypeAsync("BillingBatchLowEffectivenessAlert", It.IsAny<DateTime?>(), It.IsAny<DateTime?>()))
+                .ReturnsAsync(1);
 
             var queue = new Mock<IReminderDispatchQueue>();
-            var service = BuildService(auditLogService, BuildEmptyConfiguration(), new MemoryCache(new MemoryCacheOptions()), queue);
+            var service = BuildService(batchRepository, BuildEmptyConfiguration(), new MemoryCache(new MemoryCacheOptions()), queue, dispatchRepository);
 
             var result = await service.QueueAlertIfNeededAsync("admin@local", Reference);
 
@@ -137,24 +143,27 @@ namespace KineGestion.Web.Tests
         }
 
         private static BillingOperationalAlertService BuildService(
-            Mock<IAuditLogService> auditLogService,
+            Mock<IBillingBatchEventRepository> batchRepository,
             IConfiguration configuration,
             IMemoryCache memoryCache,
-            Mock<IReminderDispatchQueue>? queue = null)
+            Mock<IReminderDispatchQueue>? queue = null,
+            Mock<IDispatchEventRepository>? dispatchRepository = null)
             => new(
-                auditLogService.Object,
+                batchRepository.Object,
+                dispatchRepository?.Object ?? new Mock<IDispatchEventRepository>().Object,
                 (queue ?? new Mock<IReminderDispatchQueue>()).Object,
                 configuration,
                 memoryCache);
 
-        private static AuditLog BatchLog(DateTime changedAt, int requested, int updated)
+        private static BillingBatchEvent BatchEvent(DateTime createdAtUtc, int requested, int updated)
             => new()
             {
-                EntityName = "BillingBatch",
-                Action = "Create",
-                ChangedAt = changedAt,
-                ChangedBy = "system",
-                NewValuesJson = $"{{\"RequestedCount\":{requested},\"UpdatedCount\":{updated},\"SkippedCount\":0}}"
+                Operation = "MarkPaidBatch",
+                RequestedCount = requested,
+                UpdatedCount = updated,
+                SkippedCount = 0,
+                CreatedAtUtc = createdAtUtc,
+                ChangedBy = "system"
             };
 
         private static IConfiguration BuildEmptyConfiguration()

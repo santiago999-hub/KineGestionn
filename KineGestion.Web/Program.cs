@@ -158,6 +158,8 @@ builder.Services.AddScoped<IEquipmentService, EquipmentService>();
 
 builder.Services.AddScoped<IAuditLogRepository, AuditLogRepository>();
 builder.Services.AddScoped<IAuditLogService, AuditLogService>();
+builder.Services.AddScoped<IBillingBatchEventRepository, BillingBatchEventRepository>();
+builder.Services.AddScoped<IDispatchEventRepository, DispatchEventRepository>();
 builder.Services.AddHttpClient();
 builder.Services.AddScoped<IReminderDeliveryService, ReminderDeliveryService>();
 builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();
