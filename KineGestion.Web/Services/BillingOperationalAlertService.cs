@@ -134,7 +134,7 @@ namespace KineGestion.Web.Services
             await _reminderDispatchQueue.QueueAsync(new ReminderDispatchWorkItem
             {
                 SessionId = 0,
-                FechaHora = nowUtc,
+                FechaHora = nowUtc.Date,
                 PacienteNombre = "Administrador",
                 PacienteEmail = adminEmail,
                 PacienteTelefono = adminPhone,

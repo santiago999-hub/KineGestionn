@@ -107,7 +107,8 @@ namespace KineGestion.Web.Tests
 
             Assert.True(result.Queued);
             Assert.NotNull(queuedItem);
-            Assert.Equal("admin@clinic.com", queuedItem!.PacienteEmail);
+            Assert.Equal(Reference.Date, queuedItem!.FechaHora);
+            Assert.Equal("admin@clinic.com", queuedItem.PacienteEmail);
             Assert.Equal("BillingBatchLowEffectivenessAlert", queuedItem.DispatchType);
             Assert.Contains($"Umbral configurado: {70m:N2}%", queuedItem.EmailBodyOverride);
             dispatchRepository.Verify(

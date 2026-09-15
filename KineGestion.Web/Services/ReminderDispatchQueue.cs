@@ -115,6 +115,18 @@ namespace KineGestion.Web.Services
             var bytes = System.Security.Cryptography.SHA256.HashData(Encoding.UTF8.GetBytes(canonical));
             return Convert.ToHexString(bytes);
         }
+
+        /// <summary>
+        /// Resumen acotado de errores de envío para la columna Errors (max 2 mensajes, 2000 chars).
+        /// </summary>
+        public static string? BuildErrorsSummary(System.Collections.Generic.IReadOnlyList<string> errors)
+        {
+            if (errors.Count == 0)
+                return null;
+
+            var joined = string.Join(" | ", errors.Take(2));
+            return joined.Length <= 2000 ? joined : joined[..2000];
+        }
     }
 
     public sealed class ReminderDispatchBackgroundService : BackgroundService
@@ -285,9 +297,7 @@ namespace KineGestion.Web.Services
                     SentAtUtc = nowUtc,
                     EmailSent = result.EmailSent,
                     WhatsAppSent = result.WhatsAppSent,
-                    Errors = result.Errors.Count == 0
-                        ? null
-                        : string.Join(" | ", result.Errors.Take(2))
+                    Errors = ReminderDispatchQueue.BuildErrorsSummary(result.Errors)
                 });
 
                 await repository.MarkSucceededAsync(job.Id, JsonSerializer.Serialize(result), nowUtc, cancellationToken);

@@ -117,6 +117,33 @@ namespace KineGestion.Web.Tests
         }
 
         [Fact]
+        public async Task MarkPaidBatch_ShouldTruncateSearch_WhenLoggingBatchEvent()
+        {
+            var sessionService = new Mock<ISessionService>();
+            sessionService
+                .Setup(s => s.MarkCompletedPendingAsPaidBatchAsync(It.IsAny<IReadOnlyCollection<int>>()))
+                .ReturnsAsync((1, 0));
+
+            BillingBatchEvent? captured = null;
+            var batchRepository = BuildBatchRepositoryMock();
+            batchRepository
+                .Setup(s => s.AddAsync(It.IsAny<BillingBatchEvent>()))
+                .Callback<BillingBatchEvent>(e => captured = e)
+                .Returns(Task.CompletedTask);
+
+            var longSearch = new string('a', 300);
+            var controller = BuildController(sessionService.Object, new ConfigurationBuilder().Build(), batchRepository);
+
+            var result = await controller.MarkPaidBatch(new List<int> { 3 }, null, null, longSearch);
+
+            var redirect = Assert.IsType<RedirectToActionResult>(result);
+            Assert.Equal("Index", redirect.ActionName);
+            Assert.NotNull(captured);
+            Assert.Equal(200, captured!.FilterSearch!.Length);
+            Assert.StartsWith(new string('a', 200), captured.FilterSearch);
+        }
+
+        [Fact]
         public async Task MarkPaidBatch_ShouldReturnError_WhenNoEligibleSessionsWereUpdated()
         {
             var sessionService = new Mock<ISessionService>();

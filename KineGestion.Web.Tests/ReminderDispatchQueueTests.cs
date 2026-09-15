@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Text.Json;
@@ -94,6 +95,42 @@ namespace KineGestion.Web.Tests
             await queue.QueueAsync(BuildWorkItem(5, "2026-09-01T10:00:00Z", "PatientReminder"));
 
             repository.Verify(r => r.AddAsync(It.IsAny<DispatchJob>(), default), Times.Once);
+        }
+
+        [Fact]
+        public void BuildErrorsSummary_ShouldReturnNull_WhenNoErrors()
+        {
+            Assert.Null(ReminderDispatchQueue.BuildErrorsSummary(new List<string>()));
+        }
+
+        [Fact]
+        public void BuildErrorsSummary_ShouldJoinOnlyFirstTwoErrors()
+        {
+            var summary = ReminderDispatchQueue.BuildErrorsSummary(
+                new List<string> { "primer error", "segundo error", "tercer error" });
+
+            Assert.Equal("primer error | segundo error", summary);
+        }
+
+        [Fact]
+        public void BuildErrorsSummary_ShouldTruncateTo2000Characters_WhenJoinedTooLong()
+        {
+            var longError = new string('x', 1500);
+            var secondError = new string('y', 1500);
+
+            var summary = ReminderDispatchQueue.BuildErrorsSummary(new List<string> { longError, secondError });
+
+            Assert.Equal(2000, summary!.Length);
+            Assert.StartsWith(new string('x', 1500) + " | ", summary);
+            Assert.EndsWith(new string('y', 497), summary);
+        }
+
+        [Fact]
+        public void BuildErrorsSummary_ShouldKeepValueUnchanged_WhenWithinLimit()
+        {
+            var summary = ReminderDispatchQueue.BuildErrorsSummary(new List<string> { "a", "b" });
+
+            Assert.Equal("a | b", summary);
         }
 
         private static ReminderDispatchWorkItem BuildWorkItem(int sessionId, string fechaHoraIso, string dispatchType)

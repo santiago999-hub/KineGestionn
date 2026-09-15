@@ -254,7 +254,7 @@ namespace KineGestion.Web.Controllers
                     SkippedCount = skippedCount,
                     FilterDateFrom = dateFrom?.Date,
                     FilterDateTo = dateTo?.Date,
-                    FilterSearch = search,
+                    FilterSearch = TruncateSearch(search),
                     OnlyCompletedPending = onlyCompletedPending,
                     ChangedBy = User?.Identity?.Name ?? "system",
                     CreatedAtUtc = DateTime.UtcNow
@@ -313,5 +313,8 @@ namespace KineGestion.Web.Controllers
 
             return false;
         }
+
+        private static string? TruncateSearch(string? search)
+            => search is null || search.Length <= 200 ? search : search[..200];
     }
 }
