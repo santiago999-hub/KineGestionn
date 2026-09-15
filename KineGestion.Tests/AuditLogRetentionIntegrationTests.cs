@@ -68,6 +68,43 @@ namespace KineGestion.Tests
             }
         }
 
+        [Fact]
+        public async Task DeleteOlderThanAsync_ShouldPreserveBusinessOperationalEvents()
+        {
+            var databaseName = $"KineGestion_Integration_{Guid.NewGuid():N}";
+            await using var context = await IntegrationTestDatabase.CreateMigratedAsync(databaseName);
+            try
+            {
+                var repository = new AuditLogRepository(context);
+                var cutoff = new DateTime(2026, 8, 1, 0, 0, 0, DateTimeKind.Utc);
+                var oldDate = new DateTime(2026, 6, 1, 10, 0, 0, DateTimeKind.Utc);
+
+                // Eventos de negocio que alimentan dashboards/alertas: no deben purgarse.
+                await AddLogAsync(repository, "BillingBatch", "batch-1", "Create", "admin@local", oldDate);
+                await AddLogAsync(repository, "OperationalAlert", "BillingBatchLowEffectiveness:20260601", "Create", "system", oldDate);
+                await AddLogAsync(repository, "ReminderDispatch", "1", "Create", "system", oldDate);
+                await AddLogAsync(repository, "BillingFollowUp", "2", "Create", "system:automation", oldDate);
+
+                // Pista normal de auditoría: sí se purga.
+                await AddLogAsync(repository, "Patient", "999", "Update", "admin@local", oldDate);
+
+                var deleted = await repository.DeleteOlderThanAsync(cutoff, 1000, default);
+
+                Assert.Equal(1, deleted);
+
+                var remaining = await context.AuditLogs.AsNoTracking()
+                    .OrderBy(a => a.EntityName)
+                    .Select(a => a.EntityName)
+                    .ToListAsync();
+
+                Assert.Equal(new[] { "BillingBatch", "BillingFollowUp", "OperationalAlert", "ReminderDispatch" }, remaining);
+            }
+            finally
+            {
+                await context.Database.EnsureDeletedAsync();
+            }
+        }
+
         private static async Task AddLogAsync(AuditLogRepository repository, string entity, string entityId, string action, string changedBy, DateTime changedAt)
         {
             await repository.AddAsync(new AuditLog

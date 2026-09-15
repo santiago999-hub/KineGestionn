@@ -101,6 +101,18 @@ namespace KineGestion.Data.Repositories
             };
         }
 
+        /// <summary>
+        /// Eventos operativos de negocio registrados en Auditoría que la retención
+        /// no debe purgar: alimentan dashboards, alertas y deduplicación de envíos.
+        /// </summary>
+        private static readonly string[] RetentionProtectedEntityNames =
+        {
+            "BillingBatch",
+            "OperationalAlert",
+            "ReminderDispatch",
+            "BillingFollowUp"
+        };
+
         public async Task<int> DeleteOlderThanAsync(DateTime cutoffUtc, int batchSize, CancellationToken cancellationToken)
         {
             var total = 0;
@@ -108,7 +120,7 @@ namespace KineGestion.Data.Repositories
             while (true)
             {
                 var ids = await _context.AuditLogs
-                    .Where(a => a.ChangedAt < cutoffUtc)
+                    .Where(a => a.ChangedAt < cutoffUtc && !RetentionProtectedEntityNames.Contains(a.EntityName))
                     .OrderBy(a => a.ChangedAt)
                     .Select(a => a.Id)
                     .Take(batchSize)
