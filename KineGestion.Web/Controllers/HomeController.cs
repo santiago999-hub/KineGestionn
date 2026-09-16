@@ -201,7 +201,7 @@ public class HomeController : Controller
         {
             try
             {
-                var latest = await _dispatchEventRepository.GetByTypeAsync("BillingBatchLowEffectivenessAlert", null, null);
+                var latest = await _dispatchEventRepository.GetByTypeAsync(DispatchTypes.BillingBatchLowEffectivenessAlert, null, null);
 
                 return latest
                     .Take(3)
@@ -223,7 +223,7 @@ public class HomeController : Controller
         async Task<int> CountOperationalAlertsTodayAsync()
         {
             var dayStart = today.Date;
-            return await _dispatchEventRepository.CountByTypeAsync("BillingBatchLowEffectivenessAlert", dayStart, dayStart);
+            return await _dispatchEventRepository.CountByTypeAsync(DispatchTypes.BillingBatchLowEffectivenessAlert, dayStart, dayStart);
         }
 
         async Task<List<CancellationReasonCountViewModel>> SafeGetCancellationReasonsAsync()

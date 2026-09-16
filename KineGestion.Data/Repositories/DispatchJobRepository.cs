@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using KineGestion.Core;
 using KineGestion.Core.Entities;
 using KineGestion.Core.Interfaces;
 using KineGestion.Data.Context;
@@ -138,7 +139,7 @@ namespace KineGestion.Data.Repositories
                     && (j.Status == DispatchJobStatus.Pending
                         || j.Status == DispatchJobStatus.Processing
                         || j.Status == DispatchJobStatus.Succeeded)
-                    && j.DispatchType.StartsWith("BillingFollowUp:"))
+                    && j.DispatchType.StartsWith(DispatchTypes.BillingFollowUpPrefix))
                 .Select(j => new { j.SessionId, j.DispatchType })
                 .ToListAsync(cancellationToken);
 

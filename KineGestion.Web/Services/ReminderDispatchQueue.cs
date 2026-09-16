@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
+using KineGestion.Core;
 using KineGestion.Core.Entities;
 using KineGestion.Core.Interfaces;
 using Microsoft.EntityFrameworkCore;
@@ -26,7 +27,7 @@ namespace KineGestion.Web.Services
         public string CancelUrl { get; set; } = string.Empty;
         public string? ChangedBy { get; set; }
         public DateTime EnqueuedAtUtc { get; set; }
-        public string DispatchType { get; set; } = "PatientReminder";
+        public string DispatchType { get; set; } = DispatchTypes.PatientReminder;
         public string? EmailSubjectOverride { get; set; }
         public string? EmailBodyOverride { get; set; }
         public string? WhatsAppBodyOverride { get; set; }
@@ -292,7 +293,7 @@ namespace KineGestion.Web.Services
                 await dispatchEventRepository.AddAsync(new DispatchEvent
                 {
                     DispatchType = workItem.DispatchType,
-                    SessionId = workItem.DispatchType == "BillingBatchLowEffectivenessAlert" ? null : workItem.SessionId,
+                    SessionId = workItem.DispatchType == DispatchTypes.BillingBatchLowEffectivenessAlert ? null : workItem.SessionId,
                     ChangedBy = string.IsNullOrWhiteSpace(workItem.ChangedBy) ? "system" : workItem.ChangedBy,
                     SentAtUtc = nowUtc,
                     EmailSent = result.EmailSent,

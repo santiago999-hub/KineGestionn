@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text;
+using KineGestion.Core;
 using KineGestion.Core.Entities;
 using KineGestion.Core.Interfaces;
 using KineGestion.Web.Models.ViewModels;
@@ -103,7 +104,7 @@ namespace KineGestion.Web.Services
             var todayStart = nowUtc.Date;
 
             var sentTodayCount = await _dispatchEventRepository.CountByTypeAsync(
-                "BillingBatchLowEffectivenessAlert",
+                DispatchTypes.BillingBatchLowEffectivenessAlert,
                 todayStart,
                 todayStart);
 
@@ -142,7 +143,7 @@ namespace KineGestion.Web.Services
                 TratamientoDescripcion = "Alerta de cobranza",
                 ChangedBy = changedBy,
                 EnqueuedAtUtc = nowUtc,
-                DispatchType = "BillingBatchLowEffectivenessAlert",
+                DispatchType = DispatchTypes.BillingBatchLowEffectivenessAlert,
                 EmailSubjectOverride = BuildSubject(),
                 EmailBodyOverride = BuildEmailBody(snapshot),
                 WhatsAppBodyOverride = BuildWhatsAppBody(snapshot)

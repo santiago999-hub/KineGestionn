@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Collections.Generic;
+using KineGestion.Core;
 using KineGestion.Core.DTOs;
 using KineGestion.Core.Entities;
 using KineGestion.Core.Interfaces;
@@ -98,7 +99,7 @@ namespace KineGestion.Web.Controllers
                 }).ToList()
             };
 
-            var history = (await _dispatchEventRepository.GetByTypeAsync("PatientReminder", null, null))
+            var history = (await _dispatchEventRepository.GetByTypeAsync(DispatchTypes.PatientReminder, null, null))
                 .Take(20)
                 .ToList();
 

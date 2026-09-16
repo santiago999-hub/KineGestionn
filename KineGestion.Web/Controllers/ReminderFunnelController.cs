@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using KineGestion.Core;
 using KineGestion.Core.DTOs;
 using KineGestion.Core.Interfaces;
 using KineGestion.Web.Models.ViewModels;
@@ -28,7 +29,7 @@ namespace KineGestion.Web.Controllers
             var to = (dateTo ?? DateTime.UtcNow.Date).Date.AddDays(1);
             var toExclusive = to;
 
-            var dispatches = await _dispatchEventRepository.GetByTypeAsync("PatientReminder", from, to.AddDays(-1));
+            var dispatches = await _dispatchEventRepository.GetByTypeAsync(DispatchTypes.PatientReminder, from, to.AddDays(-1));
 
             var sentSessionIds = new HashSet<int>();
             foreach (var dispatchEvent in dispatches)

@@ -1,3 +1,4 @@
+using KineGestion.Core;
 using KineGestion.Core.DTOs;
 using KineGestion.Core.Interfaces;
 
@@ -108,7 +109,7 @@ namespace KineGestion.Web.Services
                 TratamientoDescripcion = candidate.TratamientoDescripcion,
                 ChangedBy = AutomationActor,
                 EnqueuedAtUtc = DateTime.UtcNow,
-                DispatchType = "BillingFollowUp:" + tier.Tier,
+                DispatchType = DispatchTypes.BillingFollowUp(tier.Tier.ToString()),
                 EmailSubjectOverride = tier.EmailSubject,
                 EmailBodyOverride = tier.EmailBody,
                 WhatsAppBodyOverride = tier.WhatsAppBody
@@ -132,7 +133,7 @@ namespace KineGestion.Web.Services
 
         private static BillingFollowUpTier? TryParseTier(string dispatchType)
         {
-            var prefix = "BillingFollowUp:";
+            var prefix = DispatchTypes.BillingFollowUpPrefix;
             if (!dispatchType.StartsWith(prefix, StringComparison.Ordinal))
                 return null;
 

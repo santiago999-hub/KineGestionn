@@ -15,9 +15,9 @@ Proyecto: KineGestion (ASP.NET Core + EF Core + SQL Server). No escribir comenta
 - `DispatchEvent.DispatchType`: `PatientReminder` | `BillingFollowUp:<Tier>` | `BillingBatchLowEffectivenessAlert`. El worker escribe 1 fila solo cuando `SendAsync` no lanza; la alerta usa `SessionId=null` y ahora `FechaHora=nowUtc.Date` (hash determinista por día → dedup de `DispatchJob` abiertos con el índice único `(SessionId, DispatchType, PayloadHash)`).
 - Repos nuevos: fecha desde → `>= fecha.Date`; fecha hasta → `< fecha.Date.AddDays(1)`.
 - Errores de envío truncados a 2000 (2 mensajes max, `ReminderDispatchQueue.BuildErrorsSummary`); `FilterSearch` truncado a 200 en `LogBillingBatchAsync`.
+- Los `DispatchType` están centralizados en `KineGestion.Core.DispatchTypes` (constantes `PatientReminder`, `BillingFollowUpPrefix`, `BillingBatchLowEffectivenessAlert` + helper `BillingFollowUp(tier)`); no usar literales en código nuevo.
 
 ## Pendiente para la próxima sesión (deuda media/baja, prioridad alta ya resuelta)
 1. Límite de filas con parámetro en `GetByTypeAsync`/`GetByTypePrefixAsync` (los controllers hacen `.Take()` en memoria: `RemindersController.cs:101`, `BillingFollowUpController`, `.Take(3)` en `HomeController`).
-2. Extraer magic strings de `DispatchType` a constantes (~6 archivos).
-3. `ChangedBy` sin truncar (columna 256) — si `User.Identity.Name` largo, perdería por lossless en la cola/eventos.
-4. `RetentionProtectedEntityNames` en `AuditLogRepository` quedó obsoleto: las 4 entidades de negocio ya no escriben auditoría; evaluar limpiarlo.
+2. `ChangedBy` sin truncar (columna 256) — si `User.Identity.Name` largo, perdería por lossless en la cola/eventos.
+3. `RetentionProtectedEntityNames` en `AuditLogRepository` quedó obsoleto: las 4 entidades de negocio ya no escriben auditoría; evaluar limpiarlo.
