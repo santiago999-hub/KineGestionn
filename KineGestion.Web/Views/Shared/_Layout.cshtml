@@ -33,6 +33,13 @@
         </div>
 
         <nav class="kg-sidebar-nav">
+            <div class="kg-nav-section-label">@LayoutText.Get("Nav.AboutTitle", "Información")</div>
+            <a class="kg-nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Home" && ViewContext.RouteData.Values["action"]?.ToString() == "QuienesSomos" ? "active" : "")"
+               asp-controller="Home" asp-action="QuienesSomos">
+                <i class="bi bi-info-circle"></i>
+                <span>@LayoutText.Get("Nav.About", "¿Quiénes Somos?")</span>
+            </a>
+
             <div class="kg-nav-section-label">@LayoutText.Get("Nav.Main", "Panel Clínico")</div>
             <a class="kg-nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Home" ? "active" : "")"
                asp-controller="Home" asp-action="Index">
@@ -147,12 +154,6 @@
         </nav>
 
         <div class="kg-sidebar-footer">
-            <a class="kg-nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Home" && ViewContext.RouteData.Values["action"]?.ToString() == "QuienesSomos" ? "active" : "")"
-               asp-controller="Home" asp-action="QuienesSomos"
-               style="font-size:.76rem; margin-bottom:8px;">
-                <i class="bi bi-info-circle"></i>
-                <span>¿Quiénes Somos?</span>
-            </a>
             <i class="bi bi-circle-fill text-success me-1 kg-status-dot"></i>
             @LayoutText.Get("Status.Operating", "Sistema Operativo")
         </div>

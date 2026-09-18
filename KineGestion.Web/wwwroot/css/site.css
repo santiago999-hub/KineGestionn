@@ -587,6 +587,24 @@ body.kg-theme-dark .kg-alert-origin-badge:focus-visible {
     color: var(--kg-text);
     line-height: 1;
 }
+.kg-stat-value.is-empty {
+    color: var(--kg-text-muted);
+}
+.kg-stat-empty {
+    font-size: .74rem;
+    color: var(--kg-text-muted);
+    margin-top: 4px;
+    line-height: 1.25;
+}
+.kg-phone {
+    display: inline-block;
+    max-width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: bottom;
+    font-variant-numeric: tabular-nums;
+}
 
 /* ══════════════════════════════════════════════════════════
    CARDS

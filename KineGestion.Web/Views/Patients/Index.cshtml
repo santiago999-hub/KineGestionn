@@ -4,6 +4,18 @@
     ViewData["Title"] = "Pacientes";
 }
 
+@functions {
+    string FormatPhone(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return string.Empty;
+        var digits = new string(value.Where(char.IsDigit).ToArray());
+        if (digits.Length == 0) return value;
+        if (digits.Length == 10) return digits.Substring(0, 2) + " " + digits.Substring(2, 4) + "-" + digits.Substring(6, 4);
+        if (digits.Length == 11) return digits.Substring(0, 3) + " " + digits.Substring(3, 4) + "-" + digits.Substring(7, 4);
+        return digits.Length > 14 ? digits.Substring(0, 14) + "…" : digits;
+    }
+}
+
 <div class="kg-page-header">
     <div>
         <h2>Pacientes</h2>
@@ -76,7 +88,16 @@
                             </td>
                             <td><span style="font-family:monospace;font-size:.82rem">@p.DNI</span></td>
                             <td>@(string.IsNullOrEmpty(p.ObraSocial) ? "—" : p.ObraSocial)</td>
-                            <td>@(string.IsNullOrEmpty(p.Telefono) ? "—" : p.Telefono)</td>
+                            <td>
+                                @if (string.IsNullOrEmpty(p.Telefono))
+                                {
+                                    <span>—</span>
+                                }
+                                else
+                                {
+                                    <span class="kg-phone" title="@p.Telefono">@FormatPhone(p.Telefono)</span>
+                                }
+                            </td>
                             <td>
                                 @if (p.IsActivo)
                                 {
