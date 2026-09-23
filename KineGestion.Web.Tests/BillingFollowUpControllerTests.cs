@@ -35,7 +35,7 @@ namespace KineGestion.Web.Tests
 
             var dispatchRepository = new Mock<IDispatchEventRepository>();
             dispatchRepository
-                .Setup(r => r.GetByTypePrefixAsync("BillingFollowUp:", null, null))
+                .Setup(r => r.GetByTypePrefixAsync("BillingFollowUp:", null, null, 20))
                 .ReturnsAsync(Array.Empty<DispatchEvent>());
 
             var queued = new List<ReminderDispatchWorkItem>();
@@ -220,7 +220,7 @@ namespace KineGestion.Web.Tests
 
             var dispatchRepository = new Mock<IDispatchEventRepository>();
             dispatchRepository
-                .Setup(r => r.GetByTypePrefixAsync("BillingFollowUp:", null, null))
+                .Setup(r => r.GetByTypePrefixAsync("BillingFollowUp:", null, null, 20))
                 .ReturnsAsync(new[]
                 {
                     new DispatchEvent
@@ -268,7 +268,7 @@ namespace KineGestion.Web.Tests
             Assert.Equal("Error", model.History[1].Status);
             Assert.Contains("boom", model.History[1].ErrorSummary);
             Assert.Equal(42, model.History[0].SessionId);
-            dispatchRepository.Verify(r => r.GetByTypePrefixAsync("BillingFollowUp:", null, null), Times.Once);
+            dispatchRepository.Verify(r => r.GetByTypePrefixAsync("BillingFollowUp:", null, null, 20), Times.Once);
         }
 
         [Fact]
@@ -281,7 +281,7 @@ namespace KineGestion.Web.Tests
 
             var dispatchRepository = new Mock<IDispatchEventRepository>();
             dispatchRepository
-                .Setup(r => r.GetByTypePrefixAsync("BillingFollowUp:", null, null))
+                .Setup(r => r.GetByTypePrefixAsync("BillingFollowUp:", null, null, 20))
                 .ReturnsAsync(new[]
                 {
                     new DispatchEvent

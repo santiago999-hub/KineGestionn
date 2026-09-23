@@ -24,16 +24,20 @@ namespace KineGestion.Data.Repositories
             await _context.SaveChangesAsync();
         }
 
-        public async Task<IReadOnlyList<DispatchEvent>> GetByTypeAsync(string dispatchType, DateTime? dateFrom, DateTime? dateTo)
-            => await ApplyDateFilters(_context.DispatchEvents.AsNoTracking().Where(e => e.DispatchType == dispatchType), dateFrom, dateTo)
-                .OrderByDescending(e => e.SentAtUtc)
-                .ThenByDescending(e => e.Id)
+        public async Task<IReadOnlyList<DispatchEvent>> GetByTypeAsync(string dispatchType, DateTime? dateFrom, DateTime? dateTo, int? limit = null)
+            => await ApplyLimit(
+                ApplyDateFilters(_context.DispatchEvents.AsNoTracking().Where(e => e.DispatchType == dispatchType), dateFrom, dateTo)
+                    .OrderByDescending(e => e.SentAtUtc)
+                    .ThenByDescending(e => e.Id),
+                limit)
                 .ToListAsync();
 
-        public async Task<IReadOnlyList<DispatchEvent>> GetByTypePrefixAsync(string typePrefix, DateTime? dateFrom, DateTime? dateTo)
-            => await ApplyDateFilters(_context.DispatchEvents.AsNoTracking().Where(e => e.DispatchType.StartsWith(typePrefix)), dateFrom, dateTo)
-                .OrderByDescending(e => e.SentAtUtc)
-                .ThenByDescending(e => e.Id)
+        public async Task<IReadOnlyList<DispatchEvent>> GetByTypePrefixAsync(string typePrefix, DateTime? dateFrom, DateTime? dateTo, int? limit = null)
+            => await ApplyLimit(
+                ApplyDateFilters(_context.DispatchEvents.AsNoTracking().Where(e => e.DispatchType.StartsWith(typePrefix)), dateFrom, dateTo)
+                    .OrderByDescending(e => e.SentAtUtc)
+                    .ThenByDescending(e => e.Id),
+                limit)
                 .ToListAsync();
 
         public async Task<int> CountByTypeAsync(string dispatchType, DateTime? dateFrom, DateTime? dateTo)
@@ -50,5 +54,8 @@ namespace KineGestion.Data.Repositories
 
             return query;
         }
+
+        private static IQueryable<DispatchEvent> ApplyLimit(IQueryable<DispatchEvent> query, int? limit)
+            => limit.HasValue && limit.Value > 0 ? query.Take(limit.Value) : query;
     }
 }

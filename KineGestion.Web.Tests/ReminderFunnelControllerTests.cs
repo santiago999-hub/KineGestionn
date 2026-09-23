@@ -43,7 +43,7 @@ namespace KineGestion.Web.Tests
             };
 
             dispatchRepository
-                .Setup(r => r.GetByTypeAsync("PatientReminder", from, new DateTime(2026, 8, 31)))
+                .Setup(r => r.GetByTypeAsync("PatientReminder", from, new DateTime(2026, 8, 31), null))
                 .ReturnsAsync(dispatches);
 
             sessionService
@@ -65,7 +65,7 @@ namespace KineGestion.Web.Tests
                 It.Is<IReadOnlyCollection<int>>(ids => ids.Count == 1 && ids.Contains(1)),
                 from,
                 toExclusive), Times.Once);
-            dispatchRepository.Verify(r => r.GetByTypeAsync("PatientReminder", from, new DateTime(2026, 8, 31)), Times.Once);
+            dispatchRepository.Verify(r => r.GetByTypeAsync("PatientReminder", from, new DateTime(2026, 8, 31), null), Times.Once);
         }
 
         [Fact]
@@ -114,7 +114,7 @@ namespace KineGestion.Web.Tests
             };
 
             dispatchRepository
-                .Setup(r => r.GetByTypeAsync("PatientReminder", from, new DateTime(2026, 8, 31)))
+                .Setup(r => r.GetByTypeAsync("PatientReminder", from, new DateTime(2026, 8, 31), null))
                 .ReturnsAsync(dispatches);
 
             sessionService
@@ -141,7 +141,7 @@ namespace KineGestion.Web.Tests
 
             // Sin despachos, el funnel queda vacío (ceros).
             dispatchRepository
-                .Setup(r => r.GetByTypeAsync("PatientReminder", It.IsAny<DateTime?>(), It.IsAny<DateTime?>()))
+                .Setup(r => r.GetByTypeAsync("PatientReminder", It.IsAny<DateTime?>(), It.IsAny<DateTime?>(), null))
                 .ReturnsAsync(Array.Empty<DispatchEvent>());
 
             sessionService

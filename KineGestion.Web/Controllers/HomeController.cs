@@ -201,10 +201,9 @@ public class HomeController : Controller
         {
             try
             {
-                var latest = await _dispatchEventRepository.GetByTypeAsync(DispatchTypes.BillingBatchLowEffectivenessAlert, null, null);
+                var latest = await _dispatchEventRepository.GetByTypeAsync(DispatchTypes.BillingBatchLowEffectivenessAlert, null, null, limit: 3);
 
                 return latest
-                    .Take(3)
                     .Select(item => new BillingOperationalAlertHistoryItemViewModel
                     {
                         ChangedAtUtc = item.SentAtUtc,

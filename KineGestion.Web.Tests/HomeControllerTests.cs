@@ -97,7 +97,7 @@ namespace KineGestion.Web.Tests
             ctx.SessionService.Verify(s => s.CountByCancellationReasonInRangeAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>()), Times.Once);
             ctx.BillingAlertService.Verify(s => s.GetSnapshotAsync(It.IsAny<DateTime>(), default), Times.Once);
             ctx.DispatchEventRepository.Verify(r => r.CountByTypeAsync("BillingBatchLowEffectivenessAlert", It.IsAny<DateTime?>(), It.IsAny<DateTime?>()), Times.Once);
-            ctx.DispatchEventRepository.Verify(r => r.GetByTypeAsync("BillingBatchLowEffectivenessAlert", null, null), Times.Once);
+            ctx.DispatchEventRepository.Verify(r => r.GetByTypeAsync("BillingBatchLowEffectivenessAlert", null, null, 3), Times.Once);
         }
 
         [Fact]
@@ -112,7 +112,7 @@ namespace KineGestion.Web.Tests
                 .Setup(r => r.CountByTypeAsync("BillingBatchLowEffectivenessAlert", It.IsAny<DateTime?>(), It.IsAny<DateTime?>()))
                 .ReturnsAsync(1);
             ctx.DispatchEventRepository
-                .Setup(r => r.GetByTypeAsync("BillingBatchLowEffectivenessAlert", null, null))
+                .Setup(r => r.GetByTypeAsync("BillingBatchLowEffectivenessAlert", null, null, 3))
                 .ReturnsAsync(new[]
                 {
                     new DispatchEvent
@@ -148,7 +148,7 @@ namespace KineGestion.Web.Tests
                 .Setup(r => r.CountByTypeAsync("BillingBatchLowEffectivenessAlert", It.IsAny<DateTime?>(), It.IsAny<DateTime?>()))
                 .ReturnsAsync(1);
             ctx.DispatchEventRepository
-                .Setup(r => r.GetByTypeAsync("BillingBatchLowEffectivenessAlert", null, null))
+                .Setup(r => r.GetByTypeAsync("BillingBatchLowEffectivenessAlert", null, null, 3))
                 .ReturnsAsync(new[]
                 {
                     new DispatchEvent
@@ -225,7 +225,7 @@ namespace KineGestion.Web.Tests
                 SessionService.Setup(s => s.CountByStatusInRangeAsync(SessionStatus.Canceled, It.IsAny<DateTime>(), It.IsAny<DateTime>())).ReturnsAsync(2);
                 SessionService.Setup(s => s.CountByCancellationReasonInRangeAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>())).ReturnsAsync(new Dictionary<CancellationReason, int>());
                 DispatchEventRepository.Setup(r => r.CountByTypeAsync("BillingBatchLowEffectivenessAlert", It.IsAny<DateTime?>(), It.IsAny<DateTime?>())).ReturnsAsync(0);
-                DispatchEventRepository.Setup(r => r.GetByTypeAsync("BillingBatchLowEffectivenessAlert", null, null)).ReturnsAsync(Array.Empty<DispatchEvent>());
+                DispatchEventRepository.Setup(r => r.GetByTypeAsync("BillingBatchLowEffectivenessAlert", null, null, 3)).ReturnsAsync(Array.Empty<DispatchEvent>());
                 BillingAlertService.Setup(s => s.GetSnapshotAsync(It.IsAny<DateTime>(), default)).ReturnsAsync(new BillingOperationalAlertSnapshot { ThresholdPct = 70m, HasConsecutiveLowWeeks = false });
             }
         }

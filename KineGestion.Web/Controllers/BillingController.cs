@@ -256,7 +256,7 @@ namespace KineGestion.Web.Controllers
                     FilterDateTo = dateTo?.Date,
                     FilterSearch = TruncateSearch(search),
                     OnlyCompletedPending = onlyCompletedPending,
-                    ChangedBy = User?.Identity?.Name ?? "system",
+                    ChangedBy = AuditActor.Truncate(User?.Identity?.Name) ?? "system",
                     CreatedAtUtc = DateTime.UtcNow
                 });
             }

@@ -67,9 +67,19 @@ namespace KineGestion.Web.Controllers
                 var operationSet = new HashSet<int>();
                 foreach (var windowHours in operationalWindows)
                 {
-                    var operationalCandidates = await _sessionService.GetReminderCandidatesAsync(start, start.AddHours(windowHours));
-                    foreach (var c in operationalCandidates)
-                        operationSet.Add(c.SessionId);
+                    if (windowHours <= hoursAhead)
+                    {
+                        // Ventana dentro del rango ya consultado: filtrar sin pegarle a la BD.
+                        var windowEnd = start.AddHours(windowHours);
+                        foreach (var c in candidates.Where(c => c.FechaHora < windowEnd))
+                            operationSet.Add(c.SessionId);
+                    }
+                    else
+                    {
+                        var operationalCandidates = await _sessionService.GetReminderCandidatesAsync(start, start.AddHours(windowHours));
+                        foreach (var c in operationalCandidates)
+                            operationSet.Add(c.SessionId);
+                    }
                 }
 
                 operationalCount = operationSet.Count;
@@ -99,9 +109,7 @@ namespace KineGestion.Web.Controllers
                 }).ToList()
             };
 
-            var history = (await _dispatchEventRepository.GetByTypeAsync(DispatchTypes.PatientReminder, null, null))
-                .Take(20)
-                .ToList();
+            var history = await _dispatchEventRepository.GetByTypeAsync(DispatchTypes.PatientReminder, null, null, limit: 20);
 
             model.History = history.Select(MapHistoryItem).ToList();
 
@@ -138,20 +146,7 @@ namespace KineGestion.Web.Controllers
                     continue;
                 }
 
-                var workItem = new ReminderDispatchWorkItem
-                {
-                    SessionId = candidate.SessionId,
-                    FechaHora = candidate.FechaHora,
-                    PacienteNombre = candidate.PacienteNombre,
-                    PacienteEmail = candidate.PacienteEmail,
-                    PacienteTelefono = candidate.PacienteTelefono,
-                    ProfesionalNombre = candidate.ProfesionalNombre,
-                    TratamientoDescripcion = candidate.TratamientoDescripcion,
-                    ConfirmUrl = BuildActionUrl(candidate.SessionId, "confirm", candidate.FechaHora),
-                    CancelUrl = BuildActionUrl(candidate.SessionId, "cancel", candidate.FechaHora),
-                    ChangedBy = User?.Identity?.Name,
-                    EnqueuedAtUtc = DateTime.UtcNow
-                };
+                var workItem = BuildWorkItem(candidate, User?.Identity?.Name);
 
                 await _reminderDispatchQueue.QueueAsync(workItem);
                 queuedCount++;
@@ -195,22 +190,7 @@ namespace KineGestion.Web.Controllers
 
             foreach (var candidate in bySessionId.Values)
             {
-                var workItem = new ReminderDispatchWorkItem
-                {
-                    SessionId = candidate.SessionId,
-                    FechaHora = candidate.FechaHora,
-                    PacienteNombre = candidate.PacienteNombre,
-                    PacienteEmail = candidate.PacienteEmail,
-                    PacienteTelefono = candidate.PacienteTelefono,
-                    ProfesionalNombre = candidate.ProfesionalNombre,
-                    TratamientoDescripcion = candidate.TratamientoDescripcion,
-                    ConfirmUrl = BuildActionUrl(candidate.SessionId, "confirm", candidate.FechaHora),
-                    CancelUrl = BuildActionUrl(candidate.SessionId, "cancel", candidate.FechaHora),
-                    ChangedBy = User?.Identity?.Name,
-                    EnqueuedAtUtc = DateTime.UtcNow
-                };
-
-                await _reminderDispatchQueue.QueueAsync(workItem);
+                await _reminderDispatchQueue.QueueAsync(BuildWorkItem(candidate, User?.Identity?.Name));
             }
 
             var billingAlertDispatch = await _billingOperationalAlertService.QueueAlertIfNeededAsync(User?.Identity?.Name, now);
@@ -358,6 +338,24 @@ namespace KineGestion.Web.Controllers
                 Title = "Acción no reconocida",
                 Message = "La acción solicitada no es válida."
             });
+        }
+
+        private ReminderDispatchWorkItem BuildWorkItem(SessionReminderCandidateDto candidate, string? changedBy)
+        {
+            return new ReminderDispatchWorkItem
+            {
+                SessionId = candidate.SessionId,
+                FechaHora = candidate.FechaHora,
+                PacienteNombre = candidate.PacienteNombre,
+                PacienteEmail = candidate.PacienteEmail,
+                PacienteTelefono = candidate.PacienteTelefono,
+                ProfesionalNombre = candidate.ProfesionalNombre,
+                TratamientoDescripcion = candidate.TratamientoDescripcion,
+                ConfirmUrl = BuildActionUrl(candidate.SessionId, "confirm", candidate.FechaHora),
+                CancelUrl = BuildActionUrl(candidate.SessionId, "cancel", candidate.FechaHora),
+                ChangedBy = changedBy,
+                EnqueuedAtUtc = DateTime.UtcNow
+            };
         }
 
         private string BuildActionUrl(int sessionId, string action, DateTime sessionStartUtc)

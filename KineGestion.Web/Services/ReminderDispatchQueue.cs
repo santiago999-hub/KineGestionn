@@ -294,7 +294,7 @@ namespace KineGestion.Web.Services
                 {
                     DispatchType = workItem.DispatchType,
                     SessionId = workItem.DispatchType == DispatchTypes.BillingBatchLowEffectivenessAlert ? null : workItem.SessionId,
-                    ChangedBy = string.IsNullOrWhiteSpace(workItem.ChangedBy) ? "system" : workItem.ChangedBy,
+                    ChangedBy = AuditActor.Truncate(workItem.ChangedBy) ?? "system",
                     SentAtUtc = nowUtc,
                     EmailSent = result.EmailSent,
                     WhatsAppSent = result.WhatsAppSent,

@@ -16,8 +16,8 @@ Proyecto: KineGestion (ASP.NET Core + EF Core + SQL Server). No escribir comenta
 - Repos nuevos: fecha desde → `>= fecha.Date`; fecha hasta → `< fecha.Date.AddDays(1)`.
 - Errores de envío truncados a 2000 (2 mensajes max, `ReminderDispatchQueue.BuildErrorsSummary`); `FilterSearch` truncado a 200 en `LogBillingBatchAsync`.
 - Los `DispatchType` están centralizados en `KineGestion.Core.DispatchTypes` (constantes `PatientReminder`, `BillingFollowUpPrefix`, `BillingBatchLowEffectivenessAlert` + helper `BillingFollowUp(tier)`); no usar literales en código nuevo.
-
-## Pendiente para la próxima sesión (deuda media/baja, prioridad alta ya resuelta)
-1. Límite de filas con parámetro en `GetByTypeAsync`/`GetByTypePrefixAsync` (los controllers hacen `.Take()` en memoria: `RemindersController.cs:101`, `BillingFollowUpController`, `.Take(3)` en `HomeController`).
-2. `ChangedBy` sin truncar (columna 256) — si `User.Identity.Name` largo, perdería por lossless en la cola/eventos.
-3. `RetentionProtectedEntityNames` en `AuditLogRepository` quedó obsoleto: las 4 entidades de negocio ya no escriben auditoría; evaluar limpiarlo.
+- `IDispatchEventRepository.GetByTypeAsync`/`GetByTypePrefixAsync` aceptan `int? limit` opcional y aplican `Take` en SQL (los controllers ya no hacen `.Take()` en memoria). `HomeController` pide 3, `RemindersController`/`BillingFollowUpController` 20.
+- `ChangedBy` se trunca a 256 en `KineGestion.Core.AuditActor.Truncate` (aplicado en `HttpContextCurrentUserProvider`, el worker de despacho y `BillingController.LogBillingBatchAsync`).
+- `RetentionProtectedEntityNames` fue eliminado de `AuditLogRepository`: la retención purga también las filas legadas de eventos operativos (ya copiadas a `DispatchEvents`/`BillingBatchEvents`).
+- `RemindersController.Index` reutiliza el lote de candidatas en memoria para ventanas operativas ≤ `hoursAhead` (evita round-trips por ventana).
+- `QueryCache` limpia el `KeyLocks` al invalidar por prefijo o al expirar una entrada.

@@ -69,7 +69,7 @@ namespace KineGestion.Tests
         }
 
         [Fact]
-        public async Task DeleteOlderThanAsync_ShouldPreserveBusinessOperationalEvents()
+        public async Task DeleteOlderThanAsync_ShouldPurgeLegacyOperationalEventRows()
         {
             var databaseName = $"KineGestion_Integration_{Guid.NewGuid():N}";
             await using var context = await IntegrationTestDatabase.CreateMigratedAsync(databaseName);
@@ -79,25 +79,18 @@ namespace KineGestion.Tests
                 var cutoff = new DateTime(2026, 8, 1, 0, 0, 0, DateTimeKind.Utc);
                 var oldDate = new DateTime(2026, 6, 1, 10, 0, 0, DateTimeKind.Utc);
 
-                // Eventos de negocio que alimentan dashboards/alertas: no deben purgarse.
+                // Filas legadas de eventos operativos que la migración ya copió a
+                // DispatchEvents/BillingBatchEvents: la retención ahora las purga como cualquier pista.
                 await AddLogAsync(repository, "BillingBatch", "batch-1", "Create", "admin@local", oldDate);
                 await AddLogAsync(repository, "OperationalAlert", "BillingBatchLowEffectiveness:20260601", "Create", "system", oldDate);
                 await AddLogAsync(repository, "ReminderDispatch", "1", "Create", "system", oldDate);
                 await AddLogAsync(repository, "BillingFollowUp", "2", "Create", "system:automation", oldDate);
-
-                // Pista normal de auditoría: sí se purga.
                 await AddLogAsync(repository, "Patient", "999", "Update", "admin@local", oldDate);
 
                 var deleted = await repository.DeleteOlderThanAsync(cutoff, 1000, default);
 
-                Assert.Equal(1, deleted);
-
-                var remaining = await context.AuditLogs.AsNoTracking()
-                    .OrderBy(a => a.EntityName)
-                    .Select(a => a.EntityName)
-                    .ToListAsync();
-
-                Assert.Equal(new[] { "BillingBatch", "BillingFollowUp", "OperationalAlert", "ReminderDispatch" }, remaining);
+                Assert.Equal(5, deleted);
+                Assert.Empty(await context.AuditLogs.AsNoTracking().ToListAsync());
             }
             finally
             {

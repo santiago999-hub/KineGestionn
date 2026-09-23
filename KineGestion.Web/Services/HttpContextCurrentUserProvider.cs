@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using KineGestion.Core;
 using KineGestion.Core.Interfaces;
 
 namespace KineGestion.Web.Services;
@@ -18,10 +19,11 @@ public class HttpContextCurrentUserProvider : ICurrentUserProvider
         if (user?.Identity?.IsAuthenticated != true)
             return "system";
 
-        return user.FindFirstValue(ClaimTypes.Email)
+        var identifier = user.FindFirstValue(ClaimTypes.Email)
             ?? user.Identity?.Name
-            ?? user.FindFirstValue(ClaimTypes.NameIdentifier)
-            ?? "system";
+            ?? user.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        return AuditActor.Truncate(identifier) ?? "system";
     }
 
     public bool IsInRole(string role)

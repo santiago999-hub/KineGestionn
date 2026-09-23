@@ -76,9 +76,7 @@ namespace KineGestion.Web.Controllers
                 }).ToList()
             };
 
-            var history = (await _dispatchEventRepository.GetByTypePrefixAsync(DispatchTypes.BillingFollowUpPrefix, null, null))
-                .Take(20)
-                .ToList();
+            var history = await _dispatchEventRepository.GetByTypePrefixAsync(DispatchTypes.BillingFollowUpPrefix, null, null, limit: 20);
 
             model.History = history.Select(MapHistoryItem).ToList();
 

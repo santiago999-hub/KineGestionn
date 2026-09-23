@@ -9,9 +9,9 @@ namespace KineGestion.Core.Interfaces
     {
         Task AddAsync(DispatchEvent entity);
 
-        Task<IReadOnlyList<DispatchEvent>> GetByTypeAsync(string dispatchType, DateTime? dateFrom, DateTime? dateTo);
+        Task<IReadOnlyList<DispatchEvent>> GetByTypeAsync(string dispatchType, DateTime? dateFrom, DateTime? dateTo, int? limit = null);
 
-        Task<IReadOnlyList<DispatchEvent>> GetByTypePrefixAsync(string typePrefix, DateTime? dateFrom, DateTime? dateTo);
+        Task<IReadOnlyList<DispatchEvent>> GetByTypePrefixAsync(string typePrefix, DateTime? dateFrom, DateTime? dateTo, int? limit = null);
 
         Task<int> CountByTypeAsync(string dispatchType, DateTime? dateFrom, DateTime? dateTo);
     }

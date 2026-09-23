@@ -37,7 +37,10 @@ namespace KineGestion.Core.Services
         {
             var keys = Entries.Keys.Where(key => key.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)).ToArray();
             foreach (var key in keys)
+            {
                 Entries.TryRemove(key, out _);
+                KeyLocks.TryRemove(key, out _);
+            }
         }
 
         public static void ClearAll()
@@ -58,6 +61,7 @@ namespace KineGestion.Core.Services
                 return true;
 
             Entries.TryRemove(key, out _);
+            KeyLocks.TryRemove(key, out _);
             value = default;
             return false;
         }

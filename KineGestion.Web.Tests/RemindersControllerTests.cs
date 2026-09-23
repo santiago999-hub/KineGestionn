@@ -49,7 +49,7 @@ namespace KineGestion.Web.Tests
                 });
 
             dispatchRepository
-                .Setup(r => r.GetByTypeAsync("PatientReminder", null, null))
+                .Setup(r => r.GetByTypeAsync("PatientReminder", null, null, 20))
                 .ReturnsAsync(new[]
                 {
                     new DispatchEvent
@@ -83,8 +83,8 @@ namespace KineGestion.Web.Tests
             Assert.Equal("Enviado", model.History[0].Status);
             Assert.Equal("Email", model.History[0].ChannelSummary);
 
-            sessionService.Verify(s => s.GetReminderCandidatesAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>()), Times.Exactly(3));
-            dispatchRepository.Verify(r => r.GetByTypeAsync("PatientReminder", null, null), Times.Once);
+            sessionService.Verify(s => s.GetReminderCandidatesAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>()), Times.Once);
+            dispatchRepository.Verify(r => r.GetByTypeAsync("PatientReminder", null, null, 20), Times.Once);
         }
 
         [Fact]
@@ -101,7 +101,7 @@ namespace KineGestion.Web.Tests
                 .ReturnsAsync(Array.Empty<SessionReminderCandidateDto>());
 
             dispatchRepository
-                .Setup(r => r.GetByTypeAsync("PatientReminder", null, null))
+                .Setup(r => r.GetByTypeAsync("PatientReminder", null, null, 20))
                 .ReturnsAsync(Array.Empty<DispatchEvent>());
 
             billingAlertService
