@@ -12,7 +12,7 @@ COPY ["KineGestion.Data/KineGestion.Data.csproj", "KineGestion.Data/"]
 RUN dotnet restore KineGestion.Web/KineGestion.Web.csproj
 
 COPY . .
-RUN dotnet publish KineGestion.Web/KineGestion.Web.csproj -c Release --no-restore -o /app/publish
+RUN dotnet publish KineGestion.Web/KineGestion.Web.csproj -c Release --no-restore -r linux-x64 --self-contained false /p:PublishReadyToRun=true -o /app/publish
 
 # ─── RUNTIME ───────────────────────────────────────────────────────────────────
 # Imagen ASP.NET 8 sin SDK. Se ejecuta como usuario sin privilegios (APP_UID).

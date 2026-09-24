@@ -109,7 +109,9 @@ namespace KineGestion.Web.Services
                     (() => SafeRunAsync(() => sessionService.CountByStatusAndPaymentStatusInRangeAsync(SessionStatus.Completed, PaymentStatus.Paid, rangeFrom, rangeTo), "sessions:count:status:completed:payment:paid:last30"), "sessions:count:status:completed:payment:paid:last30"),
                     (() => SafeRunAsync(() => sessionService.CountByStatusInRangeAsync(SessionStatus.Canceled, rangeFrom, rangeTo), "sessions:count:status:canceled:last30"), "sessions:count:status:canceled:last30"),
                     (() => SafeRunAsync(() => sessionService.CountLateCancellationsInRangeAsync(rangeFrom, rangeTo), "sessions:count:cancellate:last30"), "sessions:count:cancellate:last30"),
-                    (() => SafeRunAsync(() => sessionService.GetPagedListForAdminAsync(1, 10, null, null, null, null, null, "fecha", "desc"), "sessions:admin:paged:first"), "sessions:admin:paged:first")
+                    (() => SafeRunAsync(() => sessionService.GetPagedListForAdminAsync(1, 10, null, null, null, null, null, "fecha", "desc"), "sessions:admin:paged:first"), "sessions:admin:paged:first"),
+                    (() => SafeRunAsync(() => patientService.GetPagedAsync(1, 10, null), "patients:paged:first"), "patients:paged:first"),
+                    (() => SafeRunAsync(() => patientService.GetForSelectAsync(), "patients:select:active"), "patients:select:active")
                 };
 
                 foreach (var step in warmupSteps)
