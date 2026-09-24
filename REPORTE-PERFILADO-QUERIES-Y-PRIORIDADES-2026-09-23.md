@@ -43,6 +43,12 @@ Warm p50 entre 87 y 116 ms: aceptable en caliente. Los outliers (~370 ms) corres
 - Para una tesis, la evidencia de **command log de EF + pipeline profile** es más directa que las pilas truncadas; PerfView daría el desglose por método si se quiere profundizar.
 
 ## Cambios ya aplicados en esta sesión (commit 6ba3a43)
-- `ReadyToRun` en el Dockerfile (menor arranque en frío en hosting).
+- `ReadyToRun` en el Dockerfile (menor arranque en frío en hosting). Nota: este flag se REVERTIRÍA después (ver seguimiento: rompía el job de GHCR).
 - `Observability:PipelineProfilePaths` ampliado a `/Sessions,/Patients,/Billing,/Reminders,/Users`.
 - Warmup de caché extendido a `patients:paged:first` y `patients:select:active`.
+
+## Seguimiento 2026-09-24 (resolución de prioridades 1-3)
+1. **Dashboard consolidado (prioridad 1) — RESUELTO** (`b03b541`): los 19 `COUNT(*)` quedaron en un solo `GetDashboardCountsAsync` (SELECT agregado con `COUNT(CASE WHEN...)`), cacheado 10 s. Evidencia: Web.Tests 181/181 y KineGestion.Tests 139/139 verdes tras el cambio.
+2. **Claim del worker (prioridad 2) — RESUELTO** (`fa17840`): el bucle fila por fila de `batchSize` UPDATE correlacionados quedó en UNA sola sentencia `UPDATE TOP (N)` con subquery `FROM DispatchJobs x WITH (UPDLOCK, READPAST)` ordenada por `CreatedAtUtc` → 1 round-trip (antes hasta N). La subquery re-evalúa la elegibilidad dentro del UPDATE, así que conserva la atómica del claim y el lease. Evidencia: `ClaimNextBatchAsync_ShouldClaimPendingInOrder_AndSkipClaimedJobs` (orden, skip dentro del lease y re-claim tras vencer) pasa contra SQL Express real en la suite 139/139.
+3. **Roles/claims Identity (prioridad 3) — DESCARTADA sin código**: los índices ya existen (`IX_AspNetRoleClaims_RoleId`, `IX_AspNetUserClaims_UserId`, `IX_AspNetUserRoles_RoleId`, PK `(UserId, RoleId)`). El pico de 130 ms corresponde a frío de primer arranque (compilación de queries EF + páginas en cache y primeros hits de sesión), consistente con los outliers de ~370 ms en `/Users` y `/Sessions`. No se añade un índice redundante; no hay acción estructural pendiente.
+4. **Resto 5-30 ms — SIN TOCAR**, como marca la prioridad 4 original.
