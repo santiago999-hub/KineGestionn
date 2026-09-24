@@ -106,6 +106,34 @@ namespace KineGestion.Data.Repositories
                     && s.FechaHora >= fromInclusiveUtc
                     && s.FechaHora < toExclusiveUtc);
 
+        public async Task<DashboardSessionCountsDto> GetDashboardCountsAsync(DateTime todayUtc, DateTime fromInclusiveUtc, DateTime toExclusiveUtc)
+        {
+            var dayStart = todayUtc.Date;
+            var dayEnd = dayStart.AddDays(1);
+
+            var row = await ApplyCountScope(_context.Sessions.AsNoTracking())
+                .GroupBy(s => 1)
+                .Select(g => new DashboardSessionCountsDto(
+                    g.Count(),
+                    g.Count(s => s.FechaHora >= dayStart && s.FechaHora < dayEnd),
+                    g.Count(s => s.Status == SessionStatus.Completed && s.FechaHora >= dayStart && s.FechaHora < dayEnd),
+                    g.Count(s => s.Status == SessionStatus.Canceled && s.FechaHora >= dayStart && s.FechaHora < dayEnd),
+                    g.Count(s => s.Status == SessionStatus.Completed && s.PaymentStatus == PaymentStatus.Pending),
+                    g.Count(s => s.Status == SessionStatus.Pending),
+                    g.Count(s => s.Status == SessionStatus.Completed && s.FechaHora >= fromInclusiveUtc && s.FechaHora < toExclusiveUtc),
+                    g.Count(s => s.Status == SessionStatus.Completed && s.PaymentStatus == PaymentStatus.Paid && s.FechaHora >= fromInclusiveUtc && s.FechaHora < toExclusiveUtc),
+                    g.Count(s => s.FechaHora >= fromInclusiveUtc && s.FechaHora < toExclusiveUtc),
+                    g.Count(s => s.Status == SessionStatus.Canceled && s.FechaHora >= fromInclusiveUtc && s.FechaHora < toExclusiveUtc),
+                    g.Count(s => s.Status == SessionStatus.Canceled
+                        && s.CancelledAt.HasValue
+                        && s.FechaHora >= fromInclusiveUtc
+                        && s.FechaHora < toExclusiveUtc
+                        && s.CancelledAt!.Value > s.FechaHora.AddHours(-24))))
+                .FirstOrDefaultAsync();
+
+            return row ?? new DashboardSessionCountsDto(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+        }
+
         public async Task<IReadOnlyList<KpiSegmentDto>> GetKpiSegmentsByProfessionalAsync(DateTime fromInclusiveUtc, DateTime toExclusiveUtc)
         {
             var query = ApplyCountScope(_context.Sessions.AsNoTracking())

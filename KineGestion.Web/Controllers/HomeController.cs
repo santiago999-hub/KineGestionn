@@ -2,6 +2,7 @@ using System.Diagnostics;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using KineGestion.Core.Interfaces;
+using KineGestion.Core.DTOs;
 using KineGestion.Web.Models;
 using KineGestion.Web.Models.ViewModels;
 using KineGestion.Web.Services;
@@ -70,20 +71,21 @@ public class HomeController : Controller
         var countPatients = await MeasureStepAsync("Patients.ActiveCount", () => SafeCountAsync(() => _patientService.CountActiveAsync(), nameof(_patientService.CountActiveAsync)));
         var countProfessionals = await MeasureStepAsync("Professionals.ActiveCount", () => SafeCountAsync(() => _professionalService.CountActiveAsync(), nameof(_professionalService.CountActiveAsync)));
         var countTreatments = await MeasureStepAsync("Treatments.Count", () => SafeCountAsync(() => _treatmentService.CountAsync(), nameof(_treatmentService.CountAsync)));
-        var countSessions = await MeasureStepAsync("Sessions.Count", () => SafeCountAsync(() => _sessionService.CountAsync(), nameof(_sessionService.CountAsync)));
-        var countToday = await MeasureStepAsync("Sessions.TodayCount", () => SafeCountAsync(() => _sessionService.CountTodayAsync(today), nameof(_sessionService.CountTodayAsync)));
-        var countCompletedToday = await MeasureStepAsync("Sessions.CompletedToday", () => SafeCountAsync(() => _sessionService.CountByStatusOnDateAsync(SessionStatus.Completed, today), nameof(_sessionService.CountByStatusOnDateAsync)));
-        var countCanceledToday = await MeasureStepAsync("Sessions.CanceledToday", () => SafeCountAsync(() => _sessionService.CountByStatusOnDateAsync(SessionStatus.Canceled, today), nameof(_sessionService.CountByStatusOnDateAsync)));
-        var countPendingPago = await MeasureStepAsync("Sessions.PendingPayment", () => SafeCountAsync(() => _sessionService.CountByStatusAndPaymentStatusAsync(SessionStatus.Completed, PaymentStatus.Pending), nameof(_sessionService.CountByStatusAndPaymentStatusAsync)));
-        var countPendingStatus = await MeasureStepAsync("Sessions.PendingStatus", () => SafeCountAsync(() => _sessionService.CountByStatusAsync(SessionStatus.Pending), nameof(_sessionService.CountByStatusAsync)));
-        var completedLast30 = await MeasureStepAsync("Sessions.CompletedLast30", () => SafeCountAsync(() => _sessionService.CountByStatusInRangeAsync(SessionStatus.Completed, rangeFrom, rangeTo), nameof(_sessionService.CountByStatusInRangeAsync)));
-        var paidCompletedLast30 = await MeasureStepAsync("Sessions.PaidCompletedLast30", () => SafeCountAsync(() => _sessionService.CountByStatusAndPaymentStatusInRangeAsync(SessionStatus.Completed, PaymentStatus.Paid, rangeFrom, rangeTo), nameof(_sessionService.CountByStatusAndPaymentStatusInRangeAsync)));
-        var totalLast30 = await MeasureStepAsync("Sessions.TotalLast30", () => SafeCountAsync(() => _sessionService.CountInRangeAsync(rangeFrom, rangeTo), nameof(_sessionService.CountInRangeAsync)));
-        var canceledLast30 = await MeasureStepAsync("Sessions.CanceledLast30", () => SafeCountAsync(() => _sessionService.CountByStatusInRangeAsync(SessionStatus.Canceled, rangeFrom, rangeTo), nameof(_sessionService.CountByStatusInRangeAsync)));
+        var dashboardCounts = await MeasureStepAsync("Sessions.DashboardCounts", SafeGetDashboardCountsAsync);
+        var countSessions = dashboardCounts.Total;
+        var countToday = dashboardCounts.TodayTotal;
+        var countCompletedToday = dashboardCounts.TodayCompleted;
+        var countCanceledToday = dashboardCounts.TodayCanceled;
+        var countPendingPago = dashboardCounts.CompletedPendingAllTime;
+        var countPendingStatus = dashboardCounts.PendingAllTime;
+        var completedLast30 = dashboardCounts.CompletedInRange;
+        var paidCompletedLast30 = dashboardCounts.PaidCompletedInRange;
+        var totalLast30 = dashboardCounts.TotalInRange;
+        var canceledLast30 = dashboardCounts.CanceledInRange;
+        var lateCancellationsLast30 = dashboardCounts.LateCancellationsInRange;
         var billingAlertSnapshot = await MeasureStepAsync("BillingAlert.Snapshot", SafeGetBillingAlertSnapshotAsync);
         var billingAlertSentToday = await MeasureStepAsync("BillingAlert.SentTodayCount", () => SafeCountAsync(() => CountOperationalAlertsTodayAsync(), nameof(CountOperationalAlertsTodayAsync)));
         var cancellationReasonsLast30 = await MeasureStepAsync("Sessions.CancelReasonsLast30", SafeGetCancellationReasonsAsync);
-        var lateCancellationsLast30 = await MeasureStepAsync("Sessions.LateCancellationsLast30", () => SafeCountAsync(() => _sessionService.CountLateCancellationsInRangeAsync(rangeFrom, rangeTo), nameof(_sessionService.CountLateCancellationsInRangeAsync)));
         var recentBillingAlerts = await MeasureStepAsync("BillingAlert.RecentHistory", SafeGetRecentOperationalAlertsAsync);
         var lastBillingAlert = recentBillingAlerts.FirstOrDefault();
 
@@ -180,6 +182,20 @@ public class HomeController : Controller
                 Interlocked.Exchange(ref hasErrors, 1);
                 _logger.LogError(ex, "Error cargando métrica del dashboard desde {Source}", source);
                 return 0;
+            }
+        }
+
+        async Task<DashboardSessionCountsDto> SafeGetDashboardCountsAsync()
+        {
+            try
+            {
+                return await _sessionService.GetDashboardCountsAsync(today, rangeFrom, rangeTo);
+            }
+            catch (Exception ex)
+            {
+                Interlocked.Exchange(ref hasErrors, 1);
+                _logger.LogError(ex, "Error cargando conteos del dashboard.");
+                return new DashboardSessionCountsDto(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
             }
         }
 

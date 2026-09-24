@@ -800,6 +800,86 @@ namespace KineGestion.Tests
         }
 
         [Fact]
+        public async Task GetDashboardCountsAsync_ShouldAggregateAllDashboardMetricsInOneRow()
+        {
+            var databaseName = $"KineGestion_Integration_{Guid.NewGuid():N}";
+            var options = IntegrationTestDatabase.BuildOptions(databaseName);
+
+            var todayUtc = new DateTime(2026, 6, 15, 12, 0, 0);
+            var from = new DateTime(2026, 6, 1);
+            var to = new DateTime(2026, 7, 1);
+
+            await using (var setupContext = new AppDbContext(options))
+            {
+                await setupContext.Database.EnsureDeletedAsync();
+                await setupContext.Database.EnsureCreatedAsync();
+
+                var patient = NewPatient();
+                var professional = NewProfessional("MAT-200");
+
+                setupContext.Patients.Add(patient);
+                setupContext.Professionals.Add(professional);
+                await setupContext.SaveChangesAsync();
+
+                var treatment = NewTreatment(patient.Id, from);
+                setupContext.Treatments.Add(treatment);
+                await setupContext.SaveChangesAsync();
+
+                int counter = 1;
+                void AddSession(DateTime fechaHora, SessionStatus status, PaymentStatus pay, DateTime? cancelledAt = null)
+                {
+                    setupContext.Sessions.Add(new Session
+                    {
+                        FechaHora = fechaHora,
+                        PatientId = patient.Id,
+                        ProfessionalId = professional.Id,
+                        TreatmentId = treatment.Id,
+                        NroSesionEnTratamiento = counter++,
+                        Status = status,
+                        PaymentStatus = pay,
+                        CancellationReason = status == SessionStatus.Canceled ? CancellationReason.Olvido : null,
+                        CancelledAt = cancelledAt
+                    });
+                }
+
+                AddSession(new DateTime(2026, 6, 15, 9, 0, 0), SessionStatus.Completed, PaymentStatus.Paid);
+                AddSession(new DateTime(2026, 6, 15, 11, 0, 0), SessionStatus.Completed, PaymentStatus.Pending);
+                AddSession(new DateTime(2026, 6, 15, 15, 0, 0), SessionStatus.Canceled, PaymentStatus.Pending, cancelledAt: new DateTime(2026, 6, 15, 10, 0, 0));
+                AddSession(new DateTime(2026, 6, 15, 16, 0, 0), SessionStatus.Pending, PaymentStatus.Pending);
+                AddSession(new DateTime(2026, 6, 10, 9, 0, 0), SessionStatus.Completed, PaymentStatus.Paid);
+                AddSession(new DateTime(2026, 6, 11, 9, 0, 0), SessionStatus.Completed, PaymentStatus.Pending);
+                AddSession(new DateTime(2026, 6, 12, 9, 0, 0), SessionStatus.Canceled, PaymentStatus.Pending, cancelledAt: new DateTime(2026, 6, 11, 10, 0, 0));
+                AddSession(new DateTime(2026, 6, 13, 9, 0, 0), SessionStatus.Pending, PaymentStatus.Pending);
+                AddSession(new DateTime(2026, 7, 5, 9, 0, 0), SessionStatus.Completed, PaymentStatus.Paid);
+
+                await setupContext.SaveChangesAsync();
+            }
+
+            await using (var testContext = new AppDbContext(options))
+            {
+                var repository = new SessionMetricsRepository(testContext);
+                var counts = await repository.GetDashboardCountsAsync(todayUtc, from, to);
+
+                Assert.Equal(9, counts.Total);
+                Assert.Equal(4, counts.TodayTotal);
+                Assert.Equal(2, counts.TodayCompleted);
+                Assert.Equal(1, counts.TodayCanceled);
+                Assert.Equal(2, counts.CompletedPendingAllTime);
+                Assert.Equal(2, counts.PendingAllTime);
+                Assert.Equal(4, counts.CompletedInRange);
+                Assert.Equal(2, counts.PaidCompletedInRange);
+                Assert.Equal(8, counts.TotalInRange);
+                Assert.Equal(2, counts.CanceledInRange);
+                Assert.Equal(2, counts.LateCancellationsInRange);
+            }
+
+            await using (var cleanupContext = new AppDbContext(options))
+            {
+                await cleanupContext.Database.EnsureDeletedAsync();
+            }
+        }
+
+        [Fact]
         public async Task GetSessionFunnelOutcomesAsync_ShouldClassifyConfirmedAndCanceled_WithinSentRange()
         {
             var databaseName = $"KineGestion_Integration_{Guid.NewGuid():N}";

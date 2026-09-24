@@ -14,6 +14,7 @@ using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Moq;
 using System.Collections.Generic;
+using KineGestion.Core.DTOs;
 
 namespace KineGestion.Web.Tests
 {
@@ -51,7 +52,7 @@ namespace KineGestion.Web.Tests
         public async Task Index_ShouldReturnZeroForMetric_WhenAServiceFails()
         {
             var ctx = BuildDefaultContext();
-            ctx.SessionService.Setup(s => s.CountAsync()).ThrowsAsync(new InvalidOperationException("boom"));
+            ctx.SessionService.Setup(s => s.GetDashboardCountsAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<DateTime>())).ThrowsAsync(new InvalidOperationException("boom"));
 
             var result = await ctx.Controller.Index();
 
@@ -62,11 +63,11 @@ namespace KineGestion.Web.Tests
             Assert.Equal(4, model.ProfesionalesActivosCount);
             Assert.Equal(18, model.TratamientosCount);
             Assert.Equal(0, model.SesionesCount);
-            Assert.Equal(7, model.SesionesHoyCount);
-            Assert.Equal(3, model.SesionesCompletadasHoyCount);
-            Assert.Equal(2, model.SesionesCanceladasHoyCount);
-            Assert.Equal(9, model.SesionesPendientesPagoCount);
-            Assert.Equal(5, model.SesionesPendientesConfirmacionCount);
+            Assert.Equal(0, model.SesionesHoyCount);
+            Assert.Equal(0, model.SesionesCompletadasHoyCount);
+            Assert.Equal(0, model.SesionesCanceladasHoyCount);
+            Assert.Equal(0, model.SesionesPendientesPagoCount);
+            Assert.Equal(0, model.SesionesPendientesConfirmacionCount);
         }
 
         [Fact]
@@ -84,16 +85,7 @@ namespace KineGestion.Web.Tests
             ctx.PatientService.Verify(s => s.CountActiveAsync(), Times.Once);
             ctx.ProfessionalService.Verify(s => s.CountActiveAsync(), Times.Once);
             ctx.TreatmentService.Verify(s => s.CountAsync(), Times.Once);
-            ctx.SessionService.Verify(s => s.CountAsync(), Times.Once);
-            ctx.SessionService.Verify(s => s.CountTodayAsync(It.IsAny<DateTime>()), Times.Once);
-            ctx.SessionService.Verify(s => s.CountByStatusOnDateAsync(SessionStatus.Completed, It.IsAny<DateTime>()), Times.Once);
-            ctx.SessionService.Verify(s => s.CountByStatusOnDateAsync(SessionStatus.Canceled, It.IsAny<DateTime>()), Times.Once);
-            ctx.SessionService.Verify(s => s.CountByStatusAndPaymentStatusAsync(SessionStatus.Completed, PaymentStatus.Pending), Times.Once);
-            ctx.SessionService.Verify(s => s.CountByStatusAsync(SessionStatus.Pending), Times.Once);
-            ctx.SessionService.Verify(s => s.CountByStatusInRangeAsync(SessionStatus.Completed, It.IsAny<DateTime>(), It.IsAny<DateTime>()), Times.Once);
-            ctx.SessionService.Verify(s => s.CountByStatusAndPaymentStatusInRangeAsync(SessionStatus.Completed, PaymentStatus.Paid, It.IsAny<DateTime>(), It.IsAny<DateTime>()), Times.Once);
-            ctx.SessionService.Verify(s => s.CountInRangeAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>()), Times.Once);
-            ctx.SessionService.Verify(s => s.CountByStatusInRangeAsync(SessionStatus.Canceled, It.IsAny<DateTime>(), It.IsAny<DateTime>()), Times.Once);
+            ctx.SessionService.Verify(s => s.GetDashboardCountsAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<DateTime>()), Times.Once);
             ctx.SessionService.Verify(s => s.CountByCancellationReasonInRangeAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>()), Times.Once);
             ctx.BillingAlertService.Verify(s => s.GetSnapshotAsync(It.IsAny<DateTime>(), default), Times.Once);
             ctx.DispatchEventRepository.Verify(r => r.CountByTypeAsync("BillingBatchLowEffectivenessAlert", It.IsAny<DateTime?>(), It.IsAny<DateTime?>()), Times.Once);
@@ -213,16 +205,8 @@ namespace KineGestion.Web.Tests
                 PatientService.Setup(s => s.CountActiveAsync()).ReturnsAsync(12);
                 ProfessionalService.Setup(s => s.CountActiveAsync()).ReturnsAsync(4);
                 TreatmentService.Setup(s => s.CountAsync()).ReturnsAsync(18);
-                SessionService.Setup(s => s.CountAsync()).ReturnsAsync(60);
-                SessionService.Setup(s => s.CountTodayAsync(It.IsAny<DateTime>())).ReturnsAsync(7);
-                SessionService.Setup(s => s.CountByStatusOnDateAsync(SessionStatus.Completed, It.IsAny<DateTime>())).ReturnsAsync(3);
-                SessionService.Setup(s => s.CountByStatusOnDateAsync(SessionStatus.Canceled, It.IsAny<DateTime>())).ReturnsAsync(2);
-                SessionService.Setup(s => s.CountByStatusAndPaymentStatusAsync(SessionStatus.Completed, PaymentStatus.Pending)).ReturnsAsync(9);
-                SessionService.Setup(s => s.CountByStatusAsync(SessionStatus.Pending)).ReturnsAsync(5);
-                SessionService.Setup(s => s.CountByStatusInRangeAsync(SessionStatus.Completed, It.IsAny<DateTime>(), It.IsAny<DateTime>())).ReturnsAsync(20);
-                SessionService.Setup(s => s.CountByStatusAndPaymentStatusInRangeAsync(SessionStatus.Completed, PaymentStatus.Paid, It.IsAny<DateTime>(), It.IsAny<DateTime>())).ReturnsAsync(15);
-                SessionService.Setup(s => s.CountInRangeAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>())).ReturnsAsync(20);
-                SessionService.Setup(s => s.CountByStatusInRangeAsync(SessionStatus.Canceled, It.IsAny<DateTime>(), It.IsAny<DateTime>())).ReturnsAsync(2);
+                SessionService.Setup(s => s.GetDashboardCountsAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<DateTime>()))
+                .ReturnsAsync(new DashboardSessionCountsDto(60, 7, 3, 2, 9, 5, 20, 15, 20, 2, 1));
                 SessionService.Setup(s => s.CountByCancellationReasonInRangeAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>())).ReturnsAsync(new Dictionary<CancellationReason, int>());
                 DispatchEventRepository.Setup(r => r.CountByTypeAsync("BillingBatchLowEffectivenessAlert", It.IsAny<DateTime?>(), It.IsAny<DateTime?>())).ReturnsAsync(0);
                 DispatchEventRepository.Setup(r => r.GetByTypeAsync("BillingBatchLowEffectivenessAlert", null, null, 3)).ReturnsAsync(Array.Empty<DispatchEvent>());
