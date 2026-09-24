@@ -7,6 +7,7 @@ using KineGestion.Core;
 using KineGestion.Core.Entities;
 using KineGestion.Core.Interfaces;
 using KineGestion.Data.Context;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 
 namespace KineGestion.Data.Repositories
@@ -45,34 +46,32 @@ namespace KineGestion.Data.Repositories
             var claimToken = Guid.NewGuid().ToString("N");
             var leaseCutoff = nowUtc.Subtract(leaseDuration);
 
-            // Reclamo atómico fila por fila: el subquery elige la fila elegible más antigua.
-            // Al estar marcada con nuestro ClaimToken, ninguna corrida concurrente la re-clama.
-            for (var claimed = 0; claimed < batchSize; claimed++)
-            {
-                var affected = await _context.DispatchJobs
-                    .Where(j =>
-                        (j.Status == DispatchJobStatus.Pending
-                         || (j.Status == DispatchJobStatus.Processing && j.ClaimedAtUtc != null && j.ClaimedAtUtc < leaseCutoff))
-                        && (j.NextAttemptAtUtc == null || j.NextAttemptAtUtc <= nowUtc)
-                        && j.Id == _context.DispatchJobs
-                            .Where(j2 =>
-                                (j2.Status == DispatchJobStatus.Pending
-                                 || (j2.Status == DispatchJobStatus.Processing && j2.ClaimedAtUtc != null && j2.ClaimedAtUtc < leaseCutoff))
-                                && (j2.NextAttemptAtUtc == null || j2.NextAttemptAtUtc <= nowUtc))
-                            .OrderBy(j2 => j2.CreatedAtUtc)
-                            .Select(j2 => (int?)j2.Id)
-                            .FirstOrDefault())
-                    .ExecuteUpdateAsync(
-                        setters => setters
-                            .SetProperty(j => j.Status, DispatchJobStatus.Processing)
-                            .SetProperty(j => j.ClaimToken, claimToken)
-                            .SetProperty(j => j.ClaimedAtUtc, nowUtc)
-                            .SetProperty(j => j.NextAttemptAtUtc, (DateTime?)null),
-                        cancellationToken);
+            var pending = (int)DispatchJobStatus.Pending;
+            var processing = (int)DispatchJobStatus.Processing;
 
-                if (affected == 0)
-                    break;
-            }
+            const string claimSql =
+                "UPDATE TOP (@batchSize) d " +
+                "SET d.Status = @processing, d.ClaimToken = @claimToken, d.ClaimedAtUtc = @nowUtc, d.NextAttemptAtUtc = NULL " +
+                "FROM DispatchJobs d " +
+                "WHERE d.Id IN (" +
+                "SELECT TOP (@batchSize) x.Id " +
+                "FROM DispatchJobs x WITH (UPDLOCK, READPAST) " +
+                "WHERE (x.Status = @pending OR (x.Status = @processing AND x.ClaimedAtUtc IS NOT NULL AND x.ClaimedAtUtc < @leaseCutoff)) " +
+                "AND (x.NextAttemptAtUtc IS NULL OR x.NextAttemptAtUtc <= @nowUtc) " +
+                "ORDER BY x.CreatedAtUtc)";
+
+            await _context.Database.ExecuteSqlRawAsync(
+                claimSql,
+                new object[]
+                {
+                    new SqlParameter("@batchSize", batchSize),
+                    new SqlParameter("@pending", pending),
+                    new SqlParameter("@processing", processing),
+                    new SqlParameter("@nowUtc", nowUtc),
+                    new SqlParameter("@leaseCutoff", leaseCutoff),
+                    new SqlParameter("@claimToken", claimToken)
+                },
+                cancellationToken);
 
             return await _context.DispatchJobs
                 .AsNoTracking()

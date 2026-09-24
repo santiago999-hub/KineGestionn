@@ -23,3 +23,4 @@ Proyecto: KineGestion (ASP.NET Core + EF Core + SQL Server). No escribir comenta
 - `RetentionProtectedEntityNames` fue eliminado de `AuditLogRepository`: la retención purga también las filas legadas de eventos operativos (ya copiadas a `DispatchEvents`/`BillingBatchEvents`).
 - `RemindersController.Index` reutiliza el lote de candidatas en memoria para ventanas operativas ≤ `hoursAhead` (evita round-trips por ventana).
 - `QueryCache` limpia el `KeyLocks` al invalidar por prefijo o al expirar una entrada.
+- `DispatchJobRepository.ClaimNextBatchAsync` reclama el lote con UNA sola sentencia `UPDATE TOP (N)` + subquery `WITH (UPDLOCK, READPAST)` (un round-trip; antes era un bucle de `batchSize` `ExecuteUpdateAsync` correlacionados). No hay índices nuevos que añadir para Identity (roles/claims ya indexados).
