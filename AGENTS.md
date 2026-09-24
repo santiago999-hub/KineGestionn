@@ -7,6 +7,7 @@ Proyecto: KineGestion (ASP.NET Core + EF Core + SQL Server). No escribir comenta
 - Suites de tests (NUNCA en paralelo entre sí: lock en `KineGestion.Core.dll`, CS2012; correr en secuencia):
   1. `dotnet test KineGestion.Web.Tests/KineGestion.Web.Tests.csproj --no-restore`
   2. `dotnet test KineGestion.Tests/KineGestion.Tests.csproj --no-restore` (integración sobre SQL Express `localhost\SQLEXPRESS`, BD efímera por test; noblear `KINEGESTION_TEST_CONNECTION` con `{DatabaseName}`)
+- Todo test que toque BD real (migraciones, repos, contenedor SQL) debe tener `Integration` en el nombre de la CLASE: el CI corre unit con `FullyQualifiedName!~Integration` (sin SQL Server) y los de BD con `~Integration` (contenedor SQL). Un test de BD mal nombrado rompe el job unitario de CI.
 - Migraciones local: `dotnet ef database update --project KineGestion.Data --startup-project KineGestion.Web` (NO usar `-v q`: se parsea como migración destino). BD dev `KineGestionDB`.
 - Push a `origin main` una vez verdes y commiteado.
 

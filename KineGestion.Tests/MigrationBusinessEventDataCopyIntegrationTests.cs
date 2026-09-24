@@ -9,7 +9,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace KineGestion.Tests
 {
-    public class MigrationBusinessEventDataCopyTests
+    public class MigrationBusinessEventDataCopyIntegrationTests
     {
         private const string TargetMigration = "20260911000515_AddSessionOfficeConflictIndex";
 
