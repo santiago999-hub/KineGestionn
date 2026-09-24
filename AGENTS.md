@@ -12,6 +12,7 @@ Proyecto: KineGestion (ASP.NET Core + EF Core + SQL Server). No escribir comenta
 - Push a `origin main` una vez verdes y commiteado.
 
 ## Contexto reciente
+- `Dockerfile`: NO usar `/p:PublishReadyToRun=true` en el publish del contenedor (rompía el job de GHCR con `dotnet publish ... exit code 1`); el publisher usa publish llano.
 - Los eventos operativos de negocio ya no se escriben como `AuditLogs`: ahora van a `BillingBatchEvents` y `DispatchEvents` (migración `AddBusinessEventTables` copió el histórico desde `AuditLogs`; opción A de retención queda como red de seguridad).
 - `DispatchEvent.DispatchType`: `PatientReminder` | `BillingFollowUp:<Tier>` | `BillingBatchLowEffectivenessAlert`. El worker escribe 1 fila solo cuando `SendAsync` no lanza; la alerta usa `SessionId=null` y ahora `FechaHora=nowUtc.Date` (hash determinista por día → dedup de `DispatchJob` abiertos con el índice único `(SessionId, DispatchType, PayloadHash)`).
 - Repos nuevos: fecha desde → `>= fecha.Date`; fecha hasta → `< fecha.Date.AddDays(1)`.
