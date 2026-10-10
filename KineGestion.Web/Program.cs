@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Diagnostics;
 using System.Globalization;
@@ -174,7 +175,12 @@ builder.Services.AddScoped<IIdentityService, IdentityService>();
 
 // ─── MVC ──────────────────────────────────────────────────────────────────────
 builder.Services.AddLocalization(options => options.ResourcesPath = "Resources");
-builder.Services.AddControllersWithViews();
+// CSRF global: AutoValidateAntiforgeryToken valida el token anti-forgery en toda
+// request que pueda modificar estado (POST/PUT/PATCH/DELETE) SIN recurrir a
+// [ValidateAntiForgeryToken] en cada action. Los controllers ya no necesitan el
+// atributo: el filtro es global y un endpoint nuevo queda protegido por defecto.
+builder.Services.AddControllersWithViews(options =>
+    options.Filters.Add<AutoValidateAntiforgeryTokenAttribute>());
 
 // ─── IDENTITY (AuthN / AuthZ) ─────────────────────────────────────────────────
 builder.Services.AddIdentity<IdentityUser, IdentityRole>(options =>

@@ -52,17 +52,11 @@ namespace KineGestion.Data.Repositories
         /// <summary>OBSOLETO: carga la tabla completa en memoria. Usar GetPagedAsync o GetForSelectAsync.</summary>
         [Obsolete("Carga toda la tabla en memoria. Usar GetPagedAsync o GetForSelectAsync.")]
         public async Task<IEnumerable<Patient>> GetAllAsync()
-            => await _context.Patients
-                             .AsNoTracking()
-                             .Where(p => p.IsActivo)
-                             .ToListAsync();
+            => await _context.Patients.AsNoTracking().ToListAsync();
 
-        /// <summary>Consulta optimizada: solo trae pacientes con IsActivo = true.</summary>
+        /// <summary>Lista a los pacientes activos (el filtro global aplica a la entidad raíz).</summary>
         public async Task<IEnumerable<Patient>> GetActivosAsync()
-            => await _context.Patients
-                             .AsNoTracking()
-                             .Where(p => p.IsActivo)
-                             .ToListAsync();
+            => await _context.Patients.AsNoTracking().ToListAsync();
 
         /// <summary>
         /// Proyección mínima para dropdowns: trae solo Id, Nombre, Apellido y DNI.
@@ -71,23 +65,24 @@ namespace KineGestion.Data.Repositories
         public async Task<IEnumerable<PatientSelectDto>> GetForSelectAsync()
             => await _context.Patients
                              .AsNoTracking()
-                             .Where(p => p.IsActivo)
                              .OrderBy(p => p.Apellido).ThenBy(p => p.Nombre)
                              .Select(p => new PatientSelectDto(p.Id, p.Nombre, p.Apellido, p.DNI))
                              .ToListAsync();
 
         /// <summary>
-        /// Verifica si ya existe un paciente con el DNI dado.
+        /// Verifica si ya existe un paciente con el DNI dado, incluyendo los desactivados
+        /// (IgnoreQueryFilters) para que la unicidad integra se mantenga frente al borrado lógico.
         /// excludeId permite ignorar al propio paciente al editar (evita falso positivo).
         /// </summary>
         public async Task<bool> ExistsByDniAsync(string dni, int? excludeId = null)
             => await _context.Patients
+                             .IgnoreQueryFilters()
                              .AsNoTracking()
                              .AnyAsync(p => p.DNI == dni && p.Id != excludeId);
 
         public async Task<(IEnumerable<Patient> Patients, int TotalCount)> GetPagedAsync(int page, int pageSize, string? search)
         {
-            var query = _context.Patients.AsNoTracking().Where(p => p.IsActivo).AsQueryable();
+            var query = _context.Patients.AsNoTracking().AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(search))
             {
@@ -106,7 +101,7 @@ namespace KineGestion.Data.Repositories
         }
 
         public async Task<int> CountActiveAsync()
-            => await _context.Patients.AsNoTracking().CountAsync(p => p.IsActivo);
+            => await _context.Patients.AsNoTracking().CountAsync();
 
         public async Task<Patient> AddAsync(Patient patient)
         {
@@ -125,7 +120,7 @@ namespace KineGestion.Data.Repositories
         public async Task DeleteAsync(int id)
         {
             var patient = await _context.Patients.FindAsync(id);
-            if (patient is not null && patient.IsActivo)
+            if (patient is not null)
             {
                 patient.IsActivo = false;
                 await _context.SaveChangesAsync();

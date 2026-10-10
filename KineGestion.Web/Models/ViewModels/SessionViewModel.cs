@@ -85,6 +85,13 @@ namespace KineGestion.Web.Models.ViewModels
         public string? TratamientoDescripcion { get; set; }
         public string? OfficeNombre { get; set; }
         public bool EvolutionBloqueada { get; set; }
+
+        /// <summary>
+        /// Token de concurrencia optimista para detectar ediciones concurrentes.
+        /// Se redondea como hidden input en Edit y se reenvía al POST.
+        /// </summary>
+        public byte[]? RowVersion { get; set; }
+
         public string CreatedBy { get; set; } = string.Empty;
         public string UpdatedBy { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }

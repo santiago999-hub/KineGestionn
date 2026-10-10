@@ -61,7 +61,6 @@ namespace KineGestion.Web.Controllers
 
         // POST: /Treatments/Create
         [HttpPost]
-        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(TreatmentViewModel viewModel)
         {
             if (!ModelState.IsValid)
@@ -99,7 +98,6 @@ namespace KineGestion.Web.Controllers
 
         // POST: /Treatments/Edit/5
         [HttpPost]
-        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, TreatmentViewModel viewModel)
         {
             if (id != viewModel.Id)
@@ -150,7 +148,6 @@ namespace KineGestion.Web.Controllers
 
         // POST: /Treatments/Delete/5
         [HttpPost, ActionName("Delete")]
-        [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
             try

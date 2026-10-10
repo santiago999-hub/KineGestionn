@@ -50,10 +50,16 @@ namespace KineGestion.Data.Context
             base.OnModelCreating(modelBuilder);
 
             // ─── GLOBAL QUERY FILTERS (Soft Delete) ──────────────────────────────
-            // Office no tiene dependencias inversas requeridas, filtro global seguro.
-            // Professional y Patient filtran IsActivo en sus repositorios
-            // para evitar NullRef en las navigation properties de Session.
+            // Convención única de borrado lógico: todo query sobre la entidad raíz
+            // (listados, dropdowns, conteos) ignora automáticamente las entidades
+            // desactivadas. Las proyecciones de historial clínico (Sessions) referencian
+            // estas entidades como navegación LEFT JOIN: si la entidad fue desactivada,
+            // la columna derivada llega null y la UI lo muestra como valor vacío, pero
+            // el registro histórico NO desaparece (conservación del historial clínico).
+            // Integrated: profesionales/pacientes desactivados no aparecen en selects.
             modelBuilder.Entity<Office>().HasQueryFilter(o => o.IsActive);
+            modelBuilder.Entity<Patient>().HasQueryFilter(p => p.IsActivo);
+            modelBuilder.Entity<Professional>().HasQueryFilter(p => p.IsActivo);
 
             ConfigureAuditableEntity<Patient>(modelBuilder);
             ConfigureAuditableEntity<Professional>(modelBuilder);
@@ -111,6 +117,7 @@ namespace KineGestion.Data.Context
             modelBuilder.Entity<Session>(entity =>
             {
                 entity.HasKey(s => s.Id);
+                entity.Property(s => s.RowVersion).IsRowVersion();
                 entity.Property(s => s.Evolution).HasColumnType("nvarchar(max)").HasConversion(EncryptionConverter());
                 entity.Property(s => s.InternalNotes).HasColumnType("nvarchar(max)").HasConversion(EncryptionConverter());
                 entity.Property(s => s.Observaciones).HasColumnType("nvarchar(max)").HasConversion(EncryptionConverter());

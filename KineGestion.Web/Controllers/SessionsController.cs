@@ -268,7 +268,6 @@ namespace KineGestion.Web.Controllers
         }
 
         [HttpPost]
-        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(SessionViewModel viewModel)
         {
             if (!CanManageSessions())
@@ -318,7 +317,6 @@ namespace KineGestion.Web.Controllers
 
         // POST: /Sessions/Edit/5
         [HttpPost]
-        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, SessionViewModel viewModel)
         {
             if (!CanManageSessions())
@@ -375,7 +373,6 @@ namespace KineGestion.Web.Controllers
 
         // POST: /Sessions/Delete/5
         [HttpPost, ActionName("Delete")]
-        [ValidateAntiForgeryToken]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
@@ -424,7 +421,6 @@ namespace KineGestion.Web.Controllers
 
         // POST: /Sessions/Reprogram/5
         [HttpPost]
-        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Reprogram(int id, DateTime newFechaHora, CancellationReason reason, string? observation)
         {
             if (!CanManageSessions())
@@ -483,7 +479,6 @@ namespace KineGestion.Web.Controllers
 
         // POST: /Sessions/Cancel/5
         [HttpPost]
-        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Cancel(int id, CancellationReason reason, string? observation)
         {
             if (!CanManageSessions())

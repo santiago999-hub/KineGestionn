@@ -136,7 +136,7 @@ namespace KineGestion.Data.Repositories
 
         public async Task<IReadOnlyList<KpiSegmentDto>> GetKpiSegmentsByProfessionalAsync(DateTime fromInclusiveUtc, DateTime toExclusiveUtc)
         {
-            var query = ApplyCountScope(_context.Sessions.AsNoTracking())
+            var query = ApplyCountScope(_context.Sessions.AsNoTracking().IgnoreQueryFilters())
                 .Where(s => s.FechaHora >= fromInclusiveUtc && s.FechaHora < toExclusiveUtc);
 
             var groups = await query

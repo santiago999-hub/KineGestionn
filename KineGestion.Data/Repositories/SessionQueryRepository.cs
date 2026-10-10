@@ -68,6 +68,9 @@ namespace KineGestion.Data.Repositories
         /// Proyección SQL directa: solo trae los campos necesarios para la tabla admin.
         /// Evita cargar nav properties completas de Patient, Professional, Treatment y Office.
         /// Filtrado por rol: Admin ve todo, Kinesiologo ve sus sesiones, Asistente ve sin notas clínicas.
+        /// IgnoreQueryFilters: el historial clínico debe seguir mostrando sesiones aunque el
+        /// paciente/profesional/consultorio haya sido desactivado (el borrado lógico solo oculta
+        /// las entidades desactivadas de sus propias pantallas de gestión, no del historial).
         /// </summary>
         public async Task<(IEnumerable<SessionListDto> Items, int TotalCount)> GetPagedListForAdminAsync(
             int page,
@@ -80,7 +83,7 @@ namespace KineGestion.Data.Repositories
             string? sortBy,
             string? sortDir)
         {
-            var baseQuery = _context.Sessions.AsNoTracking().AsQueryable();
+            var baseQuery = _context.Sessions.AsNoTracking().IgnoreQueryFilters().AsQueryable();
 
             // IDOR protection: non-admin users only see their own professional's sessions
             var profFilter = GetProfessionalIdFilter();
@@ -134,6 +137,8 @@ namespace KineGestion.Data.Repositories
         /// <summary>
         /// Proyección SQL directa para la agenda del kinesiológo.
         /// No carga nav properties de Professional (ya está filtrado por professionalId).
+        /// IgnoreQueryFilters: la agenda del profesional conserva el historial aunque el
+        /// paciente haya sido desactivado.
         /// </summary>
         public async Task<(IEnumerable<SessionListDto> Items, int TotalCount)> GetPagedListByProfessionalAsync(
             int professionalId,
@@ -147,6 +152,7 @@ namespace KineGestion.Data.Repositories
         {
             var baseQuery = _context.Sessions
                 .AsNoTracking()
+                .IgnoreQueryFilters()
                 .Where(s => s.ProfessionalId == professionalId)
                 .AsQueryable();
 
@@ -187,6 +193,7 @@ namespace KineGestion.Data.Repositories
         public async Task<IEnumerable<SessionReminderCandidateDto>> GetReminderCandidatesAsync(DateTime fromInclusiveUtc, DateTime toExclusiveUtc)
             => await _context.Sessions
                 .AsNoTracking()
+                .IgnoreQueryFilters()
                 .Where(s => s.Status == SessionStatus.Pending
                     && s.FechaHora >= fromInclusiveUtc
                     && s.FechaHora < toExclusiveUtc)
@@ -209,6 +216,7 @@ namespace KineGestion.Data.Repositories
 
             var rows = await _context.Sessions
                 .AsNoTracking()
+                .IgnoreQueryFilters()
                 .Where(s => s.Status == SessionStatus.Completed
                     && s.PaymentStatus == PaymentStatus.Pending
                     && s.FechaHora >= cutoffOldest

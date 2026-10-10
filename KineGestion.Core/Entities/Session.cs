@@ -56,6 +56,13 @@ namespace KineGestion.Core.Entities
         /// </summary>
         public DateTime? EvolutionLockedAt { get; set; }
 
+        /// <summary>
+        /// Token de concurrencia optimista (rowversion). SQL Server lo incrementa
+        /// automáticamente en cada UPDATE; EF lo usa como filtro del WHERE para
+        /// detectar actualizaciones concurrentes sobre la misma fila (agenda).
+        /// </summary>
+        public byte[] RowVersion { get; set; } = new byte[8];
+
         public virtual Patient? Patient { get; set; }
         public virtual Professional? Professional { get; set; }
         public virtual Treatment? Treatment { get; set; }

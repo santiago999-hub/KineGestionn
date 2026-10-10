@@ -79,7 +79,6 @@ namespace KineGestion.Web.Controllers
         // POST: /Patients/Create — Solo Admin
         [HttpPost]
         [Authorize(Roles = "Admin")]
-        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(PatientViewModel viewModel)
         {
             // Valida las Data Annotations del ViewModel antes de continuar
@@ -114,7 +113,6 @@ namespace KineGestion.Web.Controllers
         // POST: /Patients/Edit/5 — Solo Admin
         [HttpPost]
         [Authorize(Roles = "Admin")]
-        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, PatientViewModel viewModel)
         {
             if (id != viewModel.Id)
@@ -154,7 +152,6 @@ namespace KineGestion.Web.Controllers
         // POST: /Patients/Delete/5 — Solo Admin
         [HttpPost, ActionName("Delete")]
         [Authorize(Roles = "Admin")]
-        [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
             try

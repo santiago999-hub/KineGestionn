@@ -117,7 +117,6 @@ namespace KineGestion.Web.Controllers
         }
 
         [HttpPost]
-        [ValidateAntiForgeryToken]
         public async Task<IActionResult> DispatchSelected(int hoursAhead, int[] selectedSessionIds)
         {
             if (hoursAhead < 1) hoursAhead = 1;
@@ -162,7 +161,6 @@ namespace KineGestion.Web.Controllers
         }
 
         [HttpPost]
-        [ValidateAntiForgeryToken]
         public async Task<IActionResult> DispatchOperational(int hoursAhead = 24)
         {
             var windows = GetOperationalWindowsHours();
@@ -200,7 +198,6 @@ namespace KineGestion.Web.Controllers
         }
 
         [HttpPost]
-        [ValidateAntiForgeryToken]
         public async Task<IActionResult> SendTest(int hoursAhead, int? sessionId, string? testEmail, string? testPhone, bool dryRun = true)
         {
             if (hoursAhead < 1) hoursAhead = 1;

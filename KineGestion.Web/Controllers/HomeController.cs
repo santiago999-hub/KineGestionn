@@ -284,7 +284,6 @@ public class HomeController : Controller
 
     [HttpPost]
     [Authorize(Roles = "Admin")]
-    [ValidateAntiForgeryToken]
     public async Task<IActionResult> TriggerBillingOperationalAlert()
     {
         var result = await _billingOperationalAlertService.QueueAlertIfNeededAsync(User?.Identity?.Name, DateTime.UtcNow);

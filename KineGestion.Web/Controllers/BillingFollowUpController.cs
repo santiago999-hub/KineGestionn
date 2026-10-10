@@ -84,7 +84,6 @@ namespace KineGestion.Web.Controllers
         }
 
         [HttpPost]
-        [ValidateAntiForgeryToken]
         public async Task<IActionResult> DispatchSelected(int[] selectedSessionIds)
         {
             var selectedIds = (selectedSessionIds ?? Array.Empty<int>()).Distinct().ToArray();
@@ -130,7 +129,6 @@ namespace KineGestion.Web.Controllers
         }
 
         [HttpPost]
-        [ValidateAntiForgeryToken]
         public async Task<IActionResult> DispatchTier(int minAgeDays, int maxAgeDays)
         {
             var asOfUtc = DateTime.UtcNow;
@@ -161,7 +159,6 @@ namespace KineGestion.Web.Controllers
         }
 
         [HttpPost]
-        [ValidateAntiForgeryToken]
         public async Task<IActionResult> SendTest(int? sessionId, string? testEmail, string? testPhone, bool dryRun = true)
         {
             var asOfUtc = DateTime.UtcNow;

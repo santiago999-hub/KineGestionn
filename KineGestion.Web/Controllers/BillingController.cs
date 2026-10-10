@@ -129,7 +129,6 @@ namespace KineGestion.Web.Controllers
         }
 
         [HttpPost]
-        [ValidateAntiForgeryToken]
         public async Task<IActionResult> MarkPaid(int sessionId, DateTime? dateFrom, DateTime? dateTo, string? search, bool onlyCompletedPending = true, int page = 1, int pageSize = 10)
         {
             await _sessionService.SetPaymentStatusAsync(sessionId, PaymentStatus.Paid);
@@ -138,7 +137,6 @@ namespace KineGestion.Web.Controllers
         }
 
         [HttpPost]
-        [ValidateAntiForgeryToken]
         public async Task<IActionResult> MarkPending(int sessionId, DateTime? dateFrom, DateTime? dateTo, string? search, bool onlyCompletedPending = true, int page = 1, int pageSize = 10)
         {
             await _sessionService.SetPaymentStatusAsync(sessionId, PaymentStatus.Pending);
@@ -147,7 +145,6 @@ namespace KineGestion.Web.Controllers
         }
 
         [HttpPost]
-        [ValidateAntiForgeryToken]
         public async Task<IActionResult> MarkPaidBatch(List<int>? sessionIds, DateTime? dateFrom, DateTime? dateTo, string? search, bool onlyCompletedPending = true, int page = 1, int pageSize = 10)
         {
             var normalizedIds = (sessionIds ?? new List<int>())
@@ -181,7 +178,6 @@ namespace KineGestion.Web.Controllers
         }
 
         [HttpPost]
-        [ValidateAntiForgeryToken]
         public async Task<IActionResult> MarkPendingBatch(List<int>? sessionIds, DateTime? dateFrom, DateTime? dateTo, string? search, bool onlyCompletedPending = true, int page = 1, int pageSize = 10)
         {
             var normalizedIds = (sessionIds ?? new List<int>())

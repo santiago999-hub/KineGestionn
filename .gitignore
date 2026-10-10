@@ -31,6 +31,9 @@ appsettings.Development.json
 appsettings.*.json
 !appsettings.json
 
+# Variables de entorno de docker-compose (credenciales locales)
+.env
+
 # Logs
 *.log
 logs/

@@ -35,7 +35,6 @@ namespace KineGestion.Data.Repositories
 
         public async Task<IEnumerable<Office>> GetActiveAsync()
             => await _context.Offices
-                .Where(o => o.IsActive)
                 .OrderBy(o => o.Name)
                 .ToListAsync();
 

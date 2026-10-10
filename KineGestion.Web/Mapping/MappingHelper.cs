@@ -29,6 +29,7 @@ namespace KineGestion.Web.Mapping
                 TratamientoDescripcion = session.Treatment?.Descripcion,
                 OfficeNombre = session.Office?.Name,
                 EvolutionBloqueada = session.EvolutionLockedAt.HasValue,
+                RowVersion = session.RowVersion,
                 CreatedBy = session.CreatedBy,
                 UpdatedBy = session.UpdatedBy,
                 CreatedAt = session.CreatedAt,
@@ -51,7 +52,8 @@ namespace KineGestion.Web.Mapping
                 OfficeId = viewModel.OfficeId,
                 PatientId = viewModel.PacienteId,
                 ProfessionalId = viewModel.ProfesionalId,
-                TreatmentId = viewModel.TratamientoId
+                TreatmentId = viewModel.TratamientoId,
+                RowVersion = viewModel.RowVersion ?? new byte[8]
             };
         }
 

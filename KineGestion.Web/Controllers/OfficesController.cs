@@ -46,7 +46,6 @@ namespace KineGestion.Web.Controllers
 
         // POST: /Offices/Create
         [HttpPost]
-        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(OfficeViewModel viewModel)
         {
             if (!ModelState.IsValid)
@@ -77,7 +76,6 @@ namespace KineGestion.Web.Controllers
 
         // POST: /Offices/Edit/5
         [HttpPost]
-        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, OfficeViewModel viewModel)
         {
             if (id != viewModel.Id)
@@ -134,7 +132,6 @@ namespace KineGestion.Web.Controllers
 
         // POST: /Offices/Delete/5
         [HttpPost, ActionName("Delete")]
-        [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
             try

@@ -16,7 +16,6 @@ namespace KineGestion.Web.Controllers
         };
 
         [HttpPost]
-        [ValidateAntiForgeryToken]
         public IActionResult SetLanguage(string culture, string? returnUrl = null)
         {
             if (string.IsNullOrWhiteSpace(culture) || !SupportedCultures.Contains(culture))

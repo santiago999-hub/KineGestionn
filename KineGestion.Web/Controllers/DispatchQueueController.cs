@@ -75,7 +75,6 @@ namespace KineGestion.Web.Controllers
         }
 
         [HttpPost]
-        [ValidateAntiForgeryToken]
         public async Task<IActionResult> RetrySelected(int[] ids)
         {
             var count = await _repository.ResetForRetryAsync(ids ?? Array.Empty<int>(), DateTime.UtcNow, HttpContext.RequestAborted);
@@ -88,7 +87,6 @@ namespace KineGestion.Web.Controllers
         }
 
         [HttpPost]
-        [ValidateAntiForgeryToken]
         public async Task<IActionResult> RetryAllFailed()
         {
             var failedIds = (await _repository.GetJobsAsync(
@@ -109,7 +107,6 @@ namespace KineGestion.Web.Controllers
         }
 
         [HttpPost]
-        [ValidateAntiForgeryToken]
         public async Task<IActionResult> CancelSelected(int[] ids)
         {
             var count = await _repository.CancelAsync(ids ?? Array.Empty<int>(), DateTime.UtcNow, HttpContext.RequestAborted);

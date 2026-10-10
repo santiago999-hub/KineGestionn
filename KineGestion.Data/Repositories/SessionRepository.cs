@@ -39,6 +39,7 @@ namespace KineGestion.Data.Repositories
         {
             var session = await _context.Sessions
                              .AsNoTracking()
+                             .IgnoreQueryFilters()
                              .Include(s => s.Patient)
                              .Include(s => s.Professional)
                              .Include(s => s.Treatment)
@@ -57,6 +58,7 @@ namespace KineGestion.Data.Repositories
         public async Task<IEnumerable<Session>> GetByPatientIdAsync(int patientId)
             => await _context.Sessions
                              .AsNoTracking()
+                             .IgnoreQueryFilters()
                              .Where(s => s.PatientId == patientId)
                              .Include(s => s.Professional)
                              .Include(s => s.Treatment)
@@ -75,6 +77,7 @@ namespace KineGestion.Data.Repositories
         public async Task<IEnumerable<Session>> GetByProfessionalIdAsync(int professionalId)
             => await _context.Sessions
                              .AsNoTracking()
+                             .IgnoreQueryFilters()
                              .Where(s => s.ProfessionalId == professionalId)
                              .Include(s => s.Patient)
                              .Include(s => s.Treatment)
@@ -212,8 +215,19 @@ namespace KineGestion.Data.Repositories
 
         public async Task<Session> UpdateAsync(Session session)
         {
-            _context.Sessions.Update(session);
-            await _context.SaveChangesAsync();
+            try
+            {
+                _context.Sessions.Update(session);
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                _context.ChangeTracker.Clear();
+                throw new BusinessValidationException(
+                    "La sesión fue modificada o cancelada por otra persona mientras la editabas. Recargá la pantalla y volvé a intentar.",
+                    nameof(Session.RowVersion));
+            }
+
             return session;
         }
 

@@ -60,7 +60,6 @@ namespace KineGestion.Web.Controllers
 
         // POST: /Users/Create
         [HttpPost]
-        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(UserViewModel viewModel)
         {
             if (string.IsNullOrWhiteSpace(viewModel.Password))
@@ -98,7 +97,6 @@ namespace KineGestion.Web.Controllers
 
         // POST: /Users/Edit/id
         [HttpPost]
-        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(string id, UserViewModel viewModel)
         {
             if (id != viewModel.Id)
@@ -142,7 +140,6 @@ namespace KineGestion.Web.Controllers
 
         // POST: /Users/Delete/id
         [HttpPost, ActionName("Delete")]
-        [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(string id)
         {
             // El ID del usuario autenticado se obtiene de los claims: no necesita UserManager.

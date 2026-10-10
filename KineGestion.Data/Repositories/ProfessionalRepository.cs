@@ -32,11 +32,9 @@ namespace KineGestion.Data.Repositories
         public async Task<IEnumerable<Professional>> GetAllAsync()
             => await _context.Professionals.AsNoTracking().ToListAsync();
 
+        /// <summary>Lista a los profesionales activos (el filtro global aplica a la entidad raíz).</summary>
         public async Task<IEnumerable<Professional>> GetActivosAsync()
-            => await _context.Professionals
-                             .AsNoTracking()
-                             .Where(p => p.IsActivo)
-                             .ToListAsync();
+            => await _context.Professionals.AsNoTracking().ToListAsync();
 
         /// <summary>
         /// Proyección mínima para dropdowns: trae solo Id, Nombre, Apellido y Matricula.
@@ -44,19 +42,23 @@ namespace KineGestion.Data.Repositories
         public async Task<IEnumerable<ProfessionalSelectDto>> GetForSelectAsync()
             => await _context.Professionals
                              .AsNoTracking()
-                             .Where(p => p.IsActivo)
                              .OrderBy(p => p.Apellido).ThenBy(p => p.Nombre)
                              .Select(p => new ProfessionalSelectDto(p.Id, p.Nombre, p.Apellido, p.Matricula))
                              .ToListAsync();
 
+        /// <summary>
+        /// Verifica matrícula duplicada incluyendo profesionales desactivados
+        /// (IgnoreQueryFilters) para preservar la unicidad integra tras el borrado lógico.
+        /// </summary>
         public async Task<bool> ExistsByMatriculaAsync(string matricula, int? excludeId = null)
             => await _context.Professionals
+                             .IgnoreQueryFilters()
                              .AsNoTracking()
                              .AnyAsync(p => p.Matricula == matricula && p.Id != excludeId);
 
         public async Task<(IEnumerable<Professional> Professionals, int TotalCount)> GetPagedAsync(int page, int pageSize, string? search)
         {
-            var query = _context.Professionals.AsNoTracking().Where(p => p.IsActivo).AsQueryable();
+            var query = _context.Professionals.AsNoTracking().AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(search))
             {
@@ -75,7 +77,7 @@ namespace KineGestion.Data.Repositories
         }
 
         public async Task<int> CountActiveAsync()
-            => await _context.Professionals.AsNoTracking().CountAsync(p => p.IsActivo);
+            => await _context.Professionals.AsNoTracking().CountAsync();
 
         public async Task<Professional> AddAsync(Professional professional)
         {
