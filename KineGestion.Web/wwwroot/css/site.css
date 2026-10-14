@@ -1822,3 +1822,368 @@ body.kg-theme-dark .kg-office-empty-note {
         transform: translateY(0);
     }
 }
+
+body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+}
+
+body::before {
+    content: "";
+    position: fixed;
+    inset: -18%;
+    z-index: 0;
+    pointer-events: none;
+    background:
+        radial-gradient(38% 44% at 14% 8%, rgba(31, 123, 191, 0.20), transparent 62%),
+        radial-gradient(36% 42% at 86% 4%, rgba(52, 101, 164, 0.17), transparent 64%),
+        radial-gradient(44% 48% at 76% 94%, rgba(90, 176, 255, 0.16), transparent 62%);
+    animation: kgAurora 28s ease-in-out infinite alternate;
+}
+
+body.kg-theme-dark::before {
+    background:
+        radial-gradient(38% 44% at 14% 8%, rgba(58, 159, 224, 0.16), transparent 62%),
+        radial-gradient(36% 42% at 86% 4%, rgba(46, 117, 182, 0.14), transparent 64%),
+        radial-gradient(44% 48% at 76% 94%, rgba(90, 176, 255, 0.11), transparent 62%);
+}
+
+@keyframes kgAurora {
+    0%   { transform: translate3d(0, 0, 0) scale(1); }
+    50%  { transform: translate3d(1.6%, -1.4%, 0) scale(1.06); }
+    100% { transform: translate3d(-1.6%, 1.4%, 0) scale(1.02); }
+}
+
+.kg-main-wrapper {
+    z-index: 1;
+}
+
+.kg-login-body {
+    position: relative;
+}
+
+.kg-login-shell {
+    position: relative;
+    z-index: 1;
+}
+
+.kg-sidebar {
+    box-shadow: 16px 0 44px rgba(5, 20, 38, 0.30);
+    border-right: 1px solid rgba(255, 255, 255, 0.05);
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.16) transparent;
+}
+
+.kg-sidebar::-webkit-scrollbar { width: 8px; }
+.kg-sidebar::-webkit-scrollbar-track { background: transparent; }
+.kg-sidebar::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.14);
+    border-radius: 999px;
+}
+.kg-sidebar::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.26); }
+
+.kg-sidebar-brand {
+    padding-top: 24px;
+}
+
+.kg-sidebar-logo {
+    position: relative;
+    overflow: hidden;
+}
+
+.kg-sidebar-logo::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(120deg, rgba(255, 255, 255, 0.55), transparent 46%);
+    transform: translateX(-130%);
+    animation: kgSheen 6s ease-in-out infinite;
+}
+
+@keyframes kgSheen {
+    0%, 68%, 100% { transform: translateX(-130%); }
+    84% { transform: translateX(130%); }
+}
+
+.kg-nav-section-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.kg-nav-section-label::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0.13), transparent);
+}
+
+.kg-nav-item {
+    position: relative;
+    overflow: hidden;
+}
+
+.kg-nav-item::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 50%;
+    width: 3px;
+    height: 58%;
+    border-radius: 0 3px 3px 0;
+    background: linear-gradient(180deg, #8ad2ff, #5ab0ff);
+    transform: translateY(-50%) scaleY(0);
+    transform-origin: center;
+    transition: transform 0.22s ease;
+}
+
+.kg-nav-item.active::before { transform: translateY(-50%) scaleY(1); }
+
+.kg-nav-item.active {
+    box-shadow: 0 8px 20px rgba(8, 34, 62, 0.34), inset 0 0 0 1px rgba(90, 176, 255, 0.22);
+}
+
+.kg-topbar {
+    backdrop-filter: blur(16px) saturate(150%);
+    -webkit-backdrop-filter: blur(16px) saturate(150%);
+}
+
+.kg-topbar::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -1px;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, rgba(31, 123, 191, 0.5), rgba(90, 176, 255, 0.34), transparent);
+    opacity: 0.75;
+}
+
+.kg-topbar-badge {
+    transition: background 0.2s, border-color 0.2s, color 0.2s, transform 0.2s, box-shadow 0.2s;
+}
+
+.kg-topbar-badge:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 16px rgba(30, 54, 81, 0.14);
+}
+
+.kg-avatar {
+    box-shadow: 0 6px 16px rgba(24, 95, 149, 0.28);
+}
+
+.kg-stat-card {
+    position: relative;
+    overflow: hidden;
+    border-color: #dde6f0;
+}
+
+.kg-stat-card::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: linear-gradient(180deg, #5ab0ff, #1f7bbf);
+    transform: scaleY(0);
+    transform-origin: top;
+    transition: transform 0.26s ease;
+}
+
+.kg-stat-card:hover::before { transform: scaleY(1); }
+
+.kg-stat-value { letter-spacing: -0.02em; }
+
+.kg-card {
+    border-color: #dde6f0;
+    transition: box-shadow 0.25s ease, border-color 0.25s ease, transform 0.25s ease;
+}
+
+.kg-card:hover {
+    border-color: #cddcec;
+}
+
+.kg-page-header h2 { letter-spacing: -0.015em; }
+
+.kg-dashboard-hero::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: radial-gradient(58% 82% at 88% 8%, rgba(138, 210, 255, 0.18), transparent 60%);
+}
+
+body.kg-theme-dark .kg-dashboard-hero::after {
+    background: radial-gradient(58% 82% at 88% 8%, rgba(90, 176, 255, 0.14), transparent 60%);
+}
+
+.kg-table tbody td:first-child {
+    box-shadow: inset 3px 0 0 transparent;
+    transition: box-shadow 0.15s ease;
+}
+
+.kg-table tbody tr:hover td:first-child {
+    box-shadow: inset 3px 0 0 #5ab0ff;
+}
+
+body.kg-theme-dark .kg-table tbody tr:hover td:first-child {
+    box-shadow: inset 3px 0 0 #3a9fe0;
+}
+
+.btn-kg-primary {
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 8px 18px rgba(24, 95, 149, 0.22);
+}
+
+.btn-kg-primary::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -65%;
+    width: 42%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.38), transparent);
+    transform: skewX(-20deg);
+    transition: left 0.55s ease;
+}
+
+.btn-kg-primary:hover::after { left: 135%; }
+
+body.kg-theme-dark .btn-kg-primary {
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.35);
+}
+
+.kg-quick-action i {
+    transition: transform 0.22s ease;
+}
+
+.kg-quick-action:hover i {
+    transform: translateY(-2px) scale(1.06);
+}
+
+.kg-login-shell {
+    border: 1px solid rgba(255, 255, 255, 0.55);
+    box-shadow: 0 32px 72px rgba(8, 30, 55, 0.34), 0 6px 20px rgba(8, 30, 55, 0.16);
+}
+
+.kg-login-card {
+    position: relative;
+}
+
+.kg-login-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #5ab0ff, #1f7bbf, #8ad2ff);
+}
+
+.kg-login-logo {
+    position: relative;
+    overflow: hidden;
+}
+
+.kg-login-logo::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(120deg, rgba(255, 255, 255, 0.6), transparent 48%);
+    transform: translateX(-130%);
+    animation: kgSheen 6s ease-in-out infinite;
+}
+
+.kg-field {
+    position: relative;
+}
+
+.kg-field-icon {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #8aa2bb;
+    font-size: 0.95rem;
+    pointer-events: none;
+    transition: color 0.2s ease;
+}
+
+.kg-field-input {
+    padding-left: 42px;
+}
+
+.kg-field:focus-within .kg-field-icon {
+    color: var(--kg-accent);
+}
+
+body.kg-theme-dark .kg-field-icon { color: #5f83a5; }
+
+.kg-login-body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background-image:
+        linear-gradient(rgba(31, 123, 191, 0.06) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(31, 123, 191, 0.06) 1px, transparent 1px);
+    background-size: 46px 46px;
+    -webkit-mask-image: radial-gradient(circle at 50% 42%, #000 0%, transparent 74%);
+    mask-image: radial-gradient(circle at 50% 42%, #000 0%, transparent 74%);
+}
+
+body.kg-theme-dark .kg-login-body::after {
+    background-image:
+        linear-gradient(rgba(90, 176, 255, 0.07) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(90, 176, 255, 0.07) 1px, transparent 1px);
+}
+
+.kg-login-highlights li {
+    transition: transform 0.22s ease, background 0.22s ease, border-color 0.22s ease;
+}
+
+.kg-login-highlights li:hover {
+    transform: translateX(4px);
+    background: rgba(11, 29, 52, 0.5);
+    border-color: rgba(138, 210, 255, 0.32);
+}
+
+.kg-login-support-item {
+    transition: transform 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease;
+}
+
+.kg-login-support-item:hover {
+    transform: translateY(-2px);
+    border-color: var(--kg-accent);
+    box-shadow: 0 10px 20px rgba(31, 123, 191, 0.12);
+}
+
+.kg-login-card .form-control {
+    background: #f9fbfe;
+}
+
+.kg-login-card .form-control:focus {
+    background: #fff;
+}
+
+body.kg-theme-dark .kg-login-card .form-control {
+    background: #0f2033;
+}
+
+body.kg-theme-dark .kg-login-card .form-control:focus {
+    background: #12284140;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    body::before { animation: none; }
+    .kg-sidebar-logo::after,
+    .kg-login-logo::after { animation: none; }
+    .kg-stat-card,
+    .kg-card,
+    .kg-alert-success,
+    .kg-alert-danger { animation: none; }
+}

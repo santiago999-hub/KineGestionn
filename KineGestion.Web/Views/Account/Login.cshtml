@@ -85,12 +85,18 @@
 
                 <div class="mb-3">
                     <label asp-for="Email" class="form-label fw-medium"></label>
-                    <input asp-for="Email" type="email" class="form-control" placeholder="admin@kinegestion.com" autofocus />
+                    <div class="kg-field">
+                        <i class="bi bi-envelope kg-field-icon"></i>
+                        <input asp-for="Email" type="email" class="form-control kg-field-input" placeholder="admin@kinegestion.com" autofocus />
+                    </div>
                     <span asp-validation-for="Email" class="text-danger small"></span>
                 </div>
                 <div class="mb-3">
                     <label asp-for="Password" class="form-label fw-medium"></label>
-                    <input asp-for="Password" type="password" class="form-control" placeholder="••••••••" />
+                    <div class="kg-field">
+                        <i class="bi bi-lock kg-field-icon"></i>
+                        <input asp-for="Password" type="password" class="form-control kg-field-input" placeholder="••••••••" />
+                    </div>
                     <span asp-validation-for="Password" class="text-danger small"></span>
                 </div>
 
