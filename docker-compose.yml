@@ -33,6 +33,7 @@ services:
     restart: unless-stopped
 
   web:
+    image: ${KINEGESTION_IMAGE:-ghcr.io/santiago999-hub/kinegestionn:latest}
     build:
       context: .
       dockerfile: Dockerfile
