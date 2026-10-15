@@ -47,11 +47,7 @@
 @if (Model.Data.TotalCount == 0)
 {
     <div class="kg-card">
-        <div class="kg-empty">
-            <div class="kg-empty-icon"><i class="bi bi-graph-up-arrow"></i></div>
-            <h5>@AuditText.Get("Audit.Analytics.Empty.Title", "Sin datos en el período")</h5>
-            <p>@AuditText.Get("Audit.Analytics.Empty.Description", "Ampliá el rango de fechas para ver la actividad del sistema.")</p>
-        </div>
+        <partial name="_EmptyState" model="@(new KineGestion.Web.Models.ViewModels.EmptyStateViewModel { IconClass = "bi bi-graph-up-arrow", Title = AuditText.Get("Audit.Analytics.Empty.Title", "Sin datos en el período"), Text = AuditText.Get("Audit.Analytics.Empty.Description", "Ampliá el rango de fechas para ver la actividad del sistema.") })" />
     </div>
 }
 else

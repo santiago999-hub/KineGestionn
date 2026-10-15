@@ -800,3 +800,66 @@
     .qs-hero { animation: none; }
     .qs-hero-title span { animation: none; }
 }
+
+/* ── Ola adaptativa al tema ─────────────────────────── */
+.qs-wave path { fill: var(--qs-gray-100); }
+
+/* ══════════════════════════════════════════════════════
+   TEMA OSCURO — la página completa se adapta
+   ══════════════════════════════════════════════════════ */
+body.kg-theme-dark .qs-page {
+    --qs-white:      #132032;
+    --qs-gray-100:   #0d1b2a;
+    --qs-gray-200:   #0f2033;
+    --qs-gray-300:   #1e3148;
+    --qs-gray-500:   #5a7a99;
+    --qs-text:       #d8e8f4;
+    --qs-text-mid:   #a9c6de;
+    --qs-text-muted: #6e93b3;
+    --qs-blue-xsoft: #162840;
+    --qs-blue-soft:  #24405e;
+    --qs-shadow-sm:  0 2px 12px rgba(0, 0, 0, .35);
+    --qs-shadow-md:  0 8px 32px rgba(0, 0, 0, .45);
+    --qs-shadow-lg:  0 20px 60px rgba(0, 0, 0, .55);
+}
+
+body.kg-theme-dark .qs-actions-section {
+    background: linear-gradient(180deg, #0d1b2a 0%, #102233 100%);
+}
+
+body.kg-theme-dark .qs-actions-panel {
+    background: linear-gradient(145deg, #132032 0%, #0f2033 100%);
+    border-color: rgba(90, 176, 255, .18);
+}
+
+body.kg-theme-dark .qs-action-card {
+    background: #132032;
+}
+
+body.kg-theme-dark .qs-stack-badge-icon {
+    background: linear-gradient(135deg, #24405e, #1a2f47);
+    color: #cfe6f7;
+}
+
+body.kg-theme-dark .qs-arch-layer-1 { background: #122436; border-color: #1e3a55; }
+body.kg-theme-dark .qs-arch-layer-2 { background: #14283c; border-color: #244057; }
+body.kg-theme-dark .qs-arch-layer-3 { background: #16304a; border-color: #2a4a66; }
+body.kg-theme-dark .qs-arch-layer-4 { background: #1a3a58; border-color: #345f83; }
+
+body.kg-theme-dark .qs-section-title,
+body.kg-theme-dark .qs-dev-info h3,
+body.kg-theme-dark .qs-project-card h4,
+body.kg-theme-dark .qs-module-name,
+body.kg-theme-dark .qs-arch-layer-body h5,
+body.kg-theme-dark .qs-action-card strong {
+    color: var(--qs-text);
+}
+
+body.kg-theme-dark .qs-section-label,
+body.kg-theme-dark .qs-project-card-icon,
+body.kg-theme-dark .qs-module-icon-wrap,
+body.kg-theme-dark .qs-arch-principle i,
+body.kg-theme-dark .qs-highlight {
+    color: #7ec8f8;
+}
+

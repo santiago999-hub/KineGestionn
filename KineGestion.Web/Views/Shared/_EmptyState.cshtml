@@ -1,0 +1,19 @@
+@model KineGestion.Web.Models.ViewModels.EmptyStateViewModel
+<div class="@Model.WrapperClass">
+    @if (!string.IsNullOrEmpty(Model.IconClass))
+    {
+        <div class="kg-empty-icon"><i class="@Model.IconClass"></i></div>
+    }
+    <h5>@Model.Title</h5>
+    <p>@Model.Text</p>
+    @if (!string.IsNullOrEmpty(Model.ActionName) && !string.IsNullOrEmpty(Model.ActionText))
+    {
+        <a asp-action="@Model.ActionName" class="btn-kg-primary">
+            @if (!string.IsNullOrEmpty(Model.ActionIcon))
+            {
+                <i class="@Model.ActionIcon"></i><text> </text>
+            }
+            @Model.ActionText
+        </a>
+    }
+</div>

@@ -378,11 +378,7 @@
                     else if (isKinesiologo)
                     {
                         <div class="col-12">
-                            <div class="kg-empty kg-quick-action-empty">
-                                <div class="kg-empty-icon"><i class="bi bi-clipboard2-check"></i></div>
-                                <h5>Accesos operativos listos</h5>
-                                <p>Usá la prioridad de hoy para abrir la agenda o registrar una nueva sesión sin pasos extra.</p>
-                            </div>
+                            <partial name="_EmptyState" model="@(new KineGestion.Web.Models.ViewModels.EmptyStateViewModel { IconClass = "bi bi-clipboard2-check", Title = "Accesos operativos listos", Text = "Usá la prioridad de hoy para abrir la agenda o registrar una nueva sesión sin pasos extra.", WrapperClass = "kg-empty kg-quick-action-empty" })" />
                         </div>
                     }
                 </div>

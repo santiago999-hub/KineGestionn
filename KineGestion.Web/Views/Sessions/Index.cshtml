@@ -152,14 +152,7 @@
 
     @if (!Model.Items.Any())
     {
-        <div class="kg-empty">
-            <div class="kg-empty-icon"><i class="bi bi-calendar2-x"></i></div>
-            <h5>Sin sesiones registradas</h5>
-            <p>Registrá la primera sesión clínica del sistema.</p>
-            <a asp-action="Create" class="btn-kg-primary">
-                <i class="bi bi-calendar2-plus-fill"></i> Registrar la primera
-            </a>
-        </div>
+        <partial name="_EmptyState" model="@(new KineGestion.Web.Models.ViewModels.EmptyStateViewModel { IconClass = "bi bi-calendar2-x", Title = "Sin sesiones registradas", Text = "Registrá la primera sesión clínica del sistema.", ActionName = "Create", ActionText = "Registrar la primera", ActionIcon = "bi bi-calendar2-plus-fill" })" />
     }
     else
     {
@@ -245,15 +238,15 @@
             Mostrando @Model.Items.Count() de @Model.TotalCount sesiones — pagadas: @Model.Items.Count(s => s.PaymentStatus == PaymentStatus.Paid) | pendientes: @Model.Items.Count(s => s.PaymentStatus == PaymentStatus.Pending)
         </div>
 
-        @if (Model.TotalPages > 1)
-        {
-            <div class="kg-session-pagination-wrap">
-                <span class="kg-session-pagination-text">Página @Model.Page de @Model.TotalPages</span>
-                <div class="kg-session-pagination-actions">
-                    <a asp-action="Index" asp-route-page="@(Model.Page - 1)" asp-route-pageSize="@Model.PageSize" asp-route-search="@Model.Search" asp-route-status="@Model.Status" asp-route-paymentStatus="@Model.PaymentStatus" asp-route-dateFrom="@Model.DateFrom?.ToString("yyyy-MM-dd")" asp-route-dateTo="@Model.DateTo?.ToString("yyyy-MM-dd")" asp-route-sortBy="@Model.SortBy" asp-route-sortDir="@Model.SortDir" class="btn-kg-outline @(Model.Page <= 1 ? "disabled" : "")">Anterior</a>
-                    <a asp-action="Index" asp-route-page="@(Model.Page + 1)" asp-route-pageSize="@Model.PageSize" asp-route-search="@Model.Search" asp-route-status="@Model.Status" asp-route-paymentStatus="@Model.PaymentStatus" asp-route-dateFrom="@Model.DateFrom?.ToString("yyyy-MM-dd")" asp-route-dateTo="@Model.DateTo?.ToString("yyyy-MM-dd")" asp-route-sortBy="@Model.SortBy" asp-route-sortDir="@Model.SortDir" class="btn-kg-outline @(Model.Page >= Model.TotalPages ? "disabled" : "")">Siguiente</a>
-                </div>
-            </div>
-        }
+        var paginationRouteValues = new Dictionary<string, string>();
+        paginationRouteValues["pageSize"] = Model.PageSize.ToString();
+        if (!string.IsNullOrWhiteSpace(Model.Search)) { paginationRouteValues["search"] = Model.Search!; }
+        if (Model.Status.HasValue) { paginationRouteValues["status"] = Model.Status.Value.ToString(); }
+        if (Model.PaymentStatus.HasValue) { paginationRouteValues["paymentStatus"] = Model.PaymentStatus.Value.ToString(); }
+        if (Model.DateFrom.HasValue) { paginationRouteValues["dateFrom"] = Model.DateFrom.Value.ToString("yyyy-MM-dd"); }
+        if (Model.DateTo.HasValue) { paginationRouteValues["dateTo"] = Model.DateTo.Value.ToString("yyyy-MM-dd"); }
+        paginationRouteValues["sortBy"] = Model.SortBy;
+        paginationRouteValues["sortDir"] = Model.SortDir;
+        <partial name="_Pagination" model="@(new KineGestion.Web.Models.ViewModels.PaginationViewModel { Page = Model.Page, TotalPages = Model.TotalPages, Action = "Index", RouteValues = paginationRouteValues })" />
     }
 </div>

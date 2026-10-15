@@ -1,0 +1,11 @@
+@model KineGestion.Web.Models.ViewModels.PaginationViewModel
+@if (Model.TotalPages > 1)
+{
+    <div class="@Model.WrapperClass">
+        <span class="@Model.LabelClass">@Model.LabelText</span>
+        <div class="@Model.ActionsClass">
+            <a asp-action="@Model.Action" asp-all-route-data="Model.PreviousRouteValues" class="btn-kg-outline @(Model.Page <= 1 ? "disabled" : "")">@Model.PreviousText</a>
+            <a asp-action="@Model.Action" asp-all-route-data="Model.NextRouteValues" class="btn-kg-outline @(Model.Page >= Model.TotalPages ? "disabled" : "")">@Model.NextText</a>
+        </div>
+    </div>
+}

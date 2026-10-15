@@ -49,11 +49,7 @@
         <div class="kg-card-body">
             @if (Model.Roles.Count == 0)
             {
-                <div class="kg-empty p-0">
-                    <div class="kg-empty-icon"><i class="bi bi-person-x"></i></div>
-                    <h5>Sin roles asignados</h5>
-                    <p>Este usuario no tiene permisos activos configurados.</p>
-                </div>
+                <partial name="_EmptyState" model="@(new KineGestion.Web.Models.ViewModels.EmptyStateViewModel { IconClass = "bi bi-person-x", Title = "Sin roles asignados", Text = "Este usuario no tiene permisos activos configurados.", WrapperClass = "kg-empty p-0" })" />
             }
             else
             {

@@ -47,14 +47,7 @@
 
     @if (!Model.Items.Any())
     {
-        <div class="kg-empty">
-            <div class="kg-empty-icon"><i class="bi bi-tools"></i></div>
-            <h5>Sin equipamiento registrado</h5>
-            <p>Cargá los equipos disponibles del centro kinesiológico.</p>
-            <a asp-action="Create" class="btn-kg-primary">
-                <i class="bi bi-plus-circle"></i> Cargar el primero
-            </a>
-        </div>
+        <partial name="_EmptyState" model="@(new KineGestion.Web.Models.ViewModels.EmptyStateViewModel { IconClass = "bi bi-tools", Title = "Sin equipamiento registrado", Text = "Cargá los equipos disponibles del centro kinesiológico.", ActionName = "Create", ActionText = "Cargar el primero", ActionIcon = "bi bi-plus-circle" })" />
     }
     else
     {
@@ -105,15 +98,10 @@
             Mostrando @Model.Items.Count() de @Model.TotalCount equipos
         </div>
 
-        @if (Model.TotalPages > 1)
-        {
-            <div style="padding:12px 18px;border-top:1px solid var(--kg-border);display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
-                <span style="font-size:.78rem;color:var(--kg-text-muted)">Página @Model.Page de @Model.TotalPages</span>
-                <div style="display:flex;gap:6px">
-                    <a asp-action="Index" asp-route-page="@(Model.Page - 1)" asp-route-pageSize="@Model.PageSize" asp-route-search="@Model.Search" asp-route-officeId="@Model.OfficeId" class="btn-kg-outline @(Model.Page <= 1 ? "disabled" : "")">Anterior</a>
-                    <a asp-action="Index" asp-route-page="@(Model.Page + 1)" asp-route-pageSize="@Model.PageSize" asp-route-search="@Model.Search" asp-route-officeId="@Model.OfficeId" class="btn-kg-outline @(Model.Page >= Model.TotalPages ? "disabled" : "")">Siguiente</a>
-                </div>
-            </div>
-        }
+        var paginationRouteValues = new Dictionary<string, string>();
+        paginationRouteValues["pageSize"] = Model.PageSize.ToString();
+        if (!string.IsNullOrWhiteSpace(Model.Search)) { paginationRouteValues["search"] = Model.Search!; }
+        if (Model.OfficeId.HasValue) { paginationRouteValues["officeId"] = Model.OfficeId.Value.ToString(); }
+        <partial name="_Pagination" model="@(new KineGestion.Web.Models.ViewModels.PaginationViewModel { Page = Model.Page, TotalPages = Model.TotalPages, Action = "Index", RouteValues = paginationRouteValues })" />
     }
 </div>

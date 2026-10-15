@@ -37,14 +37,7 @@
 
     @if (!Model.Items.Any())
     {
-        <div class="kg-empty">
-            <div class="kg-empty-icon"><i class="bi bi-person-x"></i></div>
-            <h5>Sin usuarios registrados</h5>
-            <p>Creá el primer usuario del sistema.</p>
-            <a asp-action="Create" class="btn-kg-primary">
-                <i class="bi bi-person-plus-fill"></i> Crear el primero
-            </a>
-        </div>
+        <partial name="_EmptyState" model="@(new KineGestion.Web.Models.ViewModels.EmptyStateViewModel { IconClass = "bi bi-person-x", Title = "Sin usuarios registrados", Text = "Creá el primer usuario del sistema.", ActionName = "Create", ActionText = "Crear el primero", ActionIcon = "bi bi-person-plus-fill" })" />
     }
     else
     {
@@ -109,15 +102,9 @@
             Mostrando @Model.Items.Count() de @Model.TotalCount usuarios
         </div>
 
-        @if (Model.TotalPages > 1)
-        {
-            <div style="padding:12px 18px;border-top:1px solid var(--kg-border);display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
-                <span style="font-size:.78rem;color:var(--kg-text-muted)">Página @Model.Page de @Model.TotalPages</span>
-                <div style="display:flex;gap:6px">
-                    <a asp-action="Index" asp-route-page="@(Model.Page - 1)" asp-route-pageSize="@Model.PageSize" asp-route-search="@Model.Search" class="btn-kg-outline @(Model.Page <= 1 ? "disabled" : "")">Anterior</a>
-                    <a asp-action="Index" asp-route-page="@(Model.Page + 1)" asp-route-pageSize="@Model.PageSize" asp-route-search="@Model.Search" class="btn-kg-outline @(Model.Page >= Model.TotalPages ? "disabled" : "")">Siguiente</a>
-                </div>
-            </div>
-        }
+        var paginationRouteValues = new Dictionary<string, string>();
+        paginationRouteValues["pageSize"] = Model.PageSize.ToString();
+        if (!string.IsNullOrWhiteSpace(Model.Search)) { paginationRouteValues["search"] = Model.Search!; }
+        <partial name="_Pagination" model="@(new KineGestion.Web.Models.ViewModels.PaginationViewModel { Page = Model.Page, TotalPages = Model.TotalPages, Action = "Index", RouteValues = paginationRouteValues })" />
     }
 </div>

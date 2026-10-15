@@ -88,11 +88,7 @@
 
     @if (!Model.Items.Any())
     {
-        <div class="kg-empty">
-            <div class="kg-empty-icon"><i class="bi bi-database-exclamation"></i></div>
-            <h5>@AuditText.Get("Audit.View.Empty.Title", "Sin registros de auditoría")</h5>
-            <p>@AuditText.Get("Audit.View.Empty.Description", "Todavía no hay cambios guardados con los filtros actuales.")</p>
-        </div>
+        <partial name="_EmptyState" model="@(new KineGestion.Web.Models.ViewModels.EmptyStateViewModel { IconClass = "bi bi-database-exclamation", Title = AuditText.Get("Audit.View.Empty.Title", "Sin registros de auditoría"), Text = AuditText.Get("Audit.View.Empty.Description", "Todavía no hay cambios guardados con los filtros actuales.") })" />
     }
     else
     {
@@ -160,15 +156,14 @@
             @string.Format(AuditText.Get("Audit.View.SummaryTemplate", "Mostrando {0} de {1} eventos de auditoría"), Model.Items.Count(), Model.TotalCount)
         </div>
 
-        @if (Model.TotalPages > 1)
-        {
-            <div style="padding:12px 18px;border-top:1px solid var(--kg-border);display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
-                <span style="font-size:.78rem;color:var(--kg-text-muted)">@string.Format(AuditText.Get("Audit.View.PageTemplate", "Página {0} de {1}"), Model.Page, Model.TotalPages)</span>
-                <div style="display:flex;gap:6px">
-                    <a asp-action="Index" asp-route-page="@(Model.Page - 1)" asp-route-pageSize="@Model.PageSize" asp-route-entityName="@Model.EntityName" asp-route-entityId="@Model.EntityId" asp-route-changedBy="@Model.ChangedBy" asp-route-action="@Model.Action" asp-route-dateFrom="@(Model.DateFrom?.ToString("yyyy-MM-dd"))" asp-route-dateTo="@(Model.DateTo?.ToString("yyyy-MM-dd"))" class="btn-kg-outline @(Model.Page <= 1 ? "disabled" : "")">@AuditText.Get("Audit.View.Previous", "Anterior")</a>
-                    <a asp-action="Index" asp-route-page="@(Model.Page + 1)" asp-route-pageSize="@Model.PageSize" asp-route-entityName="@Model.EntityName" asp-route-entityId="@Model.EntityId" asp-route-changedBy="@Model.ChangedBy" asp-route-action="@Model.Action" asp-route-dateFrom="@(Model.DateFrom?.ToString("yyyy-MM-dd"))" asp-route-dateTo="@(Model.DateTo?.ToString("yyyy-MM-dd"))" class="btn-kg-outline @(Model.Page >= Model.TotalPages ? "disabled" : "")">@AuditText.Get("Audit.View.Next", "Siguiente")</a>
-                </div>
-            </div>
-        }
+        var paginationRouteValues = new Dictionary<string, string>();
+        paginationRouteValues["pageSize"] = Model.PageSize.ToString();
+        if (!string.IsNullOrWhiteSpace(Model.EntityName)) { paginationRouteValues["entityName"] = Model.EntityName!; }
+        if (!string.IsNullOrWhiteSpace(Model.EntityId)) { paginationRouteValues["entityId"] = Model.EntityId!; }
+        if (!string.IsNullOrWhiteSpace(Model.ChangedBy)) { paginationRouteValues["changedBy"] = Model.ChangedBy!; }
+        if (!string.IsNullOrWhiteSpace(Model.Action)) { paginationRouteValues["action"] = Model.Action!; }
+        if (Model.DateFrom.HasValue) { paginationRouteValues["dateFrom"] = Model.DateFrom.Value.ToString("yyyy-MM-dd"); }
+        if (Model.DateTo.HasValue) { paginationRouteValues["dateTo"] = Model.DateTo.Value.ToString("yyyy-MM-dd"); }
+        <partial name="_Pagination" model="@(new KineGestion.Web.Models.ViewModels.PaginationViewModel { Page = Model.Page, TotalPages = Model.TotalPages, Action = "Index", Label = string.Format(AuditText.Get("Audit.View.PageTemplate", "Página {0} de {1}"), Model.Page, Model.TotalPages), PreviousText = AuditText.Get("Audit.View.Previous", "Anterior"), NextText = AuditText.Get("Audit.View.Next", "Siguiente"), RouteValues = paginationRouteValues })" />
     }
 </div>
