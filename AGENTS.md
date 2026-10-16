@@ -2,6 +2,10 @@
 
 Proyecto: KineGestion (ASP.NET Core + EF Core + SQL Server). No escribir comentarios salvo que se pidan.
 
+## Memoria de trabajo
+- Leer SIEMPRE al inicio de sesión: `PENDIENTES-KINEGESTION.md` (estado, backlog, guía de eficiencia de tokens). Actualizarlo al cerrar cambios relevantes.
+- Documento maestro de sistema (arquitectura/dominio/persistencia/Web/seguridad/i18n + análisis por área + glosario): `RESUMEN-INTEGRAL-KINEGESTION.md`. Leerlo antes de re-explorar el código.
+
 ## Comandos
 - Build Web: `dotnet build KineGestion.Web/KineGestion.Web.csproj`
 - Suites de tests (NUNCA en paralelo entre sí: lock en `KineGestion.Core.dll`, CS2012; correr en secuencia):
