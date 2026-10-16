@@ -78,7 +78,7 @@
             var pendingW = 100m - confirmW - cancelW;
             if (pendingW < 0m) pendingW = 0m;
             <div class="mb-2">
-                <div class="progress" style="height: 28px;">
+                <div class="progress kg-progress-lg">
                     <div class="progress-bar bg-info" role="progressbar" style="width: @confirmW%">Confirmados @confirmW%</div>
                     <div class="progress-bar bg-danger" role="progressbar" style="width: @cancelW%">Cancelados @cancelW%</div>
                     <div class="progress-bar bg-secondary" role="progressbar" style="width: @pendingW%">Sin respuesta @pendingW%</div>

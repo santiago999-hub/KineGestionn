@@ -57,7 +57,7 @@
                     <tr>
                         <th>Nombre</th>
                         <th>Consultorio</th>
-                        <th style="text-align:right">Acciones</th>
+                        <th class="kg-table-actions-header">Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -65,11 +65,11 @@
                     {
                         <tr>
                             <td>
-                                <div style="display:flex;align-items:center;gap:10px">
-                                    <div style="width:34px;height:34px;border-radius:8px;background:#eff6ff;color:#2563eb;display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0">
+                                <div class="kg-cell-user">
+                                    <div class="kg-cell-avatar is-square-sm is-blue">
                                         <i class="bi bi-tools"></i>
                                     </div>
-                                    <span style="font-weight:600">@e.Name</span>
+                                    <span class="kg-cell-primary">@e.Name</span>
                                 </div>
                             </td>
                             <td>
@@ -82,8 +82,8 @@
                                     <span>@e.OfficeName</span>
                                 }
                             </td>
-                            <td style="text-align:right">
-                                <div style="display:flex;gap:6px;justify-content:flex-end">
+                            <td class="kg-table-actions-header">
+                                <div class="kg-action-btns kg-action-btns-end">
                                     <a asp-action="Details" asp-route-id="@e.Id" class="kg-action-btn view" title="Ver detalle"><i class="bi bi-eye-fill"></i></a>
                                     <a asp-action="Edit" asp-route-id="@e.Id" class="kg-action-btn edit" title="Editar"><i class="bi bi-pencil-fill"></i></a>
                                     <a asp-action="Delete" asp-route-id="@e.Id" class="kg-action-btn del" title="Eliminar"><i class="bi bi-trash-fill"></i></a>
@@ -94,7 +94,7 @@
                 </tbody>
             </table>
         </div>
-        <div style="padding:12px 18px;border-top:1px solid var(--kg-border);font-size:.76rem;color:var(--kg-text-muted)">
+        <div class="kg-table-footer">
             Mostrando @Model.Items.Count() de @Model.TotalCount equipos
         </div>
 

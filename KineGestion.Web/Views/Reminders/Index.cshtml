@@ -30,12 +30,12 @@
             @foreach (var point in Model.BillingBatchWeeklyTrendPoints)
             {
                 var barClass = point.EffectivenessPct < Model.BillingBatchWarnThresholdPct ? "bg-warning" : "bg-success";
-                <div style="min-width: 170px;">
+                <div class="kg-progress-cell-lg">
                     <div class="d-flex justify-content-between">
                         <small class="text-muted">@point.Label</small>
                         <small><strong>@point.EffectivenessPct.ToString("N2")%</strong></small>
                     </div>
-                    <div class="progress" style="height: 8px;">
+                    <div class="progress kg-progress-thin">
                         <div class="progress-bar @barClass" role="progressbar" style="width: @point.EffectivenessPct%;" aria-valuenow="@point.EffectivenessPct" aria-valuemin="0" aria-valuemax="100"></div>
                     </div>
                     <small class="text-muted">Req: @point.RequestedCount | Upd: @point.UpdatedCount | Skip: @point.SkippedCount</small>
@@ -134,7 +134,7 @@
                     <table class="table table-hover align-middle">
                         <thead>
                             <tr>
-                                <th style="width:48px;"><input type="checkbox" id="selectAll" /></th>
+                                <th class="kg-col-check-lg"><input type="checkbox" id="selectAll" /></th>
                                 <th>Fecha/Hora</th>
                                 <th>Paciente</th>
                                 <th>Contacto</th>

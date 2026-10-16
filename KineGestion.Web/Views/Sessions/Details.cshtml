@@ -16,14 +16,14 @@
 </div>
 
 <div class="kg-form-card">
-    <div class="kg-form-header" style="justify-content:space-between">
-        <div style="display:flex;align-items:center;gap:12px">
-            <div style="width:48px;height:48px;border-radius:12px;background:#dbeafe;color:#2563eb;display:flex;align-items:center;justify-content:center;font-size:1.3rem">
+    <div class="kg-form-header justify-content-between">
+        <div class="d-flex align-items-center gap-3">
+            <div class="kg-cell-avatar is-lg is-blue">
                 <i class="bi bi-calendar2-check-fill"></i>
             </div>
             <div>
-                <h4 style="margin:0">@Model.PacienteNombre</h4>
-                <p style="margin:0;font-size:.78rem;color:var(--kg-text-muted)">@Model.FechaHora.ToString("dd/MM/yyyy") a las @Model.FechaHora.ToString("HH:mm") hs</p>
+                <h4>@Model.PacienteNombre</h4>
+                <p>@Model.FechaHora.ToString("dd/MM/yyyy") a las @Model.FechaHora.ToString("HH:mm") hs</p>
             </div>
         </div>
         @if (Model.PaymentStatus == PaymentStatus.Paid)
@@ -96,7 +96,7 @@
             }
             @if (!string.IsNullOrWhiteSpace(Model.Observaciones))
             {
-                <div class="kg-detail-item" style="grid-column:1/-1">
+                <div class="kg-detail-item kg-detail-full">
                     <dt>Observaciones</dt>
                     <dd>@Model.Observaciones</dd>
                 </div>
@@ -118,7 +118,7 @@
                 </div>
                 @if (!string.IsNullOrWhiteSpace(Model.CancellationObs))
                 {
-                    <div class="kg-detail-item" style="grid-column:1/-1">
+                    <div class="kg-detail-item kg-detail-full">
                         <dt>Observación de cancelación</dt>
                         <dd>@Model.CancellationObs</dd>
                     </div>
@@ -130,21 +130,21 @@
         @if (!string.IsNullOrWhiteSpace(Model.Evolution))
         {
             <div class="mt-4">
-                <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;overflow:hidden">
-                    <button class="btn w-100 text-start d-flex align-items-center gap-2 px-4 py-3"
+                <div class="kg-note-panel">
+                    <button class="btn w-100 text-start d-flex align-items-center gap-2 px-4 py-3 kg-note-panel-head"
                             type="button"
                             data-bs-toggle="collapse"
                             data-bs-target="#evolutionCollapse"
                             aria-expanded="false"
                             aria-controls="evolutionCollapse"
-                            style="background:transparent;border:none;font-weight:600;color:#1d4ed8">
-                        <i class="bi bi-shield-lock-fill" style="color:#2563eb"></i>
+                           >
+                        <i class="bi bi-shield-lock-fill"></i>
                         Evolución Clínica
-                        <span class="kg-badge kg-badge-muted ms-2" style="font-size:.7rem">Solo profesionales</span>
+                        <span class="kg-badge kg-badge-muted ms-2 kg-badge-sm">Solo profesionales</span>
                         <i class="bi bi-chevron-down ms-auto"></i>
                     </button>
                     <div class="collapse" id="evolutionCollapse">
-                        <div style="background:#fff;border-top:1px solid #bfdbfe;padding:1.25rem 1.5rem;white-space:pre-wrap;font-size:.93rem;color:#1e3a5f;line-height:1.7">
+                        <div class="kg-note-panel-body">
                             @Model.Evolution
                         </div>
                     </div>
@@ -156,17 +156,17 @@
         @if (!string.IsNullOrWhiteSpace(Model.InternalNotes))
         {
             <div class="mt-3">
-                <div style="background:#fafaf9;border:1px solid #e7e5e4;border-radius:10px;padding:1rem 1.25rem">
-                    <p style="margin:0 0 .4rem;font-weight:600;font-size:.82rem;color:#78716c;text-transform:uppercase;letter-spacing:.05em">
+                <div class="kg-notes-block">
+                    <p class="kg-info-tile-label">
                         <i class="bi bi-sticky-fill me-1"></i>Notas Internas
                     </p>
-                    <p style="margin:0;white-space:pre-wrap;font-size:.9rem;color:#57534e">@Model.InternalNotes</p>
+                    <p class="kg-notes-block-body">@Model.InternalNotes</p>
                 </div>
             </div>
         }
 
-        <div class="mt-4" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:1rem 1.25rem">
-            <p style="margin:0 0 .75rem;font-weight:700;font-size:.82rem;color:#475569;text-transform:uppercase;letter-spacing:.05em">
+        <div class="kg-info-tile mt-4">
+            <p class="kg-info-tile-title">
                 <i class="bi bi-clock-history me-1"></i>Trazabilidad
             </p>
             <div class="kg-detail-grid">

@@ -19,7 +19,7 @@
         <h5 class="kg-card-header-title">
             <i class="bi bi-tools"></i> @Model.Name
         </h5>
-        <div style="display:flex;gap:6px">
+        <div class="d-flex gap-2">
             <a asp-action="Edit" asp-route-id="@Model.Id" class="kg-action-btn edit" title="Editar"><i class="bi bi-pencil-fill"></i></a>
             <a asp-action="Delete" asp-route-id="@Model.Id" class="kg-action-btn del" title="Eliminar"><i class="bi bi-trash-fill"></i></a>
         </div>
@@ -28,7 +28,7 @@
         <div class="row g-4">
             <div class="col-md-6">
                 <div class="form-label small text-muted mb-1">Nombre</div>
-                <div style="font-weight:600">@Model.Name</div>
+                <div class="kg-cell-primary">@Model.Name</div>
             </div>
             <div class="col-md-6">
                 <div class="form-label small text-muted mb-1">Consultorio asignado</div>

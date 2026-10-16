@@ -169,7 +169,7 @@
 
         <!-- TOPBAR -->
         <header class="kg-topbar">
-            <button class="kg-sidebar-toggle d-lg-none" id="sidebarToggle">
+            <button class="kg-sidebar-toggle d-lg-none" id="sidebarToggle" type="button" aria-label="@LayoutText.Get("Action.OpenMenu", "Abrir menú")" aria-controls="sidebar" aria-expanded="false">
                 <i class="bi bi-list"></i>
             </button>
             <div class="kg-topbar-title">
@@ -191,7 +191,7 @@
                 <button type="button" class="kg-topbar-badge kg-theme-toggle" id="themeToggle" title="@LayoutText.Get("Action.SwitchTheme", "Cambiar tema visual")" aria-label="@LayoutText.Get("Action.SwitchTheme", "Cambiar tema visual")">
                     <i class="bi bi-moon-fill"></i>
                 </button>
-                <span class="kg-topbar-badge">
+                <span class="kg-topbar-badge" aria-hidden="true">
                     <i class="bi bi-bell"></i>
                 </span>
                 <a asp-controller="Account" asp-action="Profile" class="kg-topbar-user kg-topbar-user-link" title="@LayoutText.Get("Action.Profile", "Ver perfil")">
@@ -251,12 +251,14 @@
 
         if (toggle) {
             toggle.addEventListener('click', () => {
-                sidebar.classList.toggle('show');
+                const isOpen = sidebar.classList.toggle('show');
                 overlay.classList.toggle('show');
+                toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
             });
             overlay.addEventListener('click', () => {
                 sidebar.classList.remove('show');
                 overlay.classList.remove('show');
+                toggle.setAttribute('aria-expanded', 'false');
             });
         }
     </script>

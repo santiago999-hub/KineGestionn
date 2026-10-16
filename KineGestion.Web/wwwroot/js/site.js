@@ -7,6 +7,8 @@
 			return;
 		}
 
+		themeToggle.setAttribute("aria-pressed", theme === "dark" ? "true" : "false");
+
 		var icon = themeToggle.querySelector("i");
 		if (!icon) {
 			return;
@@ -159,6 +161,12 @@
 		});
 	}
 
+	function initNavAria() {
+		document.querySelectorAll(".kg-nav-item.active").forEach(function (item) {
+			item.setAttribute("aria-current", "page");
+		});
+	}
+
 	function initNavGroups() {
 		var nav = document.querySelector(".kg-sidebar-nav");
 		if (!nav) {
@@ -280,6 +288,7 @@
 
 	initCounters();
 	initToasts();
+	initNavAria();
 	initNavGroups();
 	initPageTransitions();
 });

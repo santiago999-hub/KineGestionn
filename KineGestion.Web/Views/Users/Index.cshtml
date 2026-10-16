@@ -48,7 +48,7 @@
                         <th>Usuario</th>
                         <th>Rol</th>
                         <th>Estado</th>
-                        <th style="text-align:right">Acciones</th>
+                        <th class="kg-table-actions-header">Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -56,11 +56,11 @@
                     {
                         <tr>
                             <td>
-                                <div style="display:flex;align-items:center;gap:10px">
-                                    <div style="width:34px;height:34px;border-radius:50%;background:#ede9fe;color:#7c3aed;display:flex;align-items:center;justify-content:center;font-size:.9rem;flex-shrink:0">
+                                <div class="kg-cell-user">
+                                    <div class="kg-cell-avatar is-violet">
                                         <i class="bi bi-person-fill"></i>
                                     </div>
-                                    <div style="font-weight:600">@u.Email</div>
+                                    <div class="kg-cell-primary">@u.Email</div>
                                 </div>
                             </td>
                             <td>
@@ -88,7 +88,7 @@
                                 }
                             </td>
                             <td>
-                                <div class="kg-action-btns" style="justify-content:flex-end">
+                                <div class="kg-action-btns kg-action-btns-end">
                                     <a asp-action="Edit" asp-route-id="@u.Id" class="kg-action-btn edit" title="Editar"><i class="bi bi-pencil-fill"></i></a>
                                     <a asp-action="Delete" asp-route-id="@u.Id" class="kg-action-btn del" title="Eliminar"><i class="bi bi-trash-fill"></i></a>
                                 </div>
@@ -98,7 +98,7 @@
                 </tbody>
             </table>
         </div>
-        <div style="padding:12px 18px;border-top:1px solid var(--kg-border);font-size:.76rem;color:var(--kg-text-muted)">
+        <div class="kg-table-footer">
             Mostrando @Model.Items.Count() de @Model.TotalCount usuarios
         </div>
 

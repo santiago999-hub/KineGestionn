@@ -14,14 +14,14 @@
     </a>
 </div>
 
-<div class="kg-form-card" style="border-top: 3px solid var(--kg-danger)">
-    <div class="kg-form-header" style="background:#fff5f5">
-        <div class="kg-form-header-icon" style="background:#fee2e2;color:#dc2626">
+<div class="kg-form-card is-danger">
+    <div class="kg-form-header is-danger">
+        <div class="kg-form-header-icon danger">
             <i class="bi bi-exclamation-triangle-fill"></i>
         </div>
         <div>
             <h4>¿Eliminar este usuario?</h4>
-            <p style="color:#dc2626">
+            <p class="kg-text-danger">
                 El usuario <strong>@Model.Email</strong> será eliminado permanentemente del sistema.
                 Esta acción <strong>no se puede deshacer</strong>.
             </p>
@@ -54,7 +54,7 @@
     </div>
     <div class="kg-form-footer">
         <a asp-action="Index" class="btn-kg-outline"><i class="bi bi-x-lg"></i> Cancelar</a>
-        <form asp-action="Delete" asp-route-id="@Model.Id" method="post" style="display:inline">
+        <form asp-action="Delete" asp-route-id="@Model.Id" method="post" class="d-inline">
             @Html.AntiForgeryToken()
             <button type="submit" class="btn-kg-danger">
                 <i class="bi bi-trash-fill"></i> Eliminar Usuario

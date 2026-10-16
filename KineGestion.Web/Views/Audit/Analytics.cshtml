@@ -68,7 +68,7 @@ else
                                 var actionLabel = AuditIndexViewModel.GetActionLabel(item.Name);
                                 var width = Model.MaxByAction > 0 ? (100 * item.Count / Model.MaxByAction) : 0;
                                 <tr>
-                                    <td style="width:30%;white-space:nowrap">
+                                    <td class="kg-col-30">
                                         @if (item.Name == "Create")
                                         {
                                             <span class="kg-badge kg-badge-success">@actionLabel</span>
@@ -83,11 +83,11 @@ else
                                         }
                                     </td>
                                     <td>
-                                        <div class="progress" style="height:14px" role="presentation">
-                                            <div class="progress-bar" style="width:@(width)%;background:var(--kg-primary)"></div>
+                                        <div class="progress kg-progress-md" role="presentation">
+                                            <div class="progress-bar kg-bar-primary" style="width:@(width)%"></div>
                                         </div>
                                     </td>
-                                    <td style="width:15%;text-align:right;white-space:nowrap">
+                                    <td class="kg-col-15">
                                         <strong>@item.Count</strong>
                                     </td>
                                 </tr>
@@ -113,13 +113,13 @@ else
                                 var entityLabel = AuditIndexViewModel.GetEntityLabel(item.Name);
                                 var width = Model.MaxByEntity > 0 ? (100 * item.Count / Model.MaxByEntity) : 0;
                                 <tr>
-                                    <td style="min-width:120px">@entityLabel</td>
+                                    <td class="kg-minw-120">@entityLabel</td>
                                     <td>
-                                        <div class="progress" style="height:14px" role="presentation">
-                                            <div class="progress-bar" style="width:@(width)%;background:#0ea5e9"></div>
+                                        <div class="progress kg-progress-md" role="presentation">
+                                            <div class="progress-bar kg-bar-cyan" style="width:@(width)%"></div>
                                         </div>
                                     </td>
-                                    <td style="width:15%;text-align:right;white-space:nowrap">
+                                    <td class="kg-col-15">
                                         <strong>@item.Count</strong>
                                     </td>
                                 </tr>
@@ -144,13 +144,13 @@ else
                             {
                                 var width = Model.MaxByUser > 0 ? (100 * item.Count / Model.MaxByUser) : 0;
                                 <tr>
-                                    <td style="min-width:120px;word-break:break-all">@item.Name</td>
+                                    <td class="kg-minw-120 kg-break">@item.Name</td>
                                     <td>
-                                        <div class="progress" style="height:14px" role="presentation">
-                                            <div class="progress-bar" style="width:@(width)%;background:#22c55e"></div>
+                                        <div class="progress kg-progress-md" role="presentation">
+                                            <div class="progress-bar kg-bar-green" style="width:@(width)%"></div>
                                         </div>
                                     </td>
-                                    <td style="width:15%;text-align:right;white-space:nowrap">
+                                    <td class="kg-col-15">
                                         <strong>@item.Count</strong>
                                     </td>
                                 </tr>
@@ -175,13 +175,13 @@ else
                     {
                         var width = Model.MaxTrend > 0 ? (100 * point.Count / Model.MaxTrend) : 0;
                         <tr>
-                            <td style="width:140px;white-space:nowrap">@point.DateUtc.ToLocalTime().ToString("dd/MM/yyyy")</td>
+                            <td class="kg-col-140">@point.DateUtc.ToLocalTime().ToString("dd/MM/yyyy")</td>
                             <td>
-                                <div class="progress" style="height:14px" role="presentation">
-                                    <div class="progress-bar" style="width:@(width)%;background:#8b5cf6"></div>
+                                <div class="progress kg-progress-md" role="presentation">
+                                    <div class="progress-bar kg-bar-violet" style="width:@(width)%"></div>
                                 </div>
                             </td>
-                            <td style="width:15%;text-align:right;white-space:nowrap">
+                            <td class="kg-col-15">
                                 <strong>@point.Count</strong>
                             </td>
                         </tr>

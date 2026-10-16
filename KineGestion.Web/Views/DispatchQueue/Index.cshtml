@@ -150,7 +150,7 @@
                     <table class="table table-hover align-middle">
                         <thead>
                             <tr>
-                                <th style="width:40px;"><input type="checkbox" id="selectAll" /></th>
+                                <th class="kg-col-check"><input type="checkbox" id="selectAll" /></th>
                                 <th>#</th>
                                 <th>Sesión</th>
                                 <th>Tipo</th>
@@ -159,7 +159,7 @@
                                 <th>Error</th>
                                 <th>Creado (UTC)</th>
                                 <th>Próximo intento</th>
-                                <th style="width:180px;">Acciones</th>
+                                <th class="kg-col-actions">Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -172,7 +172,7 @@
                                     <td><small>@job.DispatchType</small></td>
                                     <td><span class="badge @StatusColor(job.Status)">@job.Status</span></td>
                                     <td>@job.Attempts</td>
-                                    <td style="max-width:280px;">
+                                    <td class="kg-maxw-280">
                                         @if (!string.IsNullOrWhiteSpace(job.LastError))
                                         {
                                             <small class="text-danger text-wrap d-inline-block"

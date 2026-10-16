@@ -62,7 +62,7 @@
                         <th>Obra Social</th>
                         <th>Teléfono</th>
                         <th>Estado</th>
-                        <th style="text-align:right">Acciones</th>
+                        <th class="kg-table-actions-header">Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -70,16 +70,14 @@
                     {
                         <tr>
                             <td>
-                                <div style="display:flex;align-items:center;gap:10px">
-                                    <div style="width:34px;height:34px;border-radius:50%;background:#dbeafe;color:#2563eb;display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:700;flex-shrink:0">
+                                <div class="kg-cell-user">
+                                    <div class="kg-cell-avatar is-blue">
                                         @(p.Nombre.Length > 0 ? p.Nombre[0].ToString().ToUpper() : "?")@(p.Apellido.Length > 0 ? p.Apellido[0].ToString().ToUpper() : "")
                                     </div>
-                                    <div>
-                                        <div style="font-weight:600">@p.Apellido, @p.Nombre</div>
-                                    </div>
+                                    <div class="kg-cell-primary">@p.Apellido, @p.Nombre</div>
                                 </div>
                             </td>
-                            <td><span style="font-family:monospace;font-size:.82rem">@p.DNI</span></td>
+                            <td><span class="kg-mono small">@p.DNI</span></td>
                             <td>@(string.IsNullOrEmpty(p.ObraSocial) ? "—" : p.ObraSocial)</td>
                             <td>
                                 @if (string.IsNullOrEmpty(p.Telefono))
@@ -94,7 +92,7 @@
                             <td>
                                 @if (p.IsActivo)
                                 {
-                                    <span class="kg-badge kg-badge-success"><i class="bi bi-circle-fill" style="font-size:.45rem"></i> Activo</span>
+                                    <span class="kg-badge kg-badge-success"><i class="bi bi-circle-fill kg-badge-dot"></i> Activo</span>
                                 }
                                 else
                                 {
@@ -102,7 +100,7 @@
                                 }
                             </td>
                             <td>
-                                <div class="kg-action-btns" style="justify-content:flex-end">
+                                <div class="kg-action-btns kg-action-btns-end">
                                     <a asp-action="Details" asp-route-id="@p.Id" class="kg-action-btn view" title="Ver detalle"><i class="bi bi-eye-fill"></i></a>
                                     <a asp-action="Edit" asp-route-id="@p.Id" class="kg-action-btn edit" title="Editar"><i class="bi bi-pencil-fill"></i></a>
                                     <a asp-action="Delete" asp-route-id="@p.Id" class="kg-action-btn del" title="Dar de baja"><i class="bi bi-trash-fill"></i></a>
@@ -113,7 +111,7 @@
                 </tbody>
             </table>
         </div>
-        <div style="padding:12px 18px;border-top:1px solid var(--kg-border);font-size:.76rem;color:var(--kg-text-muted)">
+        <div class="kg-table-footer">
             Mostrando @Model.Items.Count() de @Model.TotalCount pacientes activos
         </div>
 

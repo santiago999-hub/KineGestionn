@@ -14,12 +14,12 @@
     </a>
 </div>
 
-<div class="kg-form-card" style="border-top: 3px solid var(--kg-danger)">
-    <div class="kg-form-header" style="background:#fff5f5">
-        <div class="kg-form-header-icon" style="background:#fee2e2;color:#dc2626"><i class="bi bi-exclamation-triangle-fill"></i></div>
+<div class="kg-form-card is-danger">
+    <div class="kg-form-header is-danger">
+        <div class="kg-form-header-icon danger"><i class="bi bi-exclamation-triangle-fill"></i></div>
         <div>
             <h4>¿Confirmar baja?</h4>
-            <p style="color:#dc2626">El profesional <strong>@Model.Apellido, @Model.Nombre</strong> quedará inactivo. Sus datos y historial se conservarán.</p>
+            <p class="kg-text-danger">El profesional <strong>@Model.Apellido, @Model.Nombre</strong> quedará inactivo. Sus datos y historial se conservarán.</p>
         </div>
     </div>
     @if ((int)ViewBag.SessionCount > 0)
@@ -49,7 +49,7 @@
         <a asp-action="Index" class="btn-kg-outline"><i class="bi bi-x-lg"></i> Cancelar</a>
         @if ((int)ViewBag.SessionCount == 0)
         {
-            <form asp-action="Delete" asp-route-id="@Model.Id" method="post" style="display:inline">
+            <form asp-action="Delete" asp-route-id="@Model.Id" method="post" class="d-inline">
                 @Html.AntiForgeryToken()
                 <button type="submit" class="btn-kg-danger">
                     <i class="bi bi-trash-fill"></i> Confirmar Baja

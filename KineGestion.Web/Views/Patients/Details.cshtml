@@ -17,19 +17,19 @@
 </div>
 
 <div class="kg-form-card">
-    <div class="kg-form-header" style="justify-content:space-between">
-        <div style="display:flex;align-items:center;gap:12px">
-            <div style="width:48px;height:48px;border-radius:50%;background:#dbeafe;color:#2563eb;display:flex;align-items:center;justify-content:center;font-size:1.2rem;font-weight:700">
+    <div class="kg-form-header justify-content-between">
+        <div class="d-flex align-items-center gap-3">
+            <div class="kg-cell-avatar is-lg is-round is-blue">
                 @(p.Nombre.Length > 0 ? p.Nombre[0].ToString().ToUpper() : "?")@(p.Apellido.Length > 0 ? p.Apellido[0].ToString().ToUpper() : "")
             </div>
             <div>
-                <h4 style="margin:0">@p.Apellido, @p.Nombre</h4>
-                <p style="margin:0;font-size:.78rem;color:var(--kg-text-muted)">DNI @p.DNI</p>
+                <h4>@p.Apellido, @p.Nombre</h4>
+                <p>DNI @p.DNI</p>
             </div>
         </div>
         @if (p.IsActivo)
         {
-            <span class="kg-badge kg-badge-success"><i class="bi bi-circle-fill" style="font-size:.45rem"></i> Activo</span>
+            <span class="kg-badge kg-badge-success"><i class="bi bi-circle-fill kg-badge-dot"></i> Activo</span>
         }
         else
         {
@@ -44,7 +44,7 @@
             </div>
             <div class="kg-detail-item">
                 <dt>DNI</dt>
-                <dd style="font-family:monospace">@p.DNI</dd>
+                <dd class="kg-mono">@p.DNI</dd>
             </div>
             <div class="kg-detail-item">
                 <dt>Fecha de nacimiento</dt>
@@ -64,8 +64,8 @@
             </div>
         </div>
 
-        <div class="mt-4" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:1rem 1.25rem">
-            <p style="margin:0 0 .75rem;font-weight:700;font-size:.82rem;color:#475569;text-transform:uppercase;letter-spacing:.05em">
+        <div class="kg-info-tile mt-4">
+            <p class="kg-info-tile-title">
                 <i class="bi bi-clock-history me-1"></i>Trazabilidad
             </p>
             <div class="kg-detail-grid">
@@ -90,8 +90,8 @@
     </div>
     <div class="kg-form-footer">
         <a asp-action="Index" class="btn-kg-outline"><i class="bi bi-arrow-left"></i> Volver</a>
-        <div style="display:flex;gap:10px">
-            <a asp-controller="Sessions" asp-action="Create" asp-route-patientId="@p.Id" class="btn-kg-primary" style="background:#22c55e">
+        <div class="d-flex gap-2">
+            <a asp-controller="Sessions" asp-action="Create" asp-route-patientId="@p.Id" class="btn-kg-success">
                 <i class="bi bi-calendar2-plus-fill"></i> Nueva Sesión
             </a>
             <a asp-action="Edit" asp-route-id="@p.Id" class="btn-kg-warning">
@@ -102,7 +102,7 @@
 </div>
 
 @* Tratamientos *@
-<div class="kg-card" style="margin-top:20px">
+<div class="kg-card mt-4">
     <div class="kg-card-header">
         <h5 class="kg-card-header-title">
             <i class="bi bi-clipboard2-pulse-fill"></i> Tratamientos
@@ -112,8 +112,8 @@
 
     @if (!Model.Treatments.Any())
     {
-        <div class="kg-empty" style="padding:24px">
-            <p style="color:var(--kg-text-muted);margin:0">Este paciente no tiene tratamientos registrados.</p>
+        <div class="kg-empty is-compact">
+            <p class="text-muted mb-0">Este paciente no tiene tratamientos registrados.</p>
         </div>
     }
     else
@@ -125,20 +125,20 @@
                         <th>Descripción</th>
                         <th>Inicio</th>
                         <th>Sesiones</th>
-                        <th style="text-align:right">Acciones</th>
+                        <th class="kg-table-actions-header">Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
                     @foreach (var t in Model.Treatments)
                     {
                         <tr>
-                            <td><span style="font-weight:600">@t.Descripcion</span></td>
+                            <td><span class="kg-cell-primary">@t.Descripcion</span></td>
                             <td>@t.FechaInicio.ToString("dd/MM/yyyy")</td>
                             <td>
                                 <span class="kg-badge kg-badge-info">@t.SesionesRealizadas / @t.CantidadSesionesTotales</span>
                             </td>
                             <td>
-                                <div class="kg-action-btns" style="justify-content:flex-end">
+                                <div class="kg-action-btns kg-action-btns-end">
                                     <a asp-controller="Treatments" asp-action="Details" asp-route-id="@t.Id" class="kg-action-btn view" title="Ver detalle"><i class="bi bi-eye-fill"></i></a>
                                     <a asp-controller="Treatments" asp-action="Edit" asp-route-id="@t.Id" class="kg-action-btn edit" title="Editar"><i class="bi bi-pencil-fill"></i></a>
                                 </div>
@@ -152,7 +152,7 @@
 </div>
 
 @* Sesiones *@
-<div class="kg-card" style="margin-top:20px">
+<div class="kg-card mt-4">
     <div class="kg-card-header">
         <h5 class="kg-card-header-title">
             <i class="bi bi-calendar2-check-fill"></i> Últimas Sesiones
@@ -162,8 +162,8 @@
 
     @if (!Model.Sessions.Any())
     {
-        <div class="kg-empty" style="padding:24px">
-            <p style="color:var(--kg-text-muted);margin:0">Este paciente no tiene sesiones registradas.</p>
+        <div class="kg-empty is-compact">
+            <p class="text-muted mb-0">Este paciente no tiene sesiones registradas.</p>
         </div>
     }
     else
@@ -177,14 +177,14 @@
                         <th>Profesional</th>
                         <th>Estado</th>
                         <th>Pago</th>
-                        <th style="text-align:right">Acciones</th>
+                        <th class="kg-table-actions-header">Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
                     @foreach (var s in Model.Sessions)
                     {
                         <tr>
-                            <td style="white-space:nowrap">@s.FechaHora.ToString("dd/MM/yyyy HH:mm")</td>
+                            <td class="text-nowrap">@s.FechaHora.ToString("dd/MM/yyyy HH:mm")</td>
                             <td>@(s.TratamientoDescripcion ?? "—")</td>
                             <td>@(s.ProfesionalNombre ?? "—")</td>
                             <td>
@@ -212,7 +212,7 @@
                                 }
                             </td>
                             <td>
-                                <div class="kg-action-btns" style="justify-content:flex-end">
+                                <div class="kg-action-btns kg-action-btns-end">
                                     <a asp-controller="Sessions" asp-action="Details" asp-route-id="@s.Id" class="kg-action-btn view" title="Ver detalle"><i class="bi bi-eye-fill"></i></a>
                                     <a asp-controller="Sessions" asp-action="Edit" asp-route-id="@s.Id" class="kg-action-btn edit" title="Editar"><i class="bi bi-pencil-fill"></i></a>
                                 </div>

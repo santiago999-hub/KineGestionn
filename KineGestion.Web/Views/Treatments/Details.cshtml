@@ -15,14 +15,14 @@
 </div>
 
 <div class="kg-form-card">
-    <div class="kg-form-header" style="justify-content:space-between">
-        <div style="display:flex;align-items:center;gap:12px">
-            <div style="width:48px;height:48px;border-radius:12px;background:#dcfce7;color:#16a34a;display:flex;align-items:center;justify-content:center;font-size:1.3rem">
+    <div class="kg-form-header justify-content-between">
+        <div class="d-flex align-items-center gap-3">
+            <div class="kg-cell-avatar is-lg is-green">
                 <i class="bi bi-journal-medical"></i>
             </div>
             <div>
-                <h4 style="margin:0">@Model.Descripcion</h4>
-                <p style="margin:0;font-size:.78rem;color:var(--kg-text-muted)">Inicio: @Model.FechaInicio.ToString("dd/MM/yyyy")</p>
+                <h4>@Model.Descripcion</h4>
+                <p>Inicio: @Model.FechaInicio.ToString("dd/MM/yyyy")</p>
             </div>
         </div>
         <span class="kg-badge kg-badge-primary"><i class="bi bi-calendar2-check"></i> @Model.CantidadSesionesTotales sesiones</span>
@@ -47,8 +47,8 @@
             </div>
         </div>
 
-        <div class="mt-4" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:1rem 1.25rem">
-            <p style="margin:0 0 .75rem;font-weight:700;font-size:.82rem;color:#475569;text-transform:uppercase;letter-spacing:.05em">
+        <div class="kg-info-tile mt-4">
+            <p class="kg-info-tile-title">
                 <i class="bi bi-clock-history me-1"></i>Trazabilidad
             </p>
             <div class="kg-detail-grid">
@@ -73,9 +73,9 @@
     </div>
     <div class="kg-form-footer">
         <a asp-action="Index" class="btn-kg-outline"><i class="bi bi-arrow-left"></i> Volver</a>
-        <div style="display:flex;gap:10px">
+        <div class="d-flex gap-2">
             <a asp-controller="Sessions" asp-action="Create" asp-route-patientId="@Model.PacienteId"
-               class="btn-kg-primary" style="background:#22c55e">
+               class="btn-kg-success">
                 <i class="bi bi-calendar2-plus-fill"></i> Nueva Sesión
             </a>
             <a asp-action="Edit" asp-route-id="@Model.Id" class="btn-kg-warning">
