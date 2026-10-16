@@ -207,7 +207,7 @@ h1, h2, h3, h4, h5, h6 {
     display: flex;
     flex-direction: column;
     z-index: 1040;
-    overflow-y: auto;
+    overflow: hidden;
     transition: transform .25s ease;
 }
 
@@ -246,11 +246,16 @@ h1, h2, h3, h4, h5, h6 {
 /* Nav */
 .kg-sidebar-nav {
     flex: 1;
+    min-height: 0;
+    overflow-y: auto;
     padding: 16px 12px;
     display: flex;
     flex-direction: column;
     gap: 2px;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.16) transparent;
 }
+.kg-sidebar-nav > * { flex-shrink: 0; }
 .kg-nav-section-label {
     display: flex;
     align-items: center;
@@ -1839,7 +1844,7 @@ body.kg-theme-dark .kg-office-empty-note {
 .kg-card,
 .kg-alert-success,
 .kg-alert-danger {
-    animation: kgFadeUp .38s ease both;
+    animation: kgFadeUp .38s ease backwards;
 }
 
 .row > [class*='col-']:nth-child(1) .kg-stat-card,
@@ -1930,17 +1935,15 @@ body.kg-theme-dark::before {
 .kg-sidebar {
     box-shadow: 16px 0 44px rgba(5, 20, 38, 0.30);
     border-right: 1px solid rgba(255, 255, 255, 0.05);
-    scrollbar-width: thin;
-    scrollbar-color: rgba(255, 255, 255, 0.16) transparent;
 }
 
-.kg-sidebar::-webkit-scrollbar { width: 8px; }
-.kg-sidebar::-webkit-scrollbar-track { background: transparent; }
-.kg-sidebar::-webkit-scrollbar-thumb {
+.kg-sidebar-nav::-webkit-scrollbar { width: 8px; }
+.kg-sidebar-nav::-webkit-scrollbar-track { background: transparent; }
+.kg-sidebar-nav::-webkit-scrollbar-thumb {
     background: rgba(255, 255, 255, 0.14);
     border-radius: 999px;
 }
-.kg-sidebar::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.26); }
+.kg-sidebar-nav::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.26); }
 
 .kg-sidebar-brand {
     padding-top: 24px;
@@ -2234,29 +2237,46 @@ body.kg-theme-dark .kg-login-card .form-control:focus {
     box-shadow: inset 0 0 70px rgba(90, 176, 255, 0.12), 16px 0 44px rgba(5, 20, 38, 0.34);
 }
 
+.kg-sidebar::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background:
+        radial-gradient(70% 48% at 22% 12%, rgba(90, 176, 255, 0.18), transparent 62%),
+        radial-gradient(70% 48% at 78% 88%, rgba(138, 210, 255, 0.15), transparent 64%);
+    animation: kgSidebarGlow 24s ease-in-out infinite alternate;
+}
+
+@keyframes kgSidebarGlow {
+    0%   { transform: translate3d(-5%, -4%, 0) scale(1.06); }
+    50%  { transform: translate3d(3%, 2%, 0) scale(1.1); }
+    100% { transform: translate3d(5%, 4%, 0) scale(1.06); }
+}
+
 .kg-sidebar::after {
     content: "";
     position: absolute;
     top: 0;
     left: 0;
-    width: 38%;
+    width: 55%;
     height: 100%;
     z-index: 0;
     pointer-events: none;
-    opacity: 0;
-    background: linear-gradient(100deg, transparent, rgba(138, 210, 255, 0.16), transparent);
-    transform: translateX(-140%) skewX(-12deg);
-    transition: opacity 0.25s ease;
-}
-
-.kg-sidebar:hover::after {
-    opacity: 1;
-    animation: kgSidebarSheen 1.8s ease-in-out infinite;
+    background: linear-gradient(100deg,
+        transparent 0%,
+        rgba(90, 176, 255, 0.10) 42%,
+        rgba(138, 210, 255, 0.18) 50%,
+        rgba(90, 176, 255, 0.10) 58%,
+        transparent 100%);
+    transform: translateX(-150%) skewX(-12deg);
+    animation: kgSidebarSheen 6.5s ease-in-out infinite;
 }
 
 @keyframes kgSidebarSheen {
-    0%   { transform: translateX(-140%) skewX(-12deg); }
-    100% { transform: translateX(320%) skewX(-12deg); }
+    0%, 60%  { transform: translateX(-150%) skewX(-12deg); }
+    100%     { transform: translateX(240%) skewX(-12deg); }
 }
 
 .kg-topbar-greeting {
@@ -2813,6 +2833,7 @@ button:disabled,
     body::before { animation: none; }
     .kg-sidebar-logo::after,
     .kg-login-logo::after,
+    .kg-sidebar::before,
     .kg-sidebar::after { animation: none; }
     .kg-stat-card,
     .kg-card,
