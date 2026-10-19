@@ -1,6 +1,6 @@
 # KineGestion — Resumen integral del sistema
 
-Documento consolidado para defensa oral. Cubre arquitectura, modelo de dominio, persistencia, capa Web, flujos end-to-end, rendimiento, seguridad, i18n, infraestructura/CI y tests. Incluye un **análisis por área (qué vender, qué pulir, plan a futuro)**, una matriz de madurez, un **glosario por categorías** y preguntas de jurado.
+Documento consolidado para defensa oral. Cubre arquitectura, modelo de dominio, persistencia, capa Web, flujos end-to-end, rendimiento, seguridad, i18n, infraestructura/CI y tests. Incluye un **análisis por área (qué vender, qué pulir, plan a futuro)**, una matriz de madurez, un **análisis con 5 lentes de defensa** (trade-offs, abogado del diablo, entropía, Base vs Full, pitch), un **glosario por categorías** y preguntas de jurado.
 
 ---
 
@@ -179,6 +179,70 @@ Criterio de venta: **una fortaleza se cuenta por el problema que resuelve**, no 
 | i18n | Media | ES/EN parcial |
 | Testing / CI-CD | Media-Alta | Integración real; falta cobertura/SAST |
 | Infraestructura | Media | Docker ok; falta orquestación/IaC |
+
+---
+
+## 12. Análisis con 5 lentes de defensa
+
+Marco para responder cualquier pregunta del tribunal argumentando como analista, no recitando memorizado. Cada sección está fundamentada en el sistema real.
+
+### 12.1 Trade-offs — 3 decisiones estructurales
+
+**Decisión A: Monolito modular MVC (Razor) en lugar de API + SPA separada**
+- *Gané:* despliegue unitario (un contenedor), transacciones atómicas sin saga entre servicios, desarrollo rápido acorde a una tecnicatura, cero latencia de red entre UI y lógica.
+- *Descarté:* escalado independiente del frontend, tiempo real nativo, reutilización de la API para un futuro portal móvil.
+- *Defensa:* "En el contexto de un MVP de tecnicatura con despliegue single-node, la complejidad operativa de dos despliegues superaba el beneficio de escalar el frontend por separado. La capa `Core` sin dependencias me deja migrar a API+SPA sin reescribir el dominio."
+
+**Decisión B: Outbox en SQL Server (tabla `DispatchJob`) en lugar de broker externo**
+- *Gané:* el mensaje se persiste en la **misma transacción** que el negocio (atomicidad gratis), cero infraestructura adicional, dedup con índice único filtrado, tablero de observabilidad propio (`/DispatchQueue`).
+- *Descarté:* competing consumers, DLQ automática, throughput de decenas de miles de mensajes/minuto.
+- *Defensa:* "Con un solo nodo, el outbox en SQL da la misma garantía de confiabilidad que un broker sin sumar un componente que se cae. La migración a RabbitMQ/Redis es el paso natural al escalar horizontalmente y no toca el dominio."
+
+**Decisión C: Cifrado en reposo transparente (`ValueConverter`) + concurrencia optimista (`RowVersion`)**
+- *Gané:* los datos clínicos (evolución, notas) y PII (teléfono, email) jamás tocan el disco en claro, sin cambiar una línea de los servicios; `RowVersion` detecta ediciones simultáneas sin bloquear lecturas.
+- *Descarté:* búsquedas SQL sobre campos cifrados; serialización total de la agenda.
+- *Defensa:* "El cifrado por `ValueConverter` es transparente al 100% del código que no es persistencia. El costo —no poder buscar por teléfono en SQL— es aceptable porque ninguna búsqueda del sistema lo requiere hoy."
+
+### 12.2 Abogado del diablo — 5 fallos catastróficos y su mitigación
+
+| Fallo | Mitigación en el diseño |
+|---|---|
+| Corte de luz guardando una sesión de cobro | Transacción atómica: `DispatchJob`/`BillingBatchEvent` se escriben en la misma transacción que el estado de pago. Quedó todo o nada; no hay cobro "a medias" ni evento sin cobro. |
+| Manipular la URL para ver la historia de otro paciente (IDOR) | Scoping por rol **a nivel de repositorio** (no solo en el controller) + la clave de caché **incluye el rol**, así ni siquiera se sirve la respuesta cacheada de otro usuario. |
+| Dos recepcionistas agendan el mismo turno al mismo tiempo | Conflicto en servicio (±45 min) + transacción `Serializable` con 3 reintentos ante deadlock (SQL 1205) + índice único `(TreatmentId, NroSesionEnTratamiento)`. Tres capas independientes. |
+| Doble envío de recordatorio al mismo paciente | Dedup determinista: hash SHA-256 del payload + índice único filtrado `WHERE Status IN (Pending,Claimed)`. Dos workers en paralelo no pueden crear el job dos veces. |
+| Fuga de la historia clínica (BD robada / log filtrado) | Cifrado en reposo + la auditoría **redacta** los campos cifrados como `"[encriptado]"` + fail-fast en arranque ante secretos placeholder. Ni un DBA ve evolución en claro sin la key. |
+
+### 12.3 Entropía organizacional — código ↔ problema real
+
+| Momento | Entropía | Componente que la frena |
+|---|---|---|
+| Antes (papel/Excel) | Máxima: turnos pisados, tratamientos olvidados, deudas sin registro | — |
+| Modelo Base | Baja: agenda validada, soft-delete que conserva historial, auditoría completa | `SessionService` (ventana de conflicto), query filters, auditoría en `SaveChanges` |
+| Modelo Full | **Anti-entrópica activa**: el sistema no solo ordena, **recupera** | `ReminderDispatchBackgroundService` (retención de asistencia), `BillingFollowUpAutomationBackgroundService` (D+1/D+3/D+7 recupera ingresos sin humano), `BillingOperationalAlertBackgroundService` (detecta la fuga antes de que ocurra) |
+
+Frase clave: "No dije 'hice un background service'; implementé un proceso que contrarresta la pérdida pasiva de pacientes: cada recordatorio enviado es una sesión que no se pierde, y cada follow-up de cobranza es un ingreso que no se fugó."
+
+### 12.4 Matriz Base vs Full — el argumento es financiero
+
+| | Modelo Base | Modelo Full |
+|---|---|---|
+| Inversión | I₀ (horas de ingeniería menores) | I₀ + horas de los 3 motores + embudos/segmentación |
+| Qué resuelve | Urgencia operativa inmediata (ordenar agenda y cobranzas) | Automatiza la **retención de ingresos** |
+| Fuga que deja | Deudas sin escalar, pacientes que dejan de venir sin aviso | Casi ninguna: follow-up escalonado + alerta de baja efectividad |
+| Argumento | "Presupuesto acotado, valor inmediato" | "El software se paga solo" |
+
+Ejemplo numérico defendible (ajustar al caso de estudio): clínica con 200 sesiones/mes y 15% de no-asistencia ≈ 30 sesiones perdidas/mes. Con recordatorio 24h/3h se recupera ~40% → 12 sesiones/mes rescatadas. A un valor por sesión de $X, en pocos meses el Full cubrió su costo extra. **El Full no vende features; vende tasa de recuperación de ingresos (TIR/VAN).**
+
+### 12.5 Pitch de ascensor (2 minutos, sin jerga)
+
+> "Los centros de kinesiología pierden plata por dos motivos: turnos que el paciente no confirma y se pierden, y deudas de sesiones ya dadas que nadie cobra. KineGestion ataca las dos fugas.
+>
+> Lo que lo hace distinto de un listado de turnos es que **no deja que nada se pierda por olvido**: cada turno genera un recordatorio automático por WhatsApp o mail, y si el paciente no responde, el sistema escala solo —le recuerda al día siguiente, a los tres, a los siete— sin que recepción tenga que acordarse.
+>
+> Técnicamente, tres decisiones que quiero defender: todo lo que sale del sistema (mails, WhatsApps) **se guarda en la misma base de datos que el negocio antes de enviarse**, así un corte de luz no pierde ningún mensaje; los datos clínicos están **cifrados en el disco**, visibles solo para el profesional tratante; y cada cambio queda **auditado automáticamente**, lo que le da al kinesiólogo valor probatorio médico-legal.
+>
+> El resultado: menos turnos perdidos, cobranzas que se recuperan solas y una historia clínica lista para una eventual auditoría. La versión completa se paga sola en pocos meses con lo que recupera."
 
 ---
 

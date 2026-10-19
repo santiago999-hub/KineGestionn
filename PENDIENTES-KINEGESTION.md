@@ -3,7 +3,7 @@
 > Memoria de trabajo del agente. **Leer al inicio de cada sesión** antes de explorar el repo.
 > Regla de oro (ahorro de tokens): si la tarea es sobre contenido/documentación, leer `RESUMEN-INTEGRAL-KINEGESTION.md`; NO re-explorar las 4 capas de nuevo.
 
-Última actualización: 2026-10-16 (sesión de UI + documentación).
+Última actualización: 2026-10-19 (análisis 5 lentes de defensa en `RESUMEN-INTEGRAL` §12).
 
 ---
 
@@ -17,7 +17,7 @@
 ## 2. Tareas pendientes (backlog)
 
 ### Alta prioridad (documentación / defensa)
-- [ ] Escribir sección **"Guion de presentación (3-5 min)"** en `RESUMEN-INTEGRAL-KINEGESTION.md` (recorrido en orden de venta).
+- [x] ~~Guion de presentación~~ → cubierto por §12 del `RESUMEN-INTEGRAL` (pitch 2 min + 5 lentes + matriz Base/Full).
 - [ ] Decidir si profundizar **Seguridad** o **flujo de recordatorios** dentro del mismo documento.
 - [ ] Revisar coherencia entre `RESUMEN-INTEGRAL-KINEGESTION.md` y los otros docs ya existentes (`TESIS-*`, `GUIA-PARA-ENTENDER-KINEGESTION.md`, `ANALISIS-SISTEMA-KINEGESTION.md`) para no duplicar/contradecir.
 
@@ -27,6 +27,7 @@
 - [ ] Portal de autogestión del paciente (ver turnos, reprogramar, pagar).
 
 ### Media prioridad (técnica / robustez)
+- [ ] **Sacar las llaves/secretos de GitHub del repo** (no es seguro): barrido 2026-10-19 → sin PAT/tokens/API keys hardcodeados (workflows usan `GITHUB_TOKEN`; prod usa `CHANGE_ME` con fail-fast). Pendiente: **credencial de seed `Admin1234` en `appsettings.json`** — mover a variable de entorno / `.env` (mitigado hoy por `ValidateProductionSafetyConfiguration`, pero si el repo es público expone la pass por defecto). Sumar secret scanning en CI y rotar si algún secreto llegó a publicarse.
 - [ ] Caché distribuida (Redis) para multi-instancia (hoy `QueryCache` es por proceso).
 - [ ] Broker de mensajería (Redis/RabbitMQ/Azure Service Bus) + **DLQ** al escalar a > 1 consumidor.
 - [ ] Idempotencia por ventana (SessionId + ventana operativa) en el productor.
@@ -42,7 +43,10 @@
 - [ ] OpenTelemetry + dashboards (Grafana) para reemplazar el profiling casero.
 - [ ] Eliminar métodos `[Obsolete]` (`GetAllAsync`, `GetPagedAsync` legacy) y estandarizar DI (`AddData`/`AddApplication`).
 
-## 3. Bitácora de esta sesión (UI + docs)
+## 3. Bitácora reciente
+
+- **2026-10-19:** agregada §12 "Análisis con 5 lentes de defensa" a `RESUMEN-INTEGRAL-KINEGESTION.md`: 3 trade-offs estructurales (monolito MVC / outbox SQL / cifrado+RowVersion), tabla de 5 fallos catastróficos con mitigación, eje entropía Base/Full, matriz financiera Base vs Full y pitch de ascensor de 2 min. Marcado el pendiente del guion de presentación.
+- **2026-10-16 (UI + docs):**
 
 - Causa raíz "animaciones no funcionan": Windows tenía "Efectos de animación" OFF → `prefers-reduced-motion: reduce` → el CSS apagaba todo. Se activó `SPI_SETCLIENTAREAANIMATION` (0x1043). Requiere cerrar todo el navegador.
 - `KineGestion.Web/wwwroot/css/site.css`: `kgFadeUp` con `backwards`; sidebar `overflow:hidden` + scroll movido a `.kg-sidebar-nav`; `kgSidebarSheen` constante 6.5s + `.kg-sidebar::before` (`kgSidebarGlow` 24s); bloque `prefers-reduced-motion` cubre `::before`.
