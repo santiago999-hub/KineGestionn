@@ -144,10 +144,10 @@ namespace KineGestion.Core.Services
                 () => _metricsRepository.CountByStatusAndPaymentStatusInRangeAsync(status, paymentStatus, fromInclusiveUtc, toExclusiveUtc),
                 TimeSpan.FromSeconds(10));
 
-        public async Task<DashboardSessionCountsDto> GetDashboardCountsAsync(DateTime todayUtc, DateTime fromInclusiveUtc, DateTime toExclusiveUtc)
+        public async Task<DashboardSessionCountsDto> GetDashboardCountsAsync(DateTime todayUtc, DateTime fromInclusiveUtc, DateTime toExclusiveUtc, int? officeId = null)
             => await QueryCache.GetOrCreateAsync(
                 $"sessions:count:dashboard:{todayUtc:yyyyMMdd}:{fromInclusiveUtc:yyyyMMddHHmmss}:{toExclusiveUtc:yyyyMMddHHmmss}" + GetCacheScope(),
-                () => _metricsRepository.GetDashboardCountsAsync(todayUtc, fromInclusiveUtc, toExclusiveUtc),
+                () => _metricsRepository.GetDashboardCountsAsync(todayUtc, fromInclusiveUtc, toExclusiveUtc, officeId),
                 TimeSpan.FromSeconds(10));
 
         public async Task<IReadOnlyList<KpiSegmentDto>> GetKpiSegmentsByProfessionalAsync(DateTime fromInclusiveUtc, DateTime toExclusiveUtc)

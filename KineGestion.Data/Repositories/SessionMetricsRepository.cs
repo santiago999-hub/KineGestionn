@@ -106,12 +106,19 @@ namespace KineGestion.Data.Repositories
                     && s.FechaHora >= fromInclusiveUtc
                     && s.FechaHora < toExclusiveUtc);
 
-        public async Task<DashboardSessionCountsDto> GetDashboardCountsAsync(DateTime todayUtc, DateTime fromInclusiveUtc, DateTime toExclusiveUtc)
+        public async Task<DashboardSessionCountsDto> GetDashboardCountsAsync(DateTime todayUtc, DateTime fromInclusiveUtc, DateTime toExclusiveUtc, int? officeId = null)
         {
             var dayStart = todayUtc.Date;
             var dayEnd = dayStart.AddDays(1);
 
-            var row = await ApplyCountScope(_context.Sessions.AsNoTracking())
+            var query = ApplyCountScope(_context.Sessions.AsNoTracking());
+
+            if (officeId.HasValue)
+            {
+                query = query.Where(s => s.OfficeId == officeId.Value);
+            }
+
+            var row = await query
                 .GroupBy(s => 1)
                 .Select(g => new DashboardSessionCountsDto(
                     g.Count(),

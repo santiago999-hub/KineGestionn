@@ -55,7 +55,10 @@
                 <select name="officeId" onchange="this.form.submit()" class="form-select form-select-sm w-auto d-inline-block">
                     <option value="">-- Seleccionar sede --</option>
                     <option value="">Todas</option>
-                    <!-- Opciones de sedes se cargan desde la base de datos -->
+                    @foreach (var office in (List<KineGestion.Core.Entities.Office>)ViewData["Offices"] ?? new List<KineGestion.Core.Entities.Office>())
+                    {
+                        <option value="@office.Id">Oficina @office.Id - @office.Name</option>
+                    }
                 </select>
             </form>
         }

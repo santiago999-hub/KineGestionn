@@ -26,6 +26,7 @@ public class HomeController : Controller
     private readonly ISessionService _sessionService;
     private readonly IDispatchEventRepository _dispatchEventRepository;
     private readonly IBillingOperationalAlertService _billingOperationalAlertService;
+    private readonly IOfficeService _officeService;
 
     public HomeController(
         ILogger<HomeController> logger,
@@ -35,7 +36,8 @@ public class HomeController : Controller
         ITreatmentService treatmentService,
         ISessionService sessionService,
         IDispatchEventRepository dispatchEventRepository,
-        IBillingOperationalAlertService billingOperationalAlertService)
+        IBillingOperationalAlertService billingOperationalAlertService,
+        IOfficeService officeService)
     {
         _logger = logger;
         _memoryCache = memoryCache;
@@ -45,11 +47,15 @@ public class HomeController : Controller
         _sessionService = sessionService;
         _dispatchEventRepository = dispatchEventRepository;
         _billingOperationalAlertService = billingOperationalAlertService;
+        _officeService = officeService;
     }
 
-    public async Task<IActionResult> Index()
+    public async Task<IActionResult> Index(int? officeId)
     {
         var actionStopwatch = Stopwatch.StartNew();
+
+        var offices = await _officeService.GetActiveAsync();
+        ViewData["Offices"] = offices;
 
         if (_memoryCache.TryGetValue(DashboardCacheKey, out HomeDashboardViewModel? cachedModel) && cachedModel is not null)
         {
@@ -71,7 +77,7 @@ public class HomeController : Controller
         var countPatients = await MeasureStepAsync("Patients.ActiveCount", () => SafeCountAsync(() => _patientService.CountActiveAsync(), nameof(_patientService.CountActiveAsync)));
         var countProfessionals = await MeasureStepAsync("Professionals.ActiveCount", () => SafeCountAsync(() => _professionalService.CountActiveAsync(), nameof(_professionalService.CountActiveAsync)));
         var countTreatments = await MeasureStepAsync("Treatments.Count", () => SafeCountAsync(() => _treatmentService.CountAsync(), nameof(_treatmentService.CountAsync)));
-        var dashboardCounts = await MeasureStepAsync("Sessions.DashboardCounts", SafeGetDashboardCountsAsync);
+        var dashboardCounts = await MeasureStepAsync("Sessions.DashboardCounts", () => SafeGetDashboardCountsAsync(officeId));
         var countSessions = dashboardCounts.Total;
         var countToday = dashboardCounts.TodayTotal;
         var countCompletedToday = dashboardCounts.TodayCompleted;
@@ -185,11 +191,11 @@ public class HomeController : Controller
             }
         }
 
-        async Task<DashboardSessionCountsDto> SafeGetDashboardCountsAsync()
+        async Task<DashboardSessionCountsDto> SafeGetDashboardCountsAsync(int? officeId)
         {
             try
             {
-                return await _sessionService.GetDashboardCountsAsync(today, rangeFrom, rangeTo);
+                return await _sessionService.GetDashboardCountsAsync(today, rangeFrom, rangeTo, officeId);
             }
             catch (Exception ex)
             {
