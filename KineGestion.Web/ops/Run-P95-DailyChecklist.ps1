@@ -4,7 +4,7 @@ param(
 
     [string]$Email = 'admin@kinegestion.com',
 
-    [string]$AuthSecret = 'Admin1234',
+    [string]$AuthSecret = $env:KINEGESTION_AUTH_SECRET,
 
     [int]$Iterations = 20,
 
@@ -26,6 +26,10 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $script:SupportsBasicParsing = $PSVersionTable.PSVersion.Major -lt 6
+
+if ([string]::IsNullOrWhiteSpace($AuthSecret)) {
+    throw 'Falta la contraseña: pasar -AuthSecret o definir la variable de entorno KINEGESTION_AUTH_SECRET.'
+}
 
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $measureScript = Join-Path $scriptDir 'Measure-P95-Authenticated.ps1'

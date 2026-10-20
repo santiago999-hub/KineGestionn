@@ -11,7 +11,7 @@ Sistema de gestión para un centro de kinesiología: pacientes, profesionales, t
 - **Stack:** ASP.NET Core 8 MVC (Razor) + EF Core 8 + SQL Server 2022. Identity para autenticación. Docker multi-stage. CI en GitHub Actions con SQL Server en contenedor.
 - **Proyectos:** `KineGestion.Core`, `KineGestion.Data`, `KineGestion.Web` (producción) + `KineGestion.Tests`, `KineGestion.Web.Tests` (test). Ver `KineGestion.sln`.
 - **Puerto dev:** `http://localhost:5138`.
-- **Seed:** `admin@kinegestion.com` / `Admin1234` (`KineGestion.Web/Program.cs:402-403`).
+- **Seed:** `admin@kinegestion.com` / `Admin1234` solo en Development (clave en `appsettings.Development.json`, gitignored; fallback en `KineGestion.Web/Program.cs:400-411`). En no-dev la password viene de la env var `Seed__AdminPassword` y si falta/apparece insegura el arranque falla (`ValidateProductionSafetyConfiguration`).
 - **Imagen:** `ghcr.io/santiago999-hub/kinegestionn` (se publica en push a `main`).
 
 ## 2. Arquitectura por capas (Clean / N-layer)

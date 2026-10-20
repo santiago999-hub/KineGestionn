@@ -32,7 +32,7 @@ namespace KineGestion.Web.Tests
         {
             var ctx = BuildDefaultContext();
 
-            var result = await ctx.Controller.Index();
+            var result = await ctx.Controller.Index(null);
 
             var view = Assert.IsType<ViewResult>(result);
             var model = Assert.IsType<HomeDashboardViewModel>(view.Model);
@@ -52,9 +52,9 @@ namespace KineGestion.Web.Tests
         public async Task Index_ShouldReturnZeroForMetric_WhenAServiceFails()
         {
             var ctx = BuildDefaultContext();
-            ctx.SessionService.Setup(s => s.GetDashboardCountsAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<DateTime>())).ThrowsAsync(new InvalidOperationException("boom"));
+            ctx.SessionService.Setup(s => s.GetDashboardCountsAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<int?>())).ThrowsAsync(new InvalidOperationException("boom"));
 
-            var result = await ctx.Controller.Index();
+            var result = await ctx.Controller.Index(null);
 
             var view = Assert.IsType<ViewResult>(result);
             var model = Assert.IsType<HomeDashboardViewModel>(view.Model);
@@ -75,8 +75,8 @@ namespace KineGestion.Web.Tests
         {
             var ctx = BuildDefaultContext();
 
-            var firstResult = await ctx.Controller.Index();
-            var secondResult = await ctx.Controller.Index();
+            var firstResult = await ctx.Controller.Index(null);
+            var secondResult = await ctx.Controller.Index(null);
 
             Assert.IsType<ViewResult>(firstResult);
             Assert.IsType<ViewResult>(secondResult);
@@ -85,7 +85,7 @@ namespace KineGestion.Web.Tests
             ctx.PatientService.Verify(s => s.CountActiveAsync(), Times.Once);
             ctx.ProfessionalService.Verify(s => s.CountActiveAsync(), Times.Once);
             ctx.TreatmentService.Verify(s => s.CountAsync(), Times.Once);
-            ctx.SessionService.Verify(s => s.GetDashboardCountsAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<DateTime>()), Times.Once);
+            ctx.SessionService.Verify(s => s.GetDashboardCountsAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<int?>()), Times.Once);
             ctx.SessionService.Verify(s => s.CountByCancellationReasonInRangeAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>()), Times.Once);
             ctx.BillingAlertService.Verify(s => s.GetSnapshotAsync(It.IsAny<DateTime>(), default), Times.Once);
             ctx.DispatchEventRepository.Verify(r => r.CountByTypeAsync("BillingBatchLowEffectivenessAlert", It.IsAny<DateTime?>(), It.IsAny<DateTime?>()), Times.Once);
@@ -115,7 +115,7 @@ namespace KineGestion.Web.Tests
                     }
                 });
 
-            var result = await ctx.Controller.Index();
+            var result = await ctx.Controller.Index(null);
 
             var view = Assert.IsType<ViewResult>(result);
             var model = Assert.IsType<HomeDashboardViewModel>(view.Model);
@@ -151,7 +151,7 @@ namespace KineGestion.Web.Tests
                     }
                 });
 
-            var result = await ctx.Controller.Index();
+            var result = await ctx.Controller.Index(null);
 
             var view = Assert.IsType<ViewResult>(result);
             var model = Assert.IsType<HomeDashboardViewModel>(view.Model);
@@ -188,6 +188,7 @@ namespace KineGestion.Web.Tests
             public Mock<ISessionService> SessionService { get; } = new();
             public Mock<IDispatchEventRepository> DispatchEventRepository { get; } = new();
             public Mock<IBillingOperationalAlertService> BillingAlertService { get; } = new();
+            public Mock<IOfficeService> OfficeService { get; } = new();
             public MemoryCache Cache { get; } = new(new MemoryCacheOptions());
 
             public HomeController Controller => new(
@@ -198,19 +199,21 @@ namespace KineGestion.Web.Tests
                 TreatmentService.Object,
                 SessionService.Object,
                 DispatchEventRepository.Object,
-                BillingAlertService.Object);
+                BillingAlertService.Object,
+                OfficeService.Object);
 
             public void SetupDefaultMetrics()
             {
                 PatientService.Setup(s => s.CountActiveAsync()).ReturnsAsync(12);
                 ProfessionalService.Setup(s => s.CountActiveAsync()).ReturnsAsync(4);
                 TreatmentService.Setup(s => s.CountAsync()).ReturnsAsync(18);
-                SessionService.Setup(s => s.GetDashboardCountsAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<DateTime>()))
+                SessionService.Setup(s => s.GetDashboardCountsAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<int?>()))
                 .ReturnsAsync(new DashboardSessionCountsDto(60, 7, 3, 2, 9, 5, 20, 15, 20, 2, 1));
                 SessionService.Setup(s => s.CountByCancellationReasonInRangeAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>())).ReturnsAsync(new Dictionary<CancellationReason, int>());
                 DispatchEventRepository.Setup(r => r.CountByTypeAsync("BillingBatchLowEffectivenessAlert", It.IsAny<DateTime?>(), It.IsAny<DateTime?>())).ReturnsAsync(0);
                 DispatchEventRepository.Setup(r => r.GetByTypeAsync("BillingBatchLowEffectivenessAlert", null, null, 3)).ReturnsAsync(Array.Empty<DispatchEvent>());
                 BillingAlertService.Setup(s => s.GetSnapshotAsync(It.IsAny<DateTime>(), default)).ReturnsAsync(new BillingOperationalAlertSnapshot { ThresholdPct = 70m, HasConsecutiveLowWeeks = false });
+                OfficeService.Setup(s => s.GetActiveAsync()).ReturnsAsync(Array.Empty<Office>());
             }
         }
     }

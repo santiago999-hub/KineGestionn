@@ -3,7 +3,7 @@
 > Memoria de trabajo del agente. **Leer al inicio de cada sesión** antes de explorar el repo.
 > Regla de oro (ahorro de tokens): si la tarea es sobre contenido/documentación, leer `RESUMEN-INTEGRAL-KINEGESTION.md`; NO re-explorar las 4 capas de nuevo.
 
-Última actualización: 2026-10-19 (análisis 5 lentes de defensa en `RESUMEN-INTEGRAL` §12).
+Última actualización: 2026-10-20 (credencial seed `Admin1234` fuera del repo).
 
 ---
 
@@ -28,7 +28,7 @@
 - [ ] Portal de autogestión del paciente (ver turnos, reprogramar, pagar).
 
 ### Media prioridad (técnica / robustez)
-- [ ] **Sacar las llaves/secretos de GitHub del repo** (no es seguro): barrido 2026-10-19 → sin PAT/tokens/API keys hardcodeados (workflows usan `GITHUB_TOKEN`; prod usa `CHANGE_ME` con fail-fast). Pendiente: **credencial de seed `Admin1234` en `appsettings.json`** — mover a variable de entorno / `.env` (mitigado hoy por `ValidateProductionSafetyConfiguration`, pero si el repo es público expone la pass por defecto). Sumar secret scanning en CI y rotar si algún secreto llegó a publicarse.
+- [ ] **Sacar las llaves/secretos de GitHub del repo** (no es seguro): barrido 2026-10-19 → sin PAT/tokens/API keys hardcodeados (workflows usan `GITHUB_TOKEN`; prod usa `CHANGE_ME` con fail-fast). ~~Credencial de seed `Admin1234` en `appsettings.json`~~ → resuelto 2026-10-20: sacada del `appsettings.json` rastreado; vive solo en `appsettings.Development.json` (gitignored) + env var `Seed__AdminPassword` en no-dev (fail-fast en `Program.cs` y en `ValidateProductionSafetyConfiguration`); scripts de ops leen `KINEGESTION_AUTH_SECRET`. Pendiente: **secret scanning en CI y rotar si algún secreto llegó a publicarse** (el literal `Admin1234` sigue en historial de git).
 - [ ] Caché distribuida (Redis) para multi-instancia (hoy `QueryCache` es por proceso).
 - [ ] Broker de mensajería (Redis/RabbitMQ/Azure Service Bus) + **DLQ** al escalar a > 1 consumidor.
 - [ ] Idempotencia por ventana (SessionId + ventana operativa) en el productor.
@@ -46,6 +46,7 @@
 
 ## 3. Bitácora reciente
 
+- **2026-10-20 (seguridad):** credencial seed `Admin1234` fuera del repo: quitada de `appsettings.json` (rastreado), agregada a `appsettings.Development.json` (gitignored); `Program.cs` hace fail-fast si falta `Seed:AdminPassword` en no-dev; scripts de ops usan env var `KINEGESTION_AUTH_SECRET` en vez del literal. `RESUMEN-INTEGRAL` §1 actualizado. Además reparada `HomeControllerTests` (estaba roja en `HEAD` por el feature multisede: faltaba `IOfficeService`/`officeId` y el 4º arg de `GetDashboardCountsAsync`). Suites: Web.Tests 181 verde, Tests 139 verde.
 - **2026-10-19:** agregada §12 "Análisis con 5 lentes de defensa" a `RESUMEN-INTEGRAL-KINEGESTION.md`: 3 trade-offs estructurales (monolito MVC / outbox SQL / cifrado+RowVersion), tabla de 5 fallos catastróficos con mitigación, eje entropía Base/Full, matriz financiera Base vs Full y pitch de ascensor de 2 min. Marcado el pendiente del guion de presentación.
 - **2026-10-16 (UI + docs):**
 
@@ -59,6 +60,7 @@
 - `RESUMEN-INTEGRAL-KINEGESTION.md` → conservar.
 - `PENDIENTES-KINEGESTION.md` → conservar (actualizado).
 - `AGENTS.md` → conservar (memoria de trabajo).
+- Cambios de código sin commitear (2026-10-20, seed Admin1234): `KineGestion.Web/appsettings.json`, `KineGestion.Web/Program.cs`, `KineGestion.Web/ops/Run-P95-DailyChecklist.ps1`, `KineGestion.Web/ops/Measure-P95-Authenticated.ps1`, `KineGestion.Web.Tests/HomeControllerTests.cs` (+ `appsettings.Development.json` local, NO commitear: gitignored).
 - Temporales de exploración: **eliminados**.
 
 ## 5. Guía de eficiencia (feedback + tokens)

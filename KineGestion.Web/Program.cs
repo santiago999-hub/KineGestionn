@@ -400,7 +400,15 @@ using (var scope = app.Services.CreateScope())
     // Usuario admin por defecto — cambiar contraseña después del primer login
     var config = scope.ServiceProvider.GetRequiredService<IConfiguration>();
     var adminEmail = config["Seed:AdminEmail"] ?? "admin@kinegestion.com";
-    var adminPassword = config["Seed:AdminPassword"] ?? "Admin1234";
+    var adminPassword = config["Seed:AdminPassword"];
+    if (string.IsNullOrWhiteSpace(adminPassword))
+    {
+        if (app.Environment.IsDevelopment())
+            adminPassword = "Admin1234";
+        else
+            throw new InvalidOperationException(
+                "Seed:AdminPassword no está configurado. Definirlo vía la variable de entorno Seed__AdminPassword.");
+    }
     var resetAdminPasswordOnStartup = config.GetValue<bool>("Seed:ResetAdminPasswordOnStartup");
     var existingAdmin = await userManager.FindByEmailAsync(adminEmail);
     if (existingAdmin is null)
