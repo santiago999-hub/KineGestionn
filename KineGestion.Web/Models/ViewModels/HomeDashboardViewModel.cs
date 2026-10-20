@@ -17,6 +17,8 @@ namespace KineGestion.Web.Models.ViewModels
 
     public class HomeDashboardViewModel
     {
+        public int? SelectedOfficeId { get; set; }
+        public string? OfficeName { get; set; }
         public int PacientesActivosCount { get; set; }
         public int ProfesionalesActivosCount { get; set; }
         public int TratamientosCount { get; set; }

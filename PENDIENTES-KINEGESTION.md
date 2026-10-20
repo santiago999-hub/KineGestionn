@@ -25,6 +25,7 @@
 - [ ] Entidad `Payment` (montos, parciales, método de cobro, recibo).
 - [ ] Reportes PDF + cierre de caja.
 - [ ] Portal de autogestión del paciente (ver turnos, reprogramar, pagar).
+- [ ] **Dashboard multisede: filtro por sede en los KPIs, selector en el header y vista detalle por sucursal manteniendo la apariencia global del dashboard**.
 
 ### Media prioridad (técnica / robustez)
 - [ ] **Sacar las llaves/secretos de GitHub del repo** (no es seguro): barrido 2026-10-19 → sin PAT/tokens/API keys hardcodeados (workflows usan `GITHUB_TOKEN`; prod usa `CHANGE_ME` con fail-fast). Pendiente: **credencial de seed `Admin1234` en `appsettings.json`** — mover a variable de entorno / `.env` (mitigado hoy por `ValidateProductionSafetyConfiguration`, pero si el repo es público expone la pass por defecto). Sumar secret scanning en CI y rotar si algún secreto llegó a publicarse.
