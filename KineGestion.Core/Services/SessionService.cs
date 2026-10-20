@@ -146,7 +146,7 @@ namespace KineGestion.Core.Services
 
         public async Task<DashboardSessionCountsDto> GetDashboardCountsAsync(DateTime todayUtc, DateTime fromInclusiveUtc, DateTime toExclusiveUtc, int? officeId = null)
             => await QueryCache.GetOrCreateAsync(
-                $"sessions:count:dashboard:{todayUtc:yyyyMMdd}:{fromInclusiveUtc:yyyyMMddHHmmss}:{toExclusiveUtc:yyyyMMddHHmmss}" + GetCacheScope(),
+                $"sessions:count:dashboard:{todayUtc:yyyyMMdd}:{fromInclusiveUtc:yyyyMMddHHmmss}:{toExclusiveUtc:yyyyMMddHHmmss}:office:{officeId?.ToString() ?? "all"}" + GetCacheScope(),
                 () => _metricsRepository.GetDashboardCountsAsync(todayUtc, fromInclusiveUtc, toExclusiveUtc, officeId),
                 TimeSpan.FromSeconds(10));
 

@@ -7,6 +7,9 @@
     var todayDisplay = today.ToString("dd/MM/yyyy");
     var isAdmin = User.IsInRole("Admin");
     var isKinesiologo = User.IsInRole("Kinesiologo");
+    var offices = ViewData["Offices"] as List<KineGestion.Core.Entities.Office> ?? new List<KineGestion.Core.Entities.Office>();
+    var selectedOffice = Model.SelectedOfficeId.HasValue ? offices.FirstOrDefault(o => o.Id == Model.SelectedOfficeId.Value) : null;
+    var selectedLabel = selectedOffice != null ? $"Oficina {selectedOffice.Id} - {selectedOffice.Name}" : "Todas las sedes";
 }
 
 <div class="kg-dashboard-hero mb-4">
@@ -47,19 +50,39 @@
         </div>
         @if (isAdmin)
         {
-            <div class="kg-dashboard-hero-chip">
-                <i class="bi bi-building-fill"></i>
-                <span>Sede: @(Model.SelectedOfficeId.HasValue ? $"Oficina {Model.SelectedOfficeId.Value}" : "Todas las sedes")</span>
-            </div>
-            <form asp-controller="Home" asp-action="Index" method="post" class="d-inline mb-2">
-                <select name="officeId" onchange="this.form.submit()" class="form-select form-select-sm w-auto d-inline-block">
-                    <option value="">-- Seleccionar sede --</option>
-                    <option value="">Todas</option>
-                    @foreach (var office in (List<KineGestion.Core.Entities.Office>)ViewData["Offices"] ?? new List<KineGestion.Core.Entities.Office>())
-                    {
-                        <option value="@office.Id">Oficina @office.Id - @office.Name</option>
-                    }
-                </select>
+            <form asp-controller="Home" asp-action="Index" method="post" class="kg-office-form" id="kgOfficeForm">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="officeId" id="kgOfficeValue" value="@(Model.SelectedOfficeId?.ToString() ?? "")" />
+                <div class="kg-hero-dropdown" id="kgOfficeDropdown">
+                    <button type="button"
+                            class="kg-hero-select"
+                            id="kgOfficeTrigger"
+                            aria-haspopup="listbox"
+                            aria-expanded="false"
+                            aria-controls="kgOfficeList"
+                            aria-label="Seleccionar sede">
+                        <i class="bi bi-building-fill kg-hero-select-icon" aria-hidden="true"></i>
+                        <span class="kg-hero-select-label" id="kgOfficeLabel">@selectedLabel</span>
+                        <i class="bi bi-chevron-down kg-hero-select-caret" aria-hidden="true"></i>
+                    </button>
+
+                    <div class="kg-hero-menu" id="kgOfficeList" role="listbox" aria-label="Sedes disponibles" tabindex="-1">
+                        <button type="button" class="kg-hero-option @(Model.SelectedOfficeId.HasValue ? "" : "is-selected")" role="option" aria-selected="@(Model.SelectedOfficeId.HasValue ? "false" : "true")" data-value="" data-label="Todas las sedes">
+                            <i class="bi bi-buildings" aria-hidden="true"></i>
+                            <span>Todas las sedes</span>
+                            <i class="bi bi-check2 kg-hero-option-check" aria-hidden="true"></i>
+                        </button>
+                        @foreach (var office in offices)
+                        {
+                            var isSel = Model.SelectedOfficeId == office.Id;
+                            <button type="button" class="kg-hero-option @(isSel ? "is-selected" : "")" role="option" aria-selected="@(isSel ? "true" : "false")" data-value="@office.Id" data-label="Oficina @office.Id - @office.Name">
+                                <i class="bi bi-geo-alt" aria-hidden="true"></i>
+                                <span>Oficina @office.Id - @office.Name</span>
+                                <i class="bi bi-check2 kg-hero-option-check" aria-hidden="true"></i>
+                            </button>
+                        }
+                    </div>
+                </div>
             </form>
         }
 </div>
@@ -478,4 +501,121 @@
             </div>
         </div>
     </div>
+}
+
+@section Scripts {
+    <script>
+        (function () {
+            var dropdown = document.getElementById('kgOfficeDropdown');
+            if (!dropdown) return;
+
+            var trigger = document.getElementById('kgOfficeTrigger');
+            var menu = document.getElementById('kgOfficeList');
+            var hidden = document.getElementById('kgOfficeValue');
+            var label = document.getElementById('kgOfficeLabel');
+            var form = document.getElementById('kgOfficeForm');
+            var options = Array.prototype.slice.call(menu.querySelectorAll('.kg-hero-option'));
+            var activeIndex = options.findIndex(function (o) { return o.classList.contains('is-selected'); });
+            if (activeIndex < 0) activeIndex = 0;
+
+            function isOpen() { return dropdown.classList.contains('is-open'); }
+
+            function positionMenu() {
+                var rect = trigger.getBoundingClientRect();
+                var gap = 10;
+                var menuHeight = Math.min(menu.scrollHeight, 300);
+                var spaceBelow = window.innerHeight - rect.bottom;
+                var openAbove = spaceBelow < menuHeight + gap && rect.top > menuHeight + gap;
+
+                menu.style.left = rect.left + 'px';
+                menu.style.width = rect.width + 'px';
+                menu.classList.toggle('is-above', openAbove);
+
+                if (openAbove) {
+                    menu.style.top = (rect.top - menuHeight - gap) + 'px';
+                } else {
+                    menu.style.top = (rect.bottom + gap) + 'px';
+                }
+            }
+
+            function openMenu() {
+                dropdown.classList.add('is-open');
+                trigger.setAttribute('aria-expanded', 'true');
+                positionMenu();
+                menu.focus();
+                highlight(activeIndex);
+            }
+
+            function closeMenu() {
+                dropdown.classList.remove('is-open');
+                trigger.setAttribute('aria-expanded', 'false');
+            }
+
+            function highlight(index) {
+                activeIndex = (index + options.length) % options.length;
+                options.forEach(function (o, i) {
+                    o.classList.toggle('is-active', i === activeIndex);
+                });
+                options[activeIndex].scrollIntoView({ block: 'nearest' });
+            }
+
+            function select(option) {
+                hidden.value = option.dataset.value || '';
+                label.textContent = option.dataset.label;
+                options.forEach(function (o) {
+                    var on = o === option;
+                    o.classList.toggle('is-selected', on);
+                    o.setAttribute('aria-selected', on ? 'true' : 'false');
+                });
+                closeMenu();
+                trigger.focus();
+                form.submit();
+            }
+
+            trigger.addEventListener('click', function () {
+                isOpen() ? closeMenu() : openMenu();
+            });
+
+            trigger.addEventListener('keydown', function (e) {
+                if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    openMenu();
+                }
+            });
+
+            menu.addEventListener('keydown', function (e) {
+                switch (e.key) {
+                    case 'ArrowDown': e.preventDefault(); highlight(activeIndex + 1); break;
+                    case 'ArrowUp': e.preventDefault(); highlight(activeIndex - 1); break;
+                    case 'Home': e.preventDefault(); highlight(0); break;
+                    case 'End': e.preventDefault(); highlight(options.length - 1); break;
+                    case 'Enter':
+                    case ' ':
+                        e.preventDefault();
+                        select(options[activeIndex]);
+                        break;
+                    case 'Escape':
+                        e.preventDefault();
+                        closeMenu();
+                        trigger.focus();
+                        break;
+                    case 'Tab':
+                        closeMenu();
+                        break;
+                }
+            });
+
+            options.forEach(function (option, i) {
+                option.addEventListener('click', function () { select(option); });
+                option.addEventListener('mousemove', function () { highlight(i); });
+            });
+
+            document.addEventListener('click', function (e) {
+                if (!dropdown.contains(e.target) && !menu.contains(e.target)) closeMenu();
+            });
+
+            window.addEventListener('resize', function () { if (isOpen()) positionMenu(); });
+            window.addEventListener('scroll', function () { if (isOpen()) positionMenu(); }, true);
+        })();
+    </script>
 }

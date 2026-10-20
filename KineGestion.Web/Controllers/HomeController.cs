@@ -16,7 +16,10 @@ namespace KineGestion.Web.Controllers;
 [Authorize(Roles = "Admin,Kinesiologo,Asistente")]
 public class HomeController : Controller
 {
-    private const string DashboardCacheKey = "HomeController.Index.Dashboard";
+    private const string DashboardCacheKeyPrefix = "HomeController.Index.Dashboard";
+
+    private static string DashboardCacheKeyFor(int? officeId)
+        => officeId.HasValue ? $"{DashboardCacheKeyPrefix}.Office.{officeId.Value}" : DashboardCacheKeyPrefix + ".All";
 
     private readonly ILogger<HomeController> _logger;
     private readonly IMemoryCache _memoryCache;
@@ -57,7 +60,9 @@ public class HomeController : Controller
         var offices = await _officeService.GetActiveAsync();
         ViewData["Offices"] = offices;
 
-        if (_memoryCache.TryGetValue(DashboardCacheKey, out HomeDashboardViewModel? cachedModel) && cachedModel is not null)
+        var cacheKey = DashboardCacheKeyFor(officeId);
+
+        if (_memoryCache.TryGetValue(cacheKey, out HomeDashboardViewModel? cachedModel) && cachedModel is not null)
         {
             actionStopwatch.Stop();
             if (HttpContext is not null)
@@ -102,6 +107,7 @@ public class HomeController : Controller
 
         var model = new HomeDashboardViewModel
         {
+            SelectedOfficeId = officeId,
             PacientesActivosCount = countPatients,
             ProfesionalesActivosCount = countProfessionals,
             TratamientosCount = countTreatments,
@@ -126,7 +132,7 @@ public class HomeController : Controller
 
         if (hasErrors == 0)
         {
-            _memoryCache.Set(DashboardCacheKey, model, new MemoryCacheEntryOptions
+            _memoryCache.Set(cacheKey, model, new MemoryCacheEntryOptions
             {
                 AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(30),
                 SlidingExpiration = TimeSpan.FromSeconds(15)
@@ -293,7 +299,7 @@ public class HomeController : Controller
     public async Task<IActionResult> TriggerBillingOperationalAlert()
     {
         var result = await _billingOperationalAlertService.QueueAlertIfNeededAsync(User?.Identity?.Name, DateTime.UtcNow);
-        _memoryCache.Remove(DashboardCacheKey);
+        await InvalidateDashboardCacheAsync();
 
         if (string.IsNullOrWhiteSpace(result.Message))
         {
@@ -314,6 +320,17 @@ public class HomeController : Controller
     public IActionResult Privacy()
     {
         return View();
+    }
+
+    private async Task InvalidateDashboardCacheAsync()
+    {
+        _memoryCache.Remove(DashboardCacheKeyFor(null));
+
+        var offices = await _officeService.GetActiveAsync();
+        foreach (var office in offices)
+        {
+            _memoryCache.Remove(DashboardCacheKeyFor(office.Id));
+        }
     }
 
     [AllowAnonymous]
