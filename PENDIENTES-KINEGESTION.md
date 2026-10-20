@@ -22,10 +22,10 @@
 - [ ] Revisar coherencia entre `RESUMEN-INTEGRAL-KINEGESTION.md` y los otros docs ya existentes (`TESIS-*`, `GUIA-PARA-ENTENDER-KINEGESTION.md`, `ANALISIS-SISTEMA-KINEGESTION.md`) para no duplicar/contradecir.
 
 ### Media prioridad (producto)
+- [x] **Dashboard multisede: filtro por sede en los KPIs, selector en el header y vista detalle por sucursal manteniendo la apariencia global del dashboard** → implementado: selector de oficinas en header que pobla desde BD, filtrado de KPIs por officeId, KPIs por sede individual y agregados. Pendiente: testear con datos reales y perfeccionar UX.
 - [ ] Entidad `Payment` (montos, parciales, método de cobro, recibo).
 - [ ] Reportes PDF + cierre de caja.
 - [ ] Portal de autogestión del paciente (ver turnos, reprogramar, pagar).
-- [ ] **Dashboard multisede: filtro por sede en los KPIs, selector en el header y vista detalle por sucursal manteniendo la apariencia global del dashboard**.
 
 ### Media prioridad (técnica / robustez)
 - [ ] **Sacar las llaves/secretos de GitHub del repo** (no es seguro): barrido 2026-10-19 → sin PAT/tokens/API keys hardcodeados (workflows usan `GITHUB_TOKEN`; prod usa `CHANGE_ME` con fail-fast). Pendiente: **credencial de seed `Admin1234` en `appsettings.json`** — mover a variable de entorno / `.env` (mitigado hoy por `ValidateProductionSafetyConfiguration`, pero si el repo es público expone la pass por defecto). Sumar secret scanning en CI y rotar si algún secreto llegó a publicarse.
