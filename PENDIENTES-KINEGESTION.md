@@ -84,3 +84,6 @@
 - Repos de fecha: desde `>= fecha.Date`, hasta `< fecha.Date.AddDays(1)`.
 - `DispatchType` centralizados en `KineGestion.Core.DispatchTypes`.
 - Tests que tocan BD real: `Integration` en el nombre de la CLASE.
+
+### Alta prioridad (gráficos / cobranzas)
+- [ ] **Mejorar módulo Cobranzas (nivel profesional):** rediseño de UI/UX en /Billing/Index (layout con cards superiores, tablas más legibles, filtros avanzados, badges/estados claros). Agregar **gráficos** para análisis (Chart.js/ApexCharts): evolución de cobranza últimos 30/90 días, distribución por estado (Pendiente/Pagado), monto total cobrado vs pendiente, efectividad de cobranza por profesional/sede, top de deudas por paciente. Incluir exportación (PDF/Excel) y métricas agregadas en header (Total pendiente, Total cobrado, % efectividad). Estudiar datos existentes (PaymentStatus, sesiones completadas sin cobrar) y mantener coherencia con arquitectura actual (sin romper tests).
