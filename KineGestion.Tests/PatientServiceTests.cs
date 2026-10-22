@@ -274,5 +274,84 @@ namespace KineGestion.Tests
 
             _repositoryMock.Verify(r => r.DeleteAsync(1), Times.Once);
         }
+
+        [Fact]
+        public async Task TryValidateObraSocial_ShouldReturnTrue_WhenObraSocialIsNull()
+        {
+            // Arrange
+            string? obraSocial = null;
+            string? errorMessage;
+
+            // Act
+            var result = PatientService.TryValidateObraSocial(obraSocial, out errorMessage);
+
+            // Assert
+            Assert.True(result);
+            Assert.Null(errorMessage);
+        }
+
+        [Fact]
+        public async Task TryValidateObraSocial_ShouldReturnTrue_WhenObraSocialIsKnownValue()
+        {
+            // Arrange
+            var knownValues = new[] { "OSDE", "PAMI", "IOMA", "Swiss", "Particular", "OTRO" };
+            string? errorMessage;
+
+            // Act & Assert
+            foreach (var value in knownValues)
+            {
+                var result = PatientService.TryValidateObraSocial(value, out errorMessage);
+                Assert.True(result, $"Debería ser válido el valor: {value}");
+                Assert.Null(errorMessage); // No debería haber error para el valor: {value}");
+            }
+        }
+
+        [Fact]
+        public async Task TryValidateObraSocial_ShouldReturnTrue_WhenObraSocialIsUnrecognizedValue()
+        {
+            // Arrange
+            var unrecognizedValues = new[] { "ObraSocialX", "ASD", "", "  " };
+            string? errorMessage;
+
+            // Act & Assert
+            foreach (var value in unrecognizedValues)
+            {
+                var result = PatientService.TryValidateObraSocial(value, out errorMessage);
+                // Debería retornar true (backward compatibility) pero con mensaje de advertencia para valores no nulos
+                Assert.True(result, $"Debería aceptar el valor para backward compatibility: '{value}'");
+                // Valores vacíos o nulos no deberían tener mensaje de error
+                if (string.IsNullOrWhiteSpace(value))
+                    Assert.Null(errorMessage);
+                else
+                    // Valores no reconocidos sí tendrán mensaje de advertencia
+                    Assert.NotNull(errorMessage);
+            }
+        }
+
+        [Fact]
+        public async Task CreateAsync_ShouldNotThrow_WhenObraSocialIsValid()
+        {
+            // Arrange
+            var patient = BuildPatient(); // ObraSocial = "OSDE" por defecto, FechaNacimiento en el pasado
+
+            // Act
+            var exception = await Record.ExceptionAsync(() => _service.CreateAsync(patient));
+
+            // Assert
+            Assert.Null(exception); // No debería lanzar excepción para ObraSocial válida y fecha correcta
+        }
+
+        [Fact]
+        public async Task UpdateAsync_ShouldNotThrow_WhenObraSocialIsValid()
+        {
+            // Arrange
+            var patient = BuildPatient(); // ObraSocial = "OSDE" por defecto
+
+            // Act
+            var exception = await Record.ExceptionAsync(() => _service.UpdateAsync(patient));
+
+            // Assert
+            Assert.Null(exception); // No debería lanzar excepción para ObraSocial válida
+        }
     }
 }

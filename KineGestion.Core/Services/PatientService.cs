@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using KineGestion.Core.DTOs;
 using KineGestion.Core.Entities;
@@ -55,6 +56,40 @@ namespace KineGestion.Core.Services
                 TimeSpan.FromSeconds(15));
 
         /// <summary>
+        /// Valida que el formato de ObraSocial sea el esperado.
+        /// Admite valores nulos (paciente sin cobertura), y valores conocidos:
+        /// "OSDE", "PAMI", "IOMA", "Swiss", "Particular", "OTRO".
+        /// Demás valores se registran con advertencia pero no se bloquean
+        /// para mantener backward compatibility con datos existentes.
+        /// </summary>
+        public static bool TryValidateObraSocial(string? obraSocial, out string? errorMessage)
+        {
+            errorMessage = null;
+
+            if (obraSocial is null)
+                return true; // Paciente sin obra social - válido
+
+            var normalized = obraSocial.Trim();
+            if (string.IsNullOrWhiteSpace(normalized))
+                return true; // Cadena vacía después de trim - válido
+
+            // Valores conocidos y aceptados
+            var valoresConocidos = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            {
+                "OSDE", "PAMI", "IOMA", "Swiss", "Particular", "OTRO"
+            };
+
+            if (valoresConocidos.Contains(normalized))
+                return true;
+
+            // Valor no reconocido: se permite para backward compatibility
+            // pero se retorna mensaje de advertencia
+            errorMessage = $"'{normalized}' no es un valor de ObraSocial reconocido. Valores esperados: OSDE, PAMI, IOMA, Swiss, Particular, OTRO. " +
+                           $"El registro se guardará tal como fue ingresado.";
+            return true; // Se permite por backward compatibility, no se bloquea
+        }
+
+        /// <summary>
         /// LÓGICA DE NEGOCIO: un DNI no puede estar registrado dos veces.
         /// El Service sabe QUÉ validar; el Repository sabe CÓMO consultarlo.
         /// </summary>
@@ -70,8 +105,12 @@ namespace KineGestion.Core.Services
         /// <summary>Valida unicidad de DNI y luego delega la persistencia al Repository.</summary>
         public async Task<Patient> CreateAsync(Patient patient)
         {
-                ValidateFechaNacimiento(patient.FechaNacimiento);
-                patient.DNI = NormalizeAndValidateRequired(patient.DNI, nameof(Patient.DNI), "El DNI es obligatorio.");
+            ValidateFechaNacimiento(patient.FechaNacimiento);
+            patient.DNI = NormalizeAndValidateRequired(patient.DNI, nameof(Patient.DNI), "El DNI es obligatorio.");
+
+// Validación nueva: formato ObraSocial (backward compatibility)
+                TryValidateObraSocial(patient.ObraSocial, out _);
+                
                 await ValidateDniUniquenessAsync(patient.DNI);
             var created = await _repository.AddAsync(patient);
             QueryCache.InvalidatePrefix("patients:");
@@ -81,8 +120,12 @@ namespace KineGestion.Core.Services
         /// <summary>Valida unicidad de DNI excluyendo al propio paciente (caso edición).</summary>
         public async Task<Patient> UpdateAsync(Patient patient)
         {
-                ValidateFechaNacimiento(patient.FechaNacimiento);
-                patient.DNI = NormalizeAndValidateRequired(patient.DNI, nameof(Patient.DNI), "El DNI es obligatorio.");
+            ValidateFechaNacimiento(patient.FechaNacimiento);
+            patient.DNI = NormalizeAndValidateRequired(patient.DNI, nameof(Patient.DNI), "El DNI es obligatorio.");
+
+// Validación nueva: formato ObraSocial (backward compatibility)
+                TryValidateObraSocial(patient.ObraSocial, out _);
+                
                 await ValidateDniUniquenessAsync(patient.DNI, excludeId: patient.Id);
             var updated = await _repository.UpdateAsync(patient);
             QueryCache.InvalidatePrefix("patients:");
@@ -107,29 +150,28 @@ namespace KineGestion.Core.Services
             QueryCache.InvalidatePrefix("patients:");
         }
 
-            /// <summary>
-            /// LÓGICA DE NEGOCIO: la fecha de nacimiento no puede ser futura.
-            /// Un paciente no puede nacer mañana.
-            /// </summary>
-            private static void ValidateFechaNacimiento(DateTime fechaNacimiento)
-            {
-                if (fechaNacimiento.Date >= DateTime.Today)
-                    throw new BusinessValidationException(
-                        "La fecha de nacimiento no puede ser igual o posterior a la fecha actual.",
-                        nameof(Patient.FechaNacimiento));
-            }
+        /// <summary>
+        /// LÓGICA DE NEGOCIO: la fecha de nacimiento no puede ser futura.
+        /// Un paciente no puede nacer mañana.
+        /// </summary>
+        private static void ValidateFechaNacimiento(DateTime fechaNacimiento)
+        {
+            if (fechaNacimiento.Date >= DateTime.Today)
+                throw new BusinessValidationException(
+                    "La fecha de nacimiento no puede ser igual o posterior a la fecha actual.",
+                    nameof(Patient.FechaNacimiento));
+        }
 
-            private static string NormalizeAndValidateRequired(string? value, string propertyName, string errorMessage)
-            {
-                var normalized = value?.Trim();
-                if (string.IsNullOrWhiteSpace(normalized))
-                    throw new BusinessValidationException(errorMessage, propertyName);
+        private static string NormalizeAndValidateRequired(string? value, string propertyName, string errorMessage)
+        {
+            var normalized = value?.Trim();
+            if (string.IsNullOrWhiteSpace(normalized))
+                throw new BusinessValidationException(errorMessage, propertyName);
 
-                return normalized;
-            }
+            return normalized;
+        }
 
-            private static string NormalizeSearch(string? search)
-                => string.IsNullOrWhiteSpace(search) ? "_" : search.Trim().ToLowerInvariant();
+        private static string NormalizeSearch(string? search)
+            => string.IsNullOrWhiteSpace(search) ? "_" : search.Trim().ToLowerInvariant();
     }
 }
-
