@@ -18,7 +18,7 @@ namespace KineGestion.Core.Interfaces
         Task<int> CountByPaymentStatusAsync(PaymentStatus paymentStatus);
         Task<int> CountByStatusAsync(SessionStatus status);
         Task<int> CountByCancellationReasonAsync(CancellationReason reason);
-        Task<IDictionary<CancellationReason, int>> CountByCancellationReasonInRangeAsync(DateTime fromInclusiveUtc, DateTime toExclusiveUtc);
+        Task<IDictionary<CancellationReason, int>> CountByCancellationReasonInRangeAsync(DateTime fromInclusiveUtc, DateTime toExclusiveUtc, int? officeId = null);
         Task<int> CountLateCancellationsInRangeAsync(DateTime fromInclusiveUtc, DateTime toExclusiveUtc);
         Task<int> CountByStatusAndPaymentStatusAsync(SessionStatus status, PaymentStatus paymentStatus);
         Task<int> CountByStatusOnDateAsync(SessionStatus status, DateTime utcDay);
@@ -29,5 +29,8 @@ namespace KineGestion.Core.Interfaces
         Task<DashboardSessionCountsDto> GetDashboardCountsAsync(DateTime todayUtc, DateTime fromInclusiveUtc, DateTime toExclusiveUtc, int? officeId = null);
         Task<IReadOnlyList<KpiSegmentDto>> GetKpiSegmentsByProfessionalAsync(DateTime fromInclusiveUtc, DateTime toExclusiveUtc);
         Task<IReadOnlyList<KpiSegmentDto>> GetKpiSegmentsByTimeSlotAsync(DateTime fromInclusiveUtc, DateTime toExclusiveUtc);
+        Task<IReadOnlyList<DailySessionCountDto>> GetDailySessionSeriesAsync(DateTime fromInclusiveUtc, DateTime toExclusiveUtc, int? officeId = null);
+        Task<IReadOnlyList<SessionStatusCountDto>> GetStatusDistributionInRangeAsync(DateTime fromInclusiveUtc, DateTime toExclusiveUtc, int? officeId = null);
+        Task<IReadOnlyList<SessionAgendaItemDto>> GetAgendaForDayAsync(DateTime utcDay, int? officeId = null);
     }
 }

@@ -106,5 +106,35 @@ namespace KineGestion.Tests
 
             Assert.Equal(5, callCount);
         }
+
+        [Fact]
+        public void InvalidatePrefix_ShouldIncrementVersion()
+        {
+            var before = QueryCache.Version;
+
+            QueryCache.InvalidatePrefix("querycache-test:version:");
+
+            Assert.True(QueryCache.Version > before);
+        }
+
+        [Fact]
+        public void ClearAll_ShouldIncrementVersion()
+        {
+            var before = QueryCache.Version;
+
+            QueryCache.ClearAll();
+
+            Assert.True(QueryCache.Version > before);
+        }
+
+        [Fact]
+        public void NotifyDataChanged_ShouldIncrementVersion()
+        {
+            var before = QueryCache.Version;
+
+            QueryCache.NotifyDataChanged();
+
+            Assert.True(QueryCache.Version > before);
+        }
     }
 }

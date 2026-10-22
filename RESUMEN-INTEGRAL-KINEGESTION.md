@@ -96,6 +96,8 @@ Detalle no obvio: **no hay** `IEntityTypeConfiguration`, ni `AddData()`/`AddRepo
 
 `AddDbContextPool` (~700-800 usuarios concurrentes), proyecciones DTO, `AsNoTracking`, caché en memoria con locks por clave e invalidación por prefijo (`QueryCache`) con **scoping por rol en la clave** (anti-IDOR), warmup en background, header `X-Response-Time-Ms`, endpoint `/ops/metrics` (Admin), pipeline profiling por path, y scripts de P95 en `ops/`. Health checks: `/health/live` y `/health/ready` (DB + cola).
 
+**Versionado de caché:** `QueryCache` expone `Version`, que se incrementa en cada invalidación (`InvalidatePrefix`, `ClearAll`) y vía `NotifyDataChanged()`. Las claves de caché que dependen de datos mutables (snapshot del dashboard, snapshot de alerta de cobranzas) incluyen esa versión, de modo que **cualquier escritura de dominio invalida de inmediato las vistas derivadas** sin esperar el TTL.
+
 ## 8. Localización
 
 ES (default) / EN. `AddLocalization` + cookie `CookieRequestCultureProvider` (1 año, no HttpOnly a propósito). Helpers estáticos con `ResourceManager`: `LayoutText` (`SharedLayout.resx`) y `AuditText` (`AuditLabels.resx`), con fallback español embebido. Selector ES/EN en `_Layout`.
@@ -111,6 +113,8 @@ ES (default) / EN. `AddLocalization` + cookie `CookieRequestCultureProvider` (1 
 ## 10. Tests
 
 `KineGestion.Tests` (Core/Data: unit + integración SQL) y `KineGestion.Web.Tests` (controllers/services). Regla: todo test que toque BD real debe tener `Integration` en el nombre de la clase. El guion de defensa reporta **114/114 en verde** (Core/Data 49 → 53; Web 51 → 61).
+
+Estado actual (2026-10-21): **Web.Tests 183 verde, Tests 143 verde** (integración sobre SQL real incluida).
 
 ## 11. Análisis por área: qué vender, qué pulir, plan a futuro
 

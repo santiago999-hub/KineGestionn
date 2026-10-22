@@ -162,6 +162,24 @@ namespace KineGestion.Core.Services
                 () => _metricsRepository.GetKpiSegmentsByTimeSlotAsync(fromInclusiveUtc, toExclusiveUtc),
                 TimeSpan.FromSeconds(10));
 
+        public async Task<IReadOnlyList<DailySessionCountDto>> GetDailySessionSeriesAsync(DateTime fromInclusiveUtc, DateTime toExclusiveUtc, int? officeId = null)
+            => await QueryCache.GetOrCreateAsync(
+                $"sessions:series:daily:{fromInclusiveUtc:yyyyMMddHHmmss}:{toExclusiveUtc:yyyyMMddHHmmss}:office:{officeId?.ToString() ?? "all"}" + GetCacheScope(),
+                () => _metricsRepository.GetDailySessionSeriesAsync(fromInclusiveUtc, toExclusiveUtc, officeId),
+                TimeSpan.FromSeconds(10));
+
+        public async Task<IReadOnlyList<SessionStatusCountDto>> GetStatusDistributionInRangeAsync(DateTime fromInclusiveUtc, DateTime toExclusiveUtc, int? officeId = null)
+            => await QueryCache.GetOrCreateAsync(
+                $"sessions:series:status:{fromInclusiveUtc:yyyyMMddHHmmss}:{toExclusiveUtc:yyyyMMddHHmmss}:office:{officeId?.ToString() ?? "all"}" + GetCacheScope(),
+                () => _metricsRepository.GetStatusDistributionInRangeAsync(fromInclusiveUtc, toExclusiveUtc, officeId),
+                TimeSpan.FromSeconds(10));
+
+        public async Task<IReadOnlyList<SessionAgendaItemDto>> GetAgendaForDayAsync(DateTime utcDay, int? officeId = null)
+            => await QueryCache.GetOrCreateAsync(
+                $"sessions:agenda:day:{utcDay:yyyyMMdd}:office:{officeId?.ToString() ?? "all"}" + GetCacheScope(),
+                () => _metricsRepository.GetAgendaForDayAsync(utcDay, officeId),
+                TimeSpan.FromSeconds(10));
+
         public async Task<IEnumerable<SessionReminderCandidateDto>> GetReminderCandidatesAsync(DateTime fromInclusiveUtc, DateTime toExclusiveUtc)
             => await _queryRepository.GetReminderCandidatesAsync(fromInclusiveUtc, toExclusiveUtc);
 
@@ -341,10 +359,10 @@ namespace KineGestion.Core.Services
                 () => _metricsRepository.CountByCancellationReasonAsync(reason),
                 TimeSpan.FromSeconds(10));
 
-        public async Task<IDictionary<CancellationReason, int>> CountByCancellationReasonInRangeAsync(DateTime fromInclusiveUtc, DateTime toExclusiveUtc)
+        public async Task<IDictionary<CancellationReason, int>> CountByCancellationReasonInRangeAsync(DateTime fromInclusiveUtc, DateTime toExclusiveUtc, int? officeId = null)
             => await QueryCache.GetOrCreateAsync(
-                $"sessions:count:cancelreason:range:{fromInclusiveUtc:yyyyMMddHHmmss}:{toExclusiveUtc:yyyyMMddHHmmss}" + GetCacheScope(),
-                () => _metricsRepository.CountByCancellationReasonInRangeAsync(fromInclusiveUtc, toExclusiveUtc),
+                $"sessions:count:cancelreason:range:{fromInclusiveUtc:yyyyMMddHHmmss}:{toExclusiveUtc:yyyyMMddHHmmss}:office:{officeId?.ToString() ?? "all"}" + GetCacheScope(),
+                () => _metricsRepository.CountByCancellationReasonInRangeAsync(fromInclusiveUtc, toExclusiveUtc, officeId),
                 TimeSpan.FromSeconds(10));
 
         private static readonly TimeSpan LateCancellationThreshold = TimeSpan.FromHours(24);

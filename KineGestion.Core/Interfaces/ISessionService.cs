@@ -30,6 +30,9 @@ namespace KineGestion.Core.Interfaces
         Task<DashboardSessionCountsDto> GetDashboardCountsAsync(DateTime todayUtc, DateTime fromInclusiveUtc, DateTime toExclusiveUtc, int? officeId = null);
         Task<IReadOnlyList<KpiSegmentDto>> GetKpiSegmentsByProfessionalAsync(DateTime fromInclusiveUtc, DateTime toExclusiveUtc);
         Task<IReadOnlyList<KpiSegmentDto>> GetKpiSegmentsByTimeSlotAsync(DateTime fromInclusiveUtc, DateTime toExclusiveUtc);
+        Task<IReadOnlyList<DailySessionCountDto>> GetDailySessionSeriesAsync(DateTime fromInclusiveUtc, DateTime toExclusiveUtc, int? officeId = null);
+        Task<IReadOnlyList<SessionStatusCountDto>> GetStatusDistributionInRangeAsync(DateTime fromInclusiveUtc, DateTime toExclusiveUtc, int? officeId = null);
+        Task<IReadOnlyList<SessionAgendaItemDto>> GetAgendaForDayAsync(DateTime utcDay, int? officeId = null);
         Task<IEnumerable<SessionReminderCandidateDto>> GetReminderCandidatesAsync(DateTime fromInclusiveUtc, DateTime toExclusiveUtc);
         Task<IEnumerable<BillingFollowUpCandidateDto>> GetBillingFollowUpCandidatesAsync(DateTime asOfUtc, int minAgeDays, int maxAgeDays);
         Task<ReminderFunnelDto> BuildReminderFunnelAsync(IReadOnlyCollection<int> sentSessionIds, DateTime fromSentUtc, DateTime toSentUtc);
@@ -39,7 +42,7 @@ namespace KineGestion.Core.Interfaces
         Task<Session> ReprogramAsync(int sourceSessionId, DateTime newFechaHora);
         Task<IReadOnlyList<AvailableSlotDto>> SuggestAvailableSlotsAsync(int professionalId, DateTime fromUtc, int dayCount = 5, int count = 3);
         Task<int> CountByCancellationReasonAsync(CancellationReason reason);
-        Task<IDictionary<CancellationReason, int>> CountByCancellationReasonInRangeAsync(DateTime fromInclusiveUtc, DateTime toExclusiveUtc);
+        Task<IDictionary<CancellationReason, int>> CountByCancellationReasonInRangeAsync(DateTime fromInclusiveUtc, DateTime toExclusiveUtc, int? officeId = null);
         CancellationTiming GetCancellationTiming(Session session);
         Task<int> CountLateCancellationsInRangeAsync(DateTime fromInclusiveUtc, DateTime toExclusiveUtc);
         Task SetPaymentStatusAsync(int sessionId, PaymentStatus paymentStatus);

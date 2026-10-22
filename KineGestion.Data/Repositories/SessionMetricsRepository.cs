@@ -17,6 +17,8 @@ namespace KineGestion.Data.Repositories
     /// </summary>
     public class SessionMetricsRepository : SessionRepositoryBase, ISessionMetricsRepository
     {
+        private const int MaxAgendaItems = 50;
+
         public SessionMetricsRepository(AppDbContext context) : base(context)
         {
         }
@@ -47,12 +49,17 @@ namespace KineGestion.Data.Repositories
             => await ApplyCountScope(_context.Sessions.AsNoTracking())
                 .CountAsync(s => s.CancellationReason == reason);
 
-        public async Task<IDictionary<CancellationReason, int>> CountByCancellationReasonInRangeAsync(DateTime fromInclusiveUtc, DateTime toExclusiveUtc)
+        public async Task<IDictionary<CancellationReason, int>> CountByCancellationReasonInRangeAsync(DateTime fromInclusiveUtc, DateTime toExclusiveUtc, int? officeId = null)
         {
             var query = ApplyCountScope(_context.Sessions.AsNoTracking())
                 .Where(s => s.CancellationReason.HasValue
                     && s.FechaHora >= fromInclusiveUtc
                     && s.FechaHora < toExclusiveUtc);
+
+            if (officeId.HasValue)
+            {
+                query = query.Where(s => s.OfficeId == officeId.Value);
+            }
 
             var groups = await query
                 .GroupBy(s => s.CancellationReason!.Value)
@@ -185,6 +192,78 @@ namespace KineGestion.Data.Repositories
             return groups
                 .OrderBy(g => g.SegmentKey)
                 .ToList();
+        }
+        public async Task<IReadOnlyList<DailySessionCountDto>> GetDailySessionSeriesAsync(DateTime fromInclusiveUtc, DateTime toExclusiveUtc, int? officeId = null)
+        {
+            var query = ApplyCountScope(_context.Sessions.AsNoTracking())
+                .Where(s => s.FechaHora >= fromInclusiveUtc && s.FechaHora < toExclusiveUtc);
+
+            if (officeId.HasValue)
+            {
+                query = query.Where(s => s.OfficeId == officeId.Value);
+            }
+
+            var groups = await query
+                .GroupBy(s => s.FechaHora.Date)
+                .Select(g => new DailySessionCountDto(
+                    g.Key,
+                    g.Count(),
+                    g.Count(s => s.Status == SessionStatus.Completed),
+                    g.Count(s => s.Status == SessionStatus.Canceled),
+                    g.Count(s => s.Status == SessionStatus.Completed && s.PaymentStatus == PaymentStatus.Paid)))
+                .ToListAsync();
+
+            return groups
+                .OrderBy(g => g.Day)
+                .ToList();
+        }
+
+        public async Task<IReadOnlyList<SessionStatusCountDto>> GetStatusDistributionInRangeAsync(DateTime fromInclusiveUtc, DateTime toExclusiveUtc, int? officeId = null)
+        {
+            var query = ApplyCountScope(_context.Sessions.AsNoTracking())
+                .Where(s => s.FechaHora >= fromInclusiveUtc && s.FechaHora < toExclusiveUtc);
+
+            if (officeId.HasValue)
+            {
+                query = query.Where(s => s.OfficeId == officeId.Value);
+            }
+
+            var groups = await query
+                .GroupBy(s => s.Status)
+                .Select(g => new SessionStatusCountDto(g.Key, g.Count()))
+                .ToListAsync();
+
+            return groups
+                .OrderBy(g => g.Status)
+                .ToList();
+        }
+
+        public async Task<IReadOnlyList<SessionAgendaItemDto>> GetAgendaForDayAsync(DateTime utcDay, int? officeId = null)
+        {
+            var dayStart = utcDay.Date;
+            var dayEnd = dayStart.AddDays(1);
+
+            var query = ApplyCountScope(_context.Sessions.AsNoTracking())
+                .Where(s => s.FechaHora >= dayStart && s.FechaHora < dayEnd);
+
+            if (officeId.HasValue)
+            {
+                query = query.Where(s => s.OfficeId == officeId.Value);
+            }
+
+            return await query
+                .OrderBy(s => s.FechaHora)
+                .ThenBy(s => s.Id)
+                .Take(MaxAgendaItems)
+                .Select(s => new SessionAgendaItemDto(
+                    s.Id,
+                    s.FechaHora,
+                    s.Patient == null ? "Sin paciente" : s.Patient.Apellido + ", " + s.Patient.Nombre,
+                    s.Professional == null ? "Sin profesional" : s.Professional.Apellido + ", " + s.Professional.Nombre,
+                    s.Office == null ? null : s.Office.Name,
+                    s.Status,
+                    s.PaymentStatus))
+                .ToListAsync();
         }
     }
 }

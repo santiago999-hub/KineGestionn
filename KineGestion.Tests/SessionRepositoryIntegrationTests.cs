@@ -975,6 +975,89 @@ namespace KineGestion.Tests
             }
         }
 
+        [Fact]
+        public async Task CountByCancellationReasonInRangeAsync_ShouldScopeByOffice_WhenOfficeIdProvided()
+        {
+            var databaseName = $"KineGestion_Integration_{Guid.NewGuid():N}";
+            var options = IntegrationTestDatabase.BuildOptions(databaseName);
+
+            var from = new DateTime(2026, 6, 1);
+            var to = new DateTime(2026, 7, 1);
+
+            await using (var setupContext = new AppDbContext(options))
+            {
+                await setupContext.Database.EnsureDeletedAsync();
+                await setupContext.Database.EnsureCreatedAsync();
+
+                var patient = NewPatient();
+                var professional = NewProfessional("MAT-200");
+
+                setupContext.Patients.Add(patient);
+                setupContext.Professionals.Add(professional);
+
+                var officeA = new Office { Name = "Oficina Norte" };
+                var officeB = new Office { Name = "Oficina Sur" };
+                setupContext.Offices.Add(officeA);
+                setupContext.Offices.Add(officeB);
+                await setupContext.SaveChangesAsync();
+
+                var treatment = NewTreatment(patient.Id, from);
+                setupContext.Treatments.Add(treatment);
+                await setupContext.SaveChangesAsync();
+
+                int counter = 1;
+                void AddCanceledSession(DateTime fechaHora, int? officeId, CancellationReason reason)
+                {
+                    setupContext.Sessions.Add(new Session
+                    {
+                        FechaHora = fechaHora,
+                        PatientId = patient.Id,
+                        ProfessionalId = professional.Id,
+                        TreatmentId = treatment.Id,
+                        OfficeId = officeId,
+                        NroSesionEnTratamiento = counter++,
+                        Status = SessionStatus.Canceled,
+                        PaymentStatus = PaymentStatus.Pending,
+                        CancellationReason = reason,
+                        CancelledAt = fechaHora.AddDays(-1)
+                    });
+                }
+
+                AddCanceledSession(new DateTime(2026, 6, 10, 9, 0, 0), officeA.Id, CancellationReason.Olvido);
+                AddCanceledSession(new DateTime(2026, 6, 11, 9, 0, 0), officeA.Id, CancellationReason.Olvido);
+                AddCanceledSession(new DateTime(2026, 6, 12, 9, 0, 0), officeB.Id, CancellationReason.Olvido);
+                AddCanceledSession(new DateTime(2026, 6, 13, 9, 0, 0), officeB.Id, CancellationReason.Laboral);
+                AddCanceledSession(new DateTime(2026, 8, 5, 9, 0, 0), officeA.Id, CancellationReason.Olvido);
+
+                await setupContext.SaveChangesAsync();
+            }
+
+            await using (var testContext = new AppDbContext(options))
+            {
+                var repository = new SessionMetricsRepository(testContext);
+                var officeAId = testContext.Offices.Single(o => o.Name == "Oficina Norte").Id;
+                var officeBId = testContext.Offices.Single(o => o.Name == "Oficina Sur").Id;
+
+                var all = await repository.CountByCancellationReasonInRangeAsync(from, to);
+                var officeA = await repository.CountByCancellationReasonInRangeAsync(from, to, officeAId);
+                var officeB = await repository.CountByCancellationReasonInRangeAsync(from, to, officeBId);
+
+                Assert.Equal(3, all[CancellationReason.Olvido]);
+                Assert.Equal(1, all[CancellationReason.Laboral]);
+
+                Assert.Equal(2, officeA[CancellationReason.Olvido]);
+                Assert.False(officeA.ContainsKey(CancellationReason.Laboral));
+
+                Assert.Equal(1, officeB[CancellationReason.Olvido]);
+                Assert.Equal(1, officeB[CancellationReason.Laboral]);
+            }
+
+            await using (var cleanupContext = new AppDbContext(options))
+            {
+                await cleanupContext.Database.EnsureDeletedAsync();
+            }
+        }
+
         private static Patient NewPatient() => new()
         {
             Nombre = "Maria",

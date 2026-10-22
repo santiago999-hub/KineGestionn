@@ -6,6 +6,14 @@ namespace KineGestion.Core.Services
     {
         private static readonly ConcurrentDictionary<string, CacheEntry> Entries = new(StringComparer.OrdinalIgnoreCase);
         private static readonly ConcurrentDictionary<string, SemaphoreSlim> KeyLocks = new(StringComparer.OrdinalIgnoreCase);
+        private static int _version;
+
+        /// <summary>
+        /// Versión del estado de dominio cacheado. Se incrementa en cada invalidación,
+        /// de modo que las claves de caché que dependan de datos mutables puedan incluirla
+        /// y queden obsoletas de forma inmediata ante cualquier escritura.
+        /// </summary>
+        public static int Version => Volatile.Read(ref _version);
 
         public static async Task<T> GetOrCreateAsync<T>(string key, Func<Task<T>> factory, TimeSpan ttl)
         {
@@ -41,13 +49,23 @@ namespace KineGestion.Core.Services
                 Entries.TryRemove(key, out _);
                 KeyLocks.TryRemove(key, out _);
             }
+
+            Interlocked.Increment(ref _version);
         }
 
         public static void ClearAll()
         {
             Entries.Clear();
             KeyLocks.Clear();
+            Interlocked.Increment(ref _version);
         }
+
+        /// <summary>
+        /// Notifica un cambio de datos que no invalida una clave concreta (por ejemplo, un
+        /// evento operativo registrado). Incrementa la versión para que las claves que
+        /// dependen del estado del dominio queden obsoletas de inmediato.
+        /// </summary>
+        public static void NotifyDataChanged() => Interlocked.Increment(ref _version);
 
         private static bool TryGetFreshValue<T>(string key, out T? value)
         {

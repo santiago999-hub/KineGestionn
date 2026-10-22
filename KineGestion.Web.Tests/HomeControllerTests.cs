@@ -15,6 +15,7 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using System.Collections.Generic;
 using KineGestion.Core.DTOs;
+using KineGestion.Core.Services;
 
 namespace KineGestion.Web.Tests
 {
@@ -86,7 +87,7 @@ namespace KineGestion.Web.Tests
             ctx.ProfessionalService.Verify(s => s.CountActiveAsync(), Times.Once);
             ctx.TreatmentService.Verify(s => s.CountAsync(), Times.Once);
             ctx.SessionService.Verify(s => s.GetDashboardCountsAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<int?>()), Times.Once);
-            ctx.SessionService.Verify(s => s.CountByCancellationReasonInRangeAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>()), Times.Once);
+            ctx.SessionService.Verify(s => s.CountByCancellationReasonInRangeAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<int?>()), Times.Once);
             ctx.BillingAlertService.Verify(s => s.GetSnapshotAsync(It.IsAny<DateTime>(), default), Times.Once);
             ctx.DispatchEventRepository.Verify(r => r.CountByTypeAsync("BillingBatchLowEffectivenessAlert", It.IsAny<DateTime?>(), It.IsAny<DateTime?>()), Times.Once);
             ctx.DispatchEventRepository.Verify(r => r.GetByTypeAsync("BillingBatchLowEffectivenessAlert", null, null, 3), Times.Once);
@@ -161,6 +162,49 @@ namespace KineGestion.Web.Tests
         }
 
         [Fact]
+        public async Task Index_ShouldForwardSelectedOffice_ToSessionScopedQueries()
+        {
+            var ctx = BuildDefaultContext();
+            ctx.OfficeService.Setup(s => s.GetActiveAsync()).ReturnsAsync(new[]
+            {
+                new Office { Id = 7, Name = "Oficina Norte" }
+            });
+
+            var result = await ctx.Controller.Index(7);
+
+            var view = Assert.IsType<ViewResult>(result);
+            var model = Assert.IsType<HomeDashboardViewModel>(view.Model);
+
+            Assert.Equal(7, model.SelectedOfficeId);
+            Assert.Equal("Oficina Norte", model.OfficeName);
+
+            ctx.SessionService.Verify(
+                s => s.GetDashboardCountsAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<int?>()),
+                Times.Once);
+            ctx.SessionService.Verify(
+                s => s.CountByCancellationReasonInRangeAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), 7),
+                Times.Once);
+        }
+
+        [Fact]
+        public async Task Index_ShouldRecomputeDashboard_AfterDomainChangeInvalidatesCache()
+        {
+            var ctx = BuildDefaultContext();
+
+            await ctx.Controller.Index(null);
+
+            // Una escritura de dominio (alta/edición de sesión, cobro, paciente) invalida la caché.
+            QueryCache.InvalidatePrefix("sessions:");
+
+            await ctx.Controller.Index(null);
+
+            ctx.SessionService.Verify(
+                s => s.GetDashboardCountsAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<int?>()),
+                Times.Exactly(2));
+            ctx.PatientService.Verify(s => s.CountActiveAsync(), Times.Exactly(2));
+        }
+
+        [Fact]
         public async Task TriggerBillingOperationalAlert_ShouldSetSuccess_WhenQueued()
         {
             var ctx = new HomeTestContext();
@@ -209,7 +253,7 @@ namespace KineGestion.Web.Tests
                 TreatmentService.Setup(s => s.CountAsync()).ReturnsAsync(18);
                 SessionService.Setup(s => s.GetDashboardCountsAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<int?>()))
                 .ReturnsAsync(new DashboardSessionCountsDto(60, 7, 3, 2, 9, 5, 20, 15, 20, 2, 1));
-                SessionService.Setup(s => s.CountByCancellationReasonInRangeAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>())).ReturnsAsync(new Dictionary<CancellationReason, int>());
+                SessionService.Setup(s => s.CountByCancellationReasonInRangeAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<int?>())).ReturnsAsync(new Dictionary<CancellationReason, int>());
                 DispatchEventRepository.Setup(r => r.CountByTypeAsync("BillingBatchLowEffectivenessAlert", It.IsAny<DateTime?>(), It.IsAny<DateTime?>())).ReturnsAsync(0);
                 DispatchEventRepository.Setup(r => r.GetByTypeAsync("BillingBatchLowEffectivenessAlert", null, null, 3)).ReturnsAsync(Array.Empty<DispatchEvent>());
                 BillingAlertService.Setup(s => s.GetSnapshotAsync(It.IsAny<DateTime>(), default)).ReturnsAsync(new BillingOperationalAlertSnapshot { ThresholdPct = 70m, HasConsecutiveLowWeeks = false });
