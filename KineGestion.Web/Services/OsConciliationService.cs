@@ -39,7 +39,11 @@ namespace KineGestion.Web.Services
 
             foreach (var item in query)
             {
-                decimal porcentaje = pricing.TryGetValue(item.ObraSocial, out var p) ? p : pricing["DEFAULT"];
+                // Obtener porcentaje de esta OS (o DEFAULT)
+                // Usamos ! para indicar que no es nulo después del check
+                decimal porcentaje = pricing.ContainsKey(item.ObraSocial)
+                    ? pricing[item.ObraSocial]
+                    : pricing["DEFAULT"];
 
                 decimal precioBase = 1000.00m;
 
