@@ -1,0 +1,267 @@
+﻿<!DOCTYPE html>
+<html lang="@CultureInfo.CurrentUICulture.Name">
+@using System.Globalization
+@using KineGestion.Web.Localization
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - KineGestión</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/lib/bootstrap-icons/bootstrap-icons.min.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/fonts.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    @RenderSection("Styles", required: false)
+</head>
+<body class="kg-theme-professional" id="kgBody">
+    @{
+        var currentCulture = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
+        var returnUrl = (Context?.Request?.Path.Value ?? "/") + (Context?.Request?.QueryString.Value ?? string.Empty);
+        var nowLocal = DateTime.Now;
+        var greetingKey = nowLocal.Hour < 12 ? "Greeting.Morning" : nowLocal.Hour < 20 ? "Greeting.Afternoon" : "Greeting.Evening";
+        var greetingDefault = nowLocal.Hour < 12 ? "Buenos días" : nowLocal.Hour < 20 ? "Buenas tardes" : "Buenas noches";
+        var greeting = LayoutText.Get(greetingKey, greetingDefault);
+        var todayText = nowLocal.ToString("dddd d 'de' MMMM", CultureInfo.CurrentUICulture);
+        var todayLong = todayText.Length > 0 ? char.ToUpper(todayText[0], CultureInfo.CurrentUICulture) + todayText.Substring(1) : todayText;
+        var pageTitle = ViewData["Title"]?.ToString() ?? "Dashboard";
+    }
+
+    <!-- SIDEBAR -->
+    <aside class="kg-sidebar" id="sidebar">
+        <div class="kg-sidebar-brand">
+            <div class="kg-sidebar-logo">
+                <i class="bi bi-heart-pulse-fill"></i>
+            </div>
+            <div>
+                <span class="kg-sidebar-title">KineGestión</span>
+                <span class="kg-sidebar-subtitle">@LayoutText.Get("Brand.Center", "Unidad de Kinesiología")</span>
+            </div>
+        </div>
+
+        <nav class="kg-sidebar-nav">
+            <div class="kg-nav-section-label">@LayoutText.Get("Nav.AboutTitle", "Información")</div>
+            <a class="kg-nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Home" && ViewContext.RouteData.Values["action"]?.ToString() == "QuienesSomos" ? "active" : "")"
+               asp-controller="Home" asp-action="QuienesSomos">
+                <i class="bi bi-info-circle"></i>
+                <span>@LayoutText.Get("Nav.About", "¿Quiénes Somos?")</span>
+            </a>
+
+            <div class="kg-nav-section-label">@LayoutText.Get("Nav.Main", "Panel Clínico")</div>
+            <a class="kg-nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Home" ? "active" : "")"
+               asp-controller="Home" asp-action="Index">
+                <i class="bi bi-speedometer2"></i>
+                <span>@LayoutText.Get("Nav.Dashboard", "Panel Ejecutivo")</span>
+            </a>
+
+            <div class="kg-nav-section-label">@LayoutText.Get("Nav.Management", "Operación Clínica")</div>
+            @if (User.IsInRole("Admin") || User.IsInRole("Asistente"))
+            {
+                <a class="kg-nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Patients" ? "active" : "")"
+                   asp-controller="Patients" asp-action="Index">
+                    <i class="bi bi-person-lines-fill"></i>
+                    <span>@LayoutText.Get("Nav.Patients", "Pacientes")</span>
+                </a>
+            }
+            @if (User.IsInRole("Kinesiologo"))
+            {
+                <a class="kg-nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Sessions" && ViewContext.RouteData.Values["action"]?.ToString() == "MyAgenda" ? "active" : "")"
+                   asp-controller="Sessions" asp-action="MyAgenda">
+                    <i class="bi bi-calendar2-week-fill"></i>
+                    <span>@LayoutText.Get("Nav.MyAgenda", "Mi Agenda")</span>
+                </a>
+            }
+            @if (User.IsInRole("Admin") || User.IsInRole("Asistente"))
+            {
+                <a class="kg-nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Sessions" ? "active" : "")"
+                   asp-controller="Sessions" asp-action="Index">
+                    <i class="bi bi-calendar2-check"></i>
+                    <span>@LayoutText.Get("Nav.Sessions", "Agenda de Sesiones")</span>
+                </a>
+            }
+            @if (User.IsInRole("Admin") || User.IsInRole("Asistente"))
+            {
+                <a class="kg-nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Professionals" ? "active" : "")"
+                   asp-controller="Professionals" asp-action="Index">
+                    <i class="bi bi-person-workspace"></i>
+                    <span>@LayoutText.Get("Nav.Professionals", "Equipo Clínico")</span>
+                </a>
+                <a class="kg-nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Treatments" ? "active" : "")"
+                   asp-controller="Treatments" asp-action="Index">
+                    <i class="bi bi-clipboard2-pulse"></i>
+                    <span>@LayoutText.Get("Nav.Treatments", "Planes Terapéuticos")</span>
+                </a>
+            }
+            @if (User.IsInRole("Admin") || User.IsInRole("Asistente"))
+            {
+                <a class="kg-nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Offices" ? "active" : "")"
+                   asp-controller="Offices" asp-action="Index">
+                    <i class="bi bi-hospital"></i>
+                    <span>@LayoutText.Get("Nav.Offices", "Salas y Consultorios")</span>
+                </a>
+            }
+            @if (User.IsInRole("Admin"))
+            {
+                <a class="kg-nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Equipments" ? "active" : "")"
+                   asp-controller="Equipments" asp-action="Index">
+                    <i class="bi bi-tools"></i>
+                    <span>Equipamiento</span>
+                </a>
+            }
+
+            @if (User.IsInRole("Admin"))
+            {
+                <div class="kg-nav-section-label">@LayoutText.Get("Nav.Admin", "Seguridad y Control")</div>
+                <a class="kg-nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Users" ? "active" : "")"
+                   asp-controller="Users" asp-action="Index">
+                    <i class="bi bi-people"></i>
+                    <span>@LayoutText.Get("Nav.Users", "Gestión de Usuarios")</span>
+                </a>
+                <a class="kg-nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Reminders" ? "active" : "")"
+                   asp-controller="Reminders" asp-action="Index">
+                    <i class="bi bi-send"></i>
+                    <span>Recordatorios</span>
+                </a>
+                <a class="kg-nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Billing" ? "active" : "")"
+                   asp-controller="Billing" asp-action="Index">
+                    <i class="bi bi-cash-coin"></i>
+                    <span>Cobranzas</span>
+                </a>
+                <a class="kg-nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "BillingFollowUp" ? "active" : "")"
+                   asp-controller="BillingFollowUp" asp-action="Index">
+                    <i class="bi bi-cash-stack"></i>
+                    <span>Cobranza D+1</span>
+                </a>
+                <a class="kg-nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "DispatchQueue" ? "active" : "")"
+                   asp-controller="DispatchQueue" asp-action="Index">
+                    <i class="bi bi-arrow-repeat"></i>
+                    <span>Cola de Envíos</span>
+                </a>
+                <a class="kg-nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Segmentacion" ? "active" : "")"
+                   asp-controller="Segmentacion" asp-action="Index">
+                    <i class="bi bi-bar-chart-steps"></i>
+                    <span>Segmentación KPIs</span>
+                </a>
+                <a class="kg-nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "ReminderFunnel" ? "active" : "")"
+                   asp-controller="ReminderFunnel" asp-action="Index">
+                    <i class="bi bi-funnel"></i>
+                    <span>Embudo recordatorios</span>
+                </a>
+                <a class="kg-nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Audit" && ViewContext.RouteData.Values["action"]?.ToString() == "Analytics" ? "active" : "")"
+                   asp-controller="Audit" asp-action="Analytics">
+                    <i class="bi bi-bar-chart-line"></i>
+                    <span>@LayoutText.Get("Nav.AuditAnalytics", "Analítica de Auditoría")</span>
+                </a>
+                <a class="kg-nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Audit" ? "active" : "")"
+                   asp-controller="Audit" asp-action="Index">
+                    <i class="bi bi-shield-check"></i>
+                    <span>@LayoutText.Get("Nav.Audit", "Trazabilidad y Auditoría")</span>
+                </a>
+            }
+        </nav>
+
+        <div class="kg-sidebar-footer">
+            <i class="bi bi-circle-fill text-success me-1 kg-status-dot"></i>
+            @LayoutText.Get("Status.Operating", "Sistema Operativo")
+        </div>
+    </aside>
+
+    <!-- MAIN WRAPPER -->
+    <div class="kg-main-wrapper">
+
+        <!-- TOPBAR -->
+        <header class="kg-topbar">
+            <button class="kg-sidebar-toggle d-lg-none" id="sidebarToggle" type="button" aria-label="@LayoutText.Get("Action.OpenMenu", "Abrir menú")" aria-controls="sidebar" aria-expanded="false">
+                <i class="bi bi-list"></i>
+            </button>
+            <div class="kg-topbar-title">
+                <h6 class="mb-0 fw-semibold">@pageTitle</h6>
+            </div>
+            <div class="kg-topbar-right">
+                <div class="kg-topbar-greeting d-none d-lg-flex">
+                    <span class="kg-topbar-greeting-hi">@greeting, @User.Identity?.Name</span>
+                    <span class="kg-topbar-greeting-date">@todayLong</span>
+                </div>
+                <form asp-controller="Localization" asp-action="SetLanguage" method="post" class="d-inline me-2">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="returnUrl" value="@returnUrl" />
+                    <select name="culture" class="form-select form-select-sm kg-language-select" onchange="this.form.submit()" aria-label="Idioma">
+                        <option value="es" selected="@(currentCulture == "es")">ES</option>
+                        <option value="en" selected="@(currentCulture == "en")">EN</option>
+                    </select>
+                </form>
+                <button type="button" class="kg-topbar-badge kg-theme-toggle" id="themeToggle" title="@LayoutText.Get("Action.SwitchTheme", "Cambiar tema visual")" aria-label="@LayoutText.Get("Action.SwitchTheme", "Cambiar tema visual")">
+                    <i class="bi bi-moon-fill"></i>
+                </button>
+                <span class="kg-topbar-badge" aria-hidden="true">
+                    <i class="bi bi-bell"></i>
+                </span>
+                <a asp-controller="Account" asp-action="Profile" class="kg-topbar-user kg-topbar-user-link" title="@LayoutText.Get("Action.Profile", "Ver perfil")">
+                    <div class="kg-avatar">
+                        <i class="bi bi-person-fill"></i>
+                    </div>
+                    <span class="d-none d-md-inline">@User.Identity?.Name</span>
+                </a>
+                <form asp-controller="Account" asp-action="Logout" method="post" class="d-inline ms-2">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-link p-0 kg-logout-btn" title="@LayoutText.Get("Action.Logout", "Cerrar sesión")">
+                        <i class="bi bi-box-arrow-right"></i>
+                    </button>
+                </form>
+            </div>
+        </header>
+
+        <!-- CONTENT -->
+        <main class="kg-content">
+            @RenderBody()
+        </main>
+
+        <div class="kg-toast-stack" aria-live="polite" aria-atomic="true">
+            @if (TempData["Success"] != null)
+            {
+                <div class="kg-toast kg-toast-success" role="status">
+                    <i class="bi bi-check-circle-fill"></i>
+                    <div class="kg-toast-body">@TempData["Success"]</div>
+                    <button type="button" class="kg-toast-close" aria-label="Cerrar"><i class="bi bi-x-lg"></i></button>
+                </div>
+            }
+            @if (TempData["Error"] != null)
+            {
+                <div class="kg-toast kg-toast-error" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill"></i>
+                    <div class="kg-toast-body">@TempData["Error"]</div>
+                    <button type="button" class="kg-toast-close" aria-label="Cerrar"><i class="bi bi-x-lg"></i></button>
+                </div>
+            }
+        </div>
+
+        <footer class="kg-footer">
+            &copy; 2026 KineGestión &mdash; @LayoutText.Get("Footer.Text", "Sistema de Gestión Clínica - Todos los derechos reservados.")
+        </footer>
+    </div>
+
+    <!-- Overlay mobile -->
+    <div class="kg-overlay d-lg-none" id="sidebarOverlay"></div>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    <script>
+        const toggle = document.getElementById('sidebarToggle');
+        const overlay = document.getElementById('sidebarOverlay');
+        const sidebar = document.getElementById('sidebar');
+
+        if (toggle) {
+            toggle.addEventListener('click', () => {
+                const isOpen = sidebar.classList.toggle('show');
+                overlay.classList.toggle('show');
+                toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+            });
+            overlay.addEventListener('click', () => {
+                sidebar.classList.remove('show');
+                overlay.classList.remove('show');
+                toggle.setAttribute('aria-expanded', 'false');
+            });
+        }
+    </script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>
