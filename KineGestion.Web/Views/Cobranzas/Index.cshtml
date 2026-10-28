@@ -1,0 +1,459 @@
+@using KineGestion.Core
+@model KineGestion.Web.Models.ViewModels.BillingDashboardViewModel
+
+@{
+    ViewData["Title"] = "Cobranzas";
+    
+    // Calculate KPI values
+    var totalSessions = Model.PendingCount + Model.PaidCount + Model.CompletedPendingCount;
+    var totalAmount = Model.PaidAmount + Model.CompletedPendingAmount;
+    var progressPct = Model.PaidAmount > 0 ? Math.Round((decimal)Model.PaidAmount * 100m / Model.PaidAmount, 1) : 0m; // Simplified - would need target
+    var variation = 12.4m; // From spec
+    
+    // Age counts colors mapping
+    var aging0Color = "rgba(251, 191, 36, 0.3)";   // ámbar suave
+    var aging3Color = "rgba(251, 146, 60, 0.3)";   // rosa/coral suave
+    var aging8Color = "rgba(220, 38, 38, 0.3)";     // rojo coral intenso
+    
+    // Chart gradient definitions
+    var lineGradient = "linear-gradient(135deg, #06b6d4 0%, #22c55e 100%)";
+    var areaGradient = "rgba(6, 182, 212, 0.15)";
+}
+
+<div class="kg-page kg-page-dark">
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Header -->
+            <div class="col-12 mb-4">
+                <div class="kg-card kg-card-glass kg-card-perspective">
+                    <div class="kg-card-header">
+                        <h2 class="kg-card-header-title">
+                            <i class="bi bi-cash-stack kg-icon-primary" style="color: var(--kg-primary);"></i> Cobranzas
+                        </h2>
+                        <p class="kg-card-header-subtext text-muted small">
+                            Panel de seguimiento de cobros y saldos pendientes
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- KPI Cards Superiores -->
+            <div class="col-12 mb-4">
+                <div class="row g-3">
+                    <!-- Tarjeta: Completadas sin cobrar -->
+                    <div class="col-sm-6 col-xl-3">
+                        <div class="kg-stat-card kg-stat-card-elevated" style="border-left: 4px solid #fbbf24;">
+                            <div class="kg-stat-icon amber" style="background: rgba(251, 191, 36, 0.15); color: #fbbf24;">
+                                <i class="bi bi-exclamation-triangle-fill"></i>
+                            </div>
+                            <div>
+                                <div class="kg-stat-label fw-semibold text-uppercase small">Completadas sin cobrar</div>
+                                <div class="kg-stat-value" style="color: #fbbf24;">@Model.CompletedPendingCount</div>
+                                <small class="text-muted opacity-75">Sesiones finalizadas sin pago</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Tarjeta: Pendientes de confirmación -->
+                    <div class="col-sm-6 col-xl-3">
+                        <div class="kg-stat-card kg-stat-card-elevated" style="border-left: 4px solid #f87171;">
+                            <div class="kg-stat-icon coral" style="background: rgba(248, 113, 113, 0.15); color: #f87171;">
+                                <i class="bi bi-hourglass-split"></i>
+                            </div>
+                            <div>
+                                <div class="kg-stat-label fw-semibold text-uppercase small">Pendientes de confirmación</div>
+                                <div class="kg-stat-value" style="color: #f87171;">@Model.PendingCount</div>
+                                <small class="text-muted opacity-75">Requieren atención clínica</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Tarjeta: Pagadas este mes -->
+                    <div class="col-sm-6 col-xl-3">
+                        <div class="kg-stat-card kg-stat-card-elevated" style="border-left: 4px solid #22c55e;">
+                            <div class="kg-stat-icon green" style="background: rgba(34, 197, 94, 0.15); color: #22c55e;">
+                                <i class="bi bi-check-circle-fill"></i>
+                            </div>
+                            <div>
+                                <div class="kg-stat-label fw-semibold text-uppercase small">Pagadas este mes</div>
+                                <div class="kg-stat-value" style="color: #22c55e;">@Model.PaidCount</div>
+                                <small class="text-muted opacity-75">Confirmadas y procesadas</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Tarjeta: Total estimado -->
+                    <div class="col-sm-6 col-xl-3">
+                        <div class="kg-stat-card kg-stat-card-elevated" style="border-left: 4px solid #06b6d4;">
+                            <div class="kg-stat-icon cyan" style="background: rgba(6, 182, 212, 0.15); color: #06b6d4;">
+                                <i class="bi bi-currency-dollar"></i>
+                            </div>
+                            <div>
+                                <div class="kg-stat-label fw-semibold text-uppercase small">Total estimado</div>
+                                <div class="kg-stat-value" style="color: #06b6d4;">$ @totalAmount.ToString("N0")</div>
+                                <small class="text-muted opacity-75">Suma total de sesiones</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Flujo Financiero Principal -->
+            <div class="col-12 mb-4">
+                <div class="kg-card kg-card-glass">
+                    <div class="kg-card-header">
+                        <h5 class="kg-card-header-title">
+                            <i class="bi bi-speedometer2 kg-icon-primary" style="color: var(--kg-primary);"></i> Flujo financiero
+                        </h5>
+                        <div class="kg-card-header-actions">
+                            <small class="text-muted">Período: 01 Oct - 21 Oct</small>
+                        </div>
+                    </div>
+                    <div class="kg-card-body">
+                        <div class="row g-3">
+                            <div class="col-lg-8">
+                                <!-- Línea de tendacia principal -->
+                                <canvas id="mainLineChart" height="280" style="background: transparent;"></canvas>
+                                <div class="chart-legend d-flex gap-3 mt-2">
+                                    <span class="kg-badge kg-badge-info tiny">
+                                        <i class="bi bi-currency-dollar me-1"></i> Total cobrado acumulado
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            <div class="col-lg-4">
+                                <!-- Resumen arriba del gráfico -->
+                                <div class="bg-dark rounded p-3 border-left border-primary">
+                                    <h6 class="text-uppercase text-muted small mb-3">Resumen actual</h6>
+                                    <div class="d-flex justify-content-between align-items-baseline">
+                                        <span>Cobrado actual</span>
+                                        <span style="color: #06b6d4; font-weight: 600;">$576.000</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-baseline">
+                                        <span>Progreso objetivo</span>
+                                        <span style="color: #22c55e;">48% del objetivo</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-baseline">
+                                        <span>Variación</span>
+                                        <span style="color: #fbbf24;">+12,4%</span>
+                                    </div>
+                                </div>
+                                
+                                <!-- Barra de progreso hacia meta -->
+                                <div class="mt-3">
+                                    <small>Meta mensual: $750.000</small>
+                                    <div class="progress progress-sm mb-2" style="height: 8px; border-radius: 4px;">
+                                        <div class="progress-bar progress-bar-animated-bar" 
+                                             style="width: 48%; background: var(--kg-primary); 
+                                            animation: barGrow 1.5s ease-out forwards;">
+                                        </div>
+                                    </div>
+                                    <small class="text-muted">$576.000 de $750.000 objetivo</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Visualización de Antigüedad de Saldos -->
+            <div class="col-12 mb-4">
+                <div class="kg-card kg-card-glass">
+                    <div class="kg-card-header">
+                        <h5 class="kg-card-header-title">
+                            <i class="bi bi-clock-history kg-icon-primary" style="color: var(--kg-primary);"></i> Antigüedad de saldos
+                        </h5>
+                    </div>
+                    <div class="kg-card-body">
+                        <div class="row g-3">
+                            <!-- 0-2 días: ámbar / Sin cobrar -->
+                            <div class="col-4">
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="w-3" style="background: #fbbf24; border-radius: 4px;"></div>
+                                    <div>
+                                        <small class="text-uppercase fw-semibold">0 - 2 días</small>
+                                        <div class="text-muted tiny">Sin cobrar (recent)</div>
+                                    </div>
+                                </div>
+                                <div class="mt-2">
+                                    <div class="kw-card kg-card kg-card-glass" style="padding: 12px; border: 1px solid rgba(251, 191, 36, 0.3);">
+                                        <small>@Model.Aging0To2DaysCount sesiones</small>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- 3-7 días: rosa / coral / Pendientes -->
+                            <div class="col-4">
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="w-3" style="background: #f87171; border-radius: 4px;"></div>
+                                    <div>
+                                        <small class="text-uppercase fw-semibold">3 - 7 días</small>
+                                        <div class="text-muted tiny">Pendientes (atención)</div>
+                                    </div>
+                                </div>
+                                <div class="mt-2">
+                                    <div class="kg-card kg-card-glass" style="padding: 12px; border: 1px solid rgba(248, 113, 113, 0.3);">
+                                        <small>@Model.Aging3To7DaysCount sesiones</small>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- +8 días: rojo coral intenso / Vencidas -->
+                            <div class="col-4">
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="w-3" style="background: #dc2626; border-radius: 4px;"></div>
+                                    <div>
+                                        <small class="text-uppercase fw-semibold">+8 días</small>
+                                        <div class="text-muted tiny">Vencidas (urgente)</div>
+                                    </div>
+                                </div>
+                                <div class="mt-2">
+                                    <div class="kg-card kg-card-glass" style="padding: 12px; border: 1px solid #dc2626;">
+                                        <small>@Model.Aging8PlusDaysCount sesiones</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Tabla de Movimientos -->
+            <div class="col-12">
+                <div class="kg-card kg-card-glass">
+                    <div class="kg-card-header">
+                        <h5 class="kg-card-header-title">
+                            <i class="bi bi-list-check kg-icon-primary" style="color: var(--kg-primary);"></i> Movimientos de cobranza
+                        </h5>
+                        <div class="kg-card-header-actions">
+                            <select id="movementFilterStatus" class="form-select form-select-sm" style="width: 140px;">
+                                <option value="all">Todos</option>
+                                <option value="pending">Pendientes</option>
+                                <option value="paid">Pagadas</option>
+                            </select>
+                            <select id="movementFilterProfesional" class="form-select form-select-sm" style="width: 200px;margin-left: 10px;">
+                                <option value="">Todos profesionales</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="kg-card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th style="width: 30px;">#</th>
+                                        <th>Fecha</th>
+                                        <th>Paciente</th>
+                                        <th>Profesional</th>
+                                        <th class="text-truncate" style="max-width: 200px;">Tratamiento</th>
+                                        <th class="text-end">Importe</th>
+                                        <th class="text-center">Estado</th>
+                                        <th class="text-end" style="width: 120px;">Acción</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var item in Model.Items.Take(10))
+                                    {
+                                        var isPending = item.PaymentStatus == KineGestion.Core.PaymentStatus.Pending;
+                                        var bgClass = isPending ? "bg-warning-subtle text-warning-emphasis border border-warning-subtle" : "bg-success-subtle text-success-emphasis border border-success-subtle";
+                                        var actionBtn = isPending ? 
+                                            "<button class='btn btn-sm btn-success btn-mark-paga' title='Marcar como pagada'><i class='bi bi-check-lg'></i></button>" :
+                                            "<span class='text-muted small'>Pagada</span>";
+                                        
+                                        <tr class="align-middle" style="background: rgba(255,255,255,0.03);">
+                                            <td><span class="text-muted tiny">1</span></td>
+                                            <td><span class="fw-semibold">@item.FechaHora.ToString("dd/MM")</span> <small class="text-muted">@item.FechaHora.ToString("HH:mm")</small></td>
+                                            <td>@item.PacienteNombre</td>
+                                            <td>@item.ProfesionalNombre</td>
+                                            <td class="text-truncate" title="@item.TratamientoDescripcion">@item.TratamientoDescripcion</td>
+                                            <td class="text-end"><small>$@item.TratamientoDescripcion.Contains("K") ? "15000" : "12000"</small></td>
+                                            <td class="text-center">
+                                              <span class="badge @bgClass">@item.PaymentStatus</span>
+                                            </td>
+                                            <td class="text-end">
+                                                @actionBtn
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart@4.4.0"></script>
+    <script>
+        (() => {
+            // ==========================================
+            // MAIN LINE CHART - Flujo financiero
+            // ==========================================
+            const mainCanvas = document.getElementById('mainLineChart');
+            if (!mainCanvas) return;
+            
+            const mainCtx = mainCanvas.getContext('2d');
+            
+            // Datos del gráfico (fechas y montos)
+            const dates = ['01 Oct', '07 Oct', '14 Oct', '21 Oct'];
+            const amounts = [120000, 245000, 380000, 576000]; // Montos acumulados
+            
+            // Crear gradiente para la línea
+            const gradient = mainCtx.createLinearGradient(0, 0, 0, 400);
+            gradient.addColorStop(0, '#06b6d4');
+            gradient.addColorStop(1, '#22c55e');
+            
+            new Chart(mainCtx, {
+                type: 'line',
+                data: {
+                    labels: dates,
+                    datasets: [{
+                        label: 'Total cobrado acumulado',
+                        data: amounts,
+                        fill: true,
+                        borderColor: gradient,
+                        backgroundColor: 'rgba(6, 182, 212, 0.15)',
+                        tension: 0.4,
+                        borderWidth: 4,
+                        pointBackgroundColor: '#06b6d4',
+                        pointBorderColor: '#fff',
+                        pointRadius: 6,
+                        pointHoverRadius: 8,
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: '#06b6d4'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: {
+                        duration: 1500,
+                        easing: 'easeOutQuart',
+                        // Dibujar la línea primero, luego los puntos
+                        animateScale: true
+                    },
+                    plugins: {
+                        legend: {
+                            display: false,
+                            labels: {
+                                font: {
+                                    size: 12
+                                }
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: '#2d3748',
+                            titleColor: '#fff',
+                            bodyColor: '#fff',
+                            borderColor: '#4a5568',
+                            borderWidth: 1,
+                            padding: 12,
+                            displayColors: false,
+                            callbacks: {
+                                label: function(context) {
+                                    return '$' + context.parsed.y.toLocaleString();
+                                },
+                                title: function(context) {
+                                    return 'Fecha: ' + context[0].label;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value, index, ticks) {
+                                    return '$' + (value / 1000).toLocaleString() + 'k';
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(100, 100, 100, 0.15)',
+                                borderWidth: 1
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                font: {
+                                    color: '#a0aec0',
+                                    size: 12
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // ==========================================
+            // ANIMATION: Bar grow effect
+            // ==========================================
+            const style = document.createElement('style');
+            style.textContent = `
+                @@keyframes barGrow {
+                    from { width: 0%; }
+                    to { width: 48%; }
+                }
+                .progress-bar-animated-bar {
+                    animation: barGrow 1.5s ease-out forwards;
+                }
+            `;
+            document.head.appendChild(style);
+            
+            // ==========================================
+            // TOOLTIPS ENHANCEMENT for chart points
+            // ==========================================
+            const mainChart = Chart.getChart(mainCanvas);
+            if (mainChart) {
+                mainChart.options.plugins.tooltip.callbacks.label = function(context) {
+                    const label = context.label || '';
+                    const value = '$' + context.parsed.y.toLocaleString();
+                    const index = mainChart.data.labels.indexOf(context.label);
+                    const variation = index > 0 ? '+8,2%' : ''; // Simulated variation
+                    return label + ': ' + value + ' ' + variation;
+                };
+            }
+            
+            // ==========================================
+            // FILTER INTERACTIONS for table
+            // ==========================================
+            const statusFilter = document.getElementById('movementFilterStatus');
+            const profesionalFilter = document.getElementById('movementFilterProfesional');
+            const rows = document.querySelectorAll('.kg-table tbody tr');
+            
+            if (statusFilter) {
+                statusFilter.addEventListener('change', (e) => {
+                    const mode = e.target.value;
+                    rows.forEach((row, i) => {
+                        if (mode === 'all') {
+                            row.style.display = '';
+                        } else {
+                            const statusCell = row.cells[6];
+                            const statusText = statusCell ? statusCell.innerText.lower() : '';
+                            row.style.display = (statusText.includes(mode) || mode === 'all') ? '' : 'none';
+                        }
+                    });
+                });
+            }
+            
+            // Card hover elevation animation
+            const statCards = document.querySelectorAll('.kg-stat-card-elevated');
+            statCards.forEach(card => {
+                card.addEventListener('mouseenter', () => {
+                    card.style.transform = 'translateY(-4px)';
+                    card.style.boxShadow = '0 8px 25px rgba(0,0,0,0.3)';
+                });
+                card.addEventListener('mouseleave', () => {
+                    card.style.transform = '';
+                    card.style.boxShadow = '';
+                });
+            });
+            
+        })();
+    </script>
+}

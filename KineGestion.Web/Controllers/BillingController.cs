@@ -28,6 +28,107 @@ namespace KineGestion.Web.Controllers
             _logger = logger;
         }
 
+        [HttpGet]
+        public async Task<IActionResult> Cobranzas(DateTime? dateFrom, DateTime? dateTo, string? search, bool onlyCompletedPending = true, int page = 1, int pageSize = 10)
+        {
+            if (page < 1) page = 1;
+            if (pageSize is < 5 or > 50) pageSize = 10;
+
+            var from = (dateFrom ?? DateTime.UtcNow.Date.AddDays(-30)).Date;
+            var to = (dateTo ?? DateTime.UtcNow.Date).Date.AddDays(1);
+
+            var pendingCount = await _sessionService.CountByPaymentStatusInRangeAsync(PaymentStatus.Pending, from, to);
+            var paidCount = await _sessionService.CountByPaymentStatusInRangeAsync(PaymentStatus.Paid, from, to);
+            var completedPendingCount = await _sessionService.CountByStatusAndPaymentStatusInRangeAsync(
+                SessionStatus.Completed,
+                PaymentStatus.Pending,
+                from,
+                to);
+
+            var today = DateTime.UtcNow.Date;
+            var aging0To2Days = await _sessionService.CountByStatusAndPaymentStatusInRangeAsync(SessionStatus.Completed, PaymentStatus.Pending, today.AddDays(-2), today.AddDays(1));
+            var aging3To7Days = await _sessionService.CountByStatusAndPaymentStatusInRangeAsync(SessionStatus.Completed, PaymentStatus.Pending, today.AddDays(-7), today.AddDays(-2));
+            var aging8PlusDays = await _sessionService.CountByStatusAndPaymentStatusInRangeAsync(SessionStatus.Completed, PaymentStatus.Pending, DateTime.MinValue, today.AddDays(-7));
+
+            SessionStatus? statusFilter = onlyCompletedPending ? SessionStatus.Completed : null;
+            PaymentStatus? paymentFilter = onlyCompletedPending ? PaymentStatus.Pending : null;
+
+            var (items, totalCount) = await _sessionService.GetPagedListForAdminAsync(
+                page,
+                pageSize,
+                search,
+                statusFilter,
+                paymentFilter,
+                from,
+                to,
+                "fecha",
+                "desc");
+
+            var defaultSessionAmount = Math.Max(0m, _configuration.GetValue<decimal?>("Billing:DefaultSessionAmount") ?? 0m);
+            var batchWarnThresholdPct = Math.Clamp(_configuration.GetValue<decimal?>("Billing:BatchEffectivenessWarnThresholdPct") ?? 70m, 0m, 100m);
+
+            var weeklyBatchTo = DateTime.UtcNow.Date;
+            var weeklyBatchFrom = weeklyBatchTo.AddDays(-6);
+            var weeklyBatchEvents = await _billingBatchEventRepository.GetByDateRangeAsync(weeklyBatchFrom, weeklyBatchTo);
+
+            var weeklyRuns = 0;
+            var weeklyRequested = 0;
+            var weeklyUpdated = 0;
+            var weeklySkipped = 0;
+
+            foreach (var batchEvent in weeklyBatchEvents)
+            {
+                weeklyRuns++;
+                weeklyRequested += batchEvent.RequestedCount;
+                weeklyUpdated += batchEvent.UpdatedCount;
+                weeklySkipped += batchEvent.SkippedCount;
+            }
+
+            var weeklyTrendPoints = BuildWeeklyTrend(weeklyBatchEvents, weeklyBatchTo, weeks: 4);
+            var hasTwoConsecutiveLowWeeks = HasConsecutiveLowWeeks(weeklyTrendPoints, batchWarnThresholdPct, requiredConsecutiveWeeks: 2);
+
+            if (hasTwoConsecutiveLowWeeks)
+            {
+                _logger.LogWarning(
+                    "Billing batch effectiveness below threshold for two consecutive weeks. Threshold={ThresholdPct}, LatestWeekEffectiveness={LatestWeekEffectivenessPct}",
+                    batchWarnThresholdPct,
+                    weeklyTrendPoints.LastOrDefault()?.EffectivenessPct ?? 0m);
+            }
+
+            var model = new BillingDashboardViewModel
+            {
+                DateFrom = from,
+                DateTo = to.AddDays(-1),
+                OnlyCompletedPending = onlyCompletedPending,
+                PendingCount = pendingCount,
+                PaidCount = paidCount,
+                CompletedPendingCount = completedPendingCount,
+                Aging0To2DaysCount = aging0To2Days,
+                Aging3To7DaysCount = aging3To7Days,
+                Aging8PlusDaysCount = aging8PlusDays,
+                DefaultSessionAmount = defaultSessionAmount,
+                Page = page,
+                PageSize = pageSize,
+                TotalCount = totalCount,
+                Search = search,
+                LastBatchRequestedCount = ReadTempDataInt("BillingBatchRequestedCount"),
+                LastBatchUpdatedCount = ReadTempDataInt("BillingBatchUpdatedCount"),
+                LastBatchSkippedCount = ReadTempDataInt("BillingBatchSkippedCount"),
+                WeeklyBatchFrom = weeklyBatchFrom,
+                WeeklyBatchTo = weeklyBatchTo,
+                WeeklyBatchRuns = weeklyRuns,
+                WeeklyBatchRequestedCount = weeklyRequested,
+                WeeklyBatchUpdatedCount = weeklyUpdated,
+                WeeklyBatchSkippedCount = weeklySkipped,
+                WeeklyBatchWarnThresholdPct = batchWarnThresholdPct,
+                HasTwoConsecutiveLowWeeks = hasTwoConsecutiveLowWeeks,
+                WeeklyTrendPoints = weeklyTrendPoints,
+                Items = items.Select(SessionViewModel.FromDto).ToList()
+            };
+
+            return View("~/Views/Cobranzas/Index.cshtml", model);
+        }
+
         public async Task<IActionResult> Index(DateTime? dateFrom, DateTime? dateTo, string? search, bool onlyCompletedPending = true, int page = 1, int pageSize = 10)
         {
             if (page < 1) page = 1;
