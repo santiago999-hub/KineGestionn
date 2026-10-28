@@ -95,19 +95,22 @@
         if (!config.options.plugins.legend) config.options.plugins.legend = legendDefaults(p);
         if (!config.options.plugins.tooltip) config.options.plugins.tooltip = tooltipDefaults(p);
 
-        var scales = config.options.scales || {};
-        var x = scales.x || {};
-        var y = scales.y || {};
-        if (!x.grid) x.grid = axisDefaults(p).grid;
-        if (!x.border) x.border = { display: false };
-        if (!x.ticks) x.ticks = { color: p.muted };
-        if (!y.grid) y.grid = axisDefaults(p).grid;
-        if (!y.border) y.border = { display: false };
-        if (!y.ticks) y.ticks = { color: p.muted, precision: 0 };
-        if (!y.beginAtZero) y.beginAtZero = true;
-        scales.x = x;
-        scales.y = y;
-        config.options.scales = scales;
+        var radialType = config.type === 'doughnut' || config.type === 'pie' || config.type === 'polarArea';
+        if (!radialType) {
+            var scales = config.options.scales || {};
+            var x = scales.x || {};
+            var y = scales.y || {};
+            if (!x.grid) x.grid = axisDefaults(p).grid;
+            if (!x.border) x.border = { display: false };
+            if (!x.ticks) x.ticks = { color: p.muted };
+            if (!y.grid) y.grid = axisDefaults(p).grid;
+            if (!y.border) y.border = { display: false };
+            if (!y.ticks) y.ticks = { color: p.muted, precision: 0 };
+            if (!y.beginAtZero) y.beginAtZero = true;
+            scales.x = x;
+            scales.y = y;
+            config.options.scales = scales;
+        }
 
         return config;
     }

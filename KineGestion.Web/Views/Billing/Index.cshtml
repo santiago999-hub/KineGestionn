@@ -18,7 +18,7 @@
     <div class="d-flex gap-2">
         <a class="btn btn-sm btn-outline-secondary"
            href="@Url.Action("Index", "Audit", new { entityName = "BillingBatch", action = "Create", dateFrom = Model.WeeklyBatchFrom.ToString("yyyy-MM-dd"), dateTo = Model.WeeklyBatchTo.ToString("yyyy-MM-dd") })">
-            <i class="bi bi-clock-history"></i> Auditoría de lotes
+            <i class="bi bi-clock-history"></i> AuditorÃ­a de lotes
         </a>
         <a class="btn btn-sm btn-outline-primary"
            href="@Url.Action("Export", "Audit", new { entityName = "BillingBatch", action = "Create", dateFrom = Model.WeeklyBatchFrom.ToString("yyyy-MM-dd"), dateTo = Model.WeeklyBatchTo.ToString("yyyy-MM-dd") })">
@@ -32,10 +32,10 @@
     <div class="alert alert-info d-flex align-items-center gap-3 mb-3" role="status">
         <i class="bi bi-info-circle-fill fs-5"></i>
         <div>
-            <strong>Último lote procesado:</strong>
-            Solicitadas <strong>@Model.LastBatchRequestedCount</strong> • 
-            Actualizadas <strong>@Model.LastBatchUpdatedCount</strong> • 
-            Omitidas <strong>@Model.LastBatchSkippedCount</strong> • 
+            <strong>Ãšltimo lote procesado:</strong>
+            Solicitadas <strong>@Model.LastBatchRequestedCount</strong> Â· 
+            Actualizadas <strong>@Model.LastBatchUpdatedCount</strong> Â· 
+            Omitidas <strong>@Model.LastBatchSkippedCount</strong> Â· 
             Efectividad <strong>@Model.LastBatchEffectivenessPct?.ToString("N2")%</strong>
         </div>
     </div>
@@ -80,22 +80,46 @@
             <div>
                 <div class="kg-stat-label">Total estimado</div>
                 <div class="kg-stat-value">$ @totalEstimated.ToString("N2")</div>
-                <small class="text-muted">Valor sesión: $ @Model.DefaultSessionAmount.ToString("N2")</small>
+                <small class="text-muted">Valor sesiÃ³n: $ @Model.DefaultSessionAmount.ToString("N2")</small>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Gráficos de Análisis -->
-<h6 class="text-uppercase text-muted fw-semibold mb-2" style="letter-spacing: .05em;"><i class="bi bi-pie-chart-fill"></i> Análisis Visual</h6>
+<!-- GrÃ¡ficos de AnÃ¡lisis -->
+<h6 class="text-uppercase text-muted fw-semibold mb-2" style="letter-spacing: .05em;"><i class="bi bi-pie-chart-fill"></i> AnÃ¡lisis Visual</h6>
 <div class="row g-3 mb-4">
     <div class="col-lg-4">
         <div class="kg-card h-100">
             <div class="kg-card-header">
-                <h5 class="kg-card-header-title"><i class="bi bi-donut"></i> Distribución por estado</h5>
+                <h5 class="kg-card-header-title"><i class="bi bi-donut"></i> DistribuciÃ³n por estado</h5>
+                <span class="kg-chart-total"><strong>@totalCountAll</strong> sesiones</span>
             </div>
-            <div class="kg-card-body d-flex align-items-center justify-content-center">
-                <canvas id="billingStatusChart" height="220"></canvas>
+            <div class="kg-card-body">
+                <div class="kg-chart-frame">
+                    <canvas id="billingStatusChart" role="img"
+                            aria-label="DistribuciÃ³n por estado: @Model.CompletedPendingCount completadas sin cobrar, @Model.PendingCount pendientes y @Model.PaidCount pagadas"></canvas>
+                </div>
+                <ul class="kg-chart-legend">
+                    <li class="kg-chart-legend-item is-warn">
+                        <span class="kg-chart-dot is-warn" aria-hidden="true"></span>
+                        <span class="kg-chart-legend-label">Completadas sin cobrar</span>
+                        <span class="kg-chart-legend-value">@Model.CompletedPendingCount</span>
+                        <span class="kg-chart-legend-pct">@compPendPct.ToString("0.#")%</span>
+                    </li>
+                    <li class="kg-chart-legend-item is-critical">
+                        <span class="kg-chart-dot is-critical" aria-hidden="true"></span>
+                        <span class="kg-chart-legend-label">Pendientes</span>
+                        <span class="kg-chart-legend-value">@Model.PendingCount</span>
+                        <span class="kg-chart-legend-pct">@pendingPct.ToString("0.#")%</span>
+                    </li>
+                    <li class="kg-chart-legend-item is-good">
+                        <span class="kg-chart-dot is-good" aria-hidden="true"></span>
+                        <span class="kg-chart-legend-label">Pagadas</span>
+                        <span class="kg-chart-legend-value">@Model.PaidCount</span>
+                        <span class="kg-chart-legend-pct">@paidPct.ToString("0.#")%</span>
+                    </li>
+                </ul>
             </div>
         </div>
     </div>
@@ -122,13 +146,13 @@
 </div>
 
 <!-- Aging detallado -->
-<h6 class="text-uppercase text-muted fw-semibold mb-2" style="letter-spacing: .05em;"><i class="bi bi-calendar-range"></i> Antigüedad de deuda</h6>
+<h6 class="text-uppercase text-muted fw-semibold mb-2" style="letter-spacing: .05em;"><i class="bi bi-calendar-range"></i> AntigÃ¼edad de deuda</h6>
 <div class="row g-3 mb-4">
     <div class="col-md-4">
         <div class="kg-stat-card">
             <div class="kg-stat-icon yellow"><i class="bi bi-hourglass-top"></i></div>
             <div>
-                <div class="kg-stat-label">0 - 2 días</div>
+                <div class="kg-stat-label">0 - 2 dÃ­as</div>
                 <div class="kg-stat-value">@Model.Aging0To2DaysCount</div>
                 <small class="text-muted">Reciente</small>
             </div>
@@ -138,7 +162,7 @@
         <div class="kg-stat-card">
             <div class="kg-stat-icon orange"><i class="bi bi-hourglass-split"></i></div>
             <div>
-                <div class="kg-stat-label">3 - 7 días</div>
+                <div class="kg-stat-label">3 - 7 dÃ­as</div>
                 <div class="kg-stat-value">@Model.Aging3To7DaysCount</div>
                 <small class="text-muted">Riesgo medio</small>
             </div>
@@ -148,7 +172,7 @@
         <div class="kg-stat-card">
             <div class="kg-stat-icon red"><i class="bi bi-hourglass-bottom"></i></div>
             <div>
-                <div class="kg-stat-label">+8 días</div>
+                <div class="kg-stat-label">+8 dÃ­as</div>
                 <div class="kg-stat-value">@Model.Aging8PlusDaysCount</div>
                 <small class="text-muted">Prioritario</small>
             </div>
@@ -172,7 +196,7 @@
     <div class="alert alert-danger d-flex align-items-center gap-2 mb-3" role="alert">
         <i class="bi bi-shield-exclamation"></i>
         <div>
-            <strong>Alerta crítica:</strong>
+            <strong>Alerta crÃ­tica:</strong>
             2 semanas consecutivas por debajo del umbral (@Model.WeeklyBatchWarnThresholdPct.ToString("N2")%)
         </div>
     </div>
@@ -242,7 +266,7 @@
             <input type="hidden" name="pageSize" value="@Model.PageSize" />
 
             <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-                <small class="text-muted">Seleccioná sesiones para acciones masivas</small>
+                <small class="text-muted">SeleccionÃ¡ sesiones para acciones masivas</small>
                 <div class="d-flex gap-2">
                     <button type="submit" class="btn btn-sm btn-success" id="markSelectedPaidBtn" disabled>
                         <i class="bi bi-check2-all"></i> Marcar pagadas
@@ -330,25 +354,129 @@
 
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+    <script src="~/js/kg-chart.js" asp-append-version="true"></script>
     <script>
         (() => {
-            const statusCtx = document.getElementById('billingStatusChart');
-            if (statusCtx) {
-                new Chart(statusCtx, {
-                    type: 'doughnut',
-                    data: {
-                        labels: ['Completadas sin cobrar', 'Pendientes', 'Pagadas'],
-                        datasets: [{
-                            data: [@Model.CompletedPendingCount, @Model.PendingCount, @Model.PaidCount],
-                            backgroundColor: ['#f59e0b', '#ef4444', '#22c55e'],
-                            borderWidth: 2,
-                            borderColor: '#fff'
-                        }]
-                    },
-                    options: {
-                        plugins: { legend: { position: 'bottom' } },
-                        cutout: '65%'
-                    }
+            const statusCanvas = document.getElementById('billingStatusChart');
+            if (statusCanvas && window.kgChart) {
+                const labels = ['Completadas sin cobrar', 'Pendientes', 'Pagadas'];
+                const shortLabels = ['SIN COBRAR', 'PENDIENTES', 'PAGADAS'];
+                const values = [@Model.CompletedPendingCount, @Model.PendingCount, @Model.PaidCount];
+                const total = values.reduce((sum, value) => sum + value, 0);
+                const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+                const mixWhite = (hex, ratio) => {
+                    const value = (hex || '').replace('#', '');
+                    if (value.length !== 6) return hex;
+                    const channels = [0, 2, 4].map(offset => parseInt(value.substr(offset, 2), 16));
+                    if (channels.some(channel => Number.isNaN(channel))) return hex;
+                    return 'rgb(' + channels.map(channel => Math.round(channel + (255 - channel) * ratio)).join(',') + ')';
+                };
+
+                window.kgChart.render('billingStatusChart', (palette) => {
+                    const isDark = window.kgChart.isDark();
+                    const colors = [palette.amber, palette.red, palette.green];
+
+                    const glowPlugin = {
+                        id: 'kgStatusGlow',
+                        beforeDatasetsDraw(chart) {
+                            const ctx = chart.ctx;
+                            ctx.save();
+                            ctx.shadowColor = isDark ? window.kgChart.withAlpha(palette.accent, 0.4) : 'rgba(13, 34, 58, 0.14)';
+                            ctx.shadowBlur = isDark ? 26 : 18;
+                            ctx.shadowOffsetY = isDark ? 0 : 6;
+                        },
+                        afterDatasetsDraw(chart) {
+                            chart.ctx.restore();
+                        }
+                    };
+
+                    const centerPlugin = {
+                        id: 'kgStatusCenter',
+                        afterDraw(chart) {
+                            const area = chart.chartArea;
+                            if (!area) return;
+                            const active = chart.getActiveElements();
+                            const index = active.length > 0 ? active[0].index : -1;
+                            const value = index >= 0 ? values[index] : total;
+                            const caption = index >= 0 ? shortLabels[index] : 'SESIONES';
+                            const ctx = chart.ctx;
+                            const cx = (area.left + area.right) / 2;
+                            const cy = (area.top + area.bottom) / 2;
+
+                            ctx.save();
+                            ctx.textAlign = 'center';
+                            ctx.textBaseline = 'middle';
+                            ctx.fillStyle = palette.text;
+                            ctx.font = '700 ' + Math.max(20, Math.round(area.height * 0.17)) + "px 'IBM Plex Sans', 'Segoe UI', sans-serif";
+                            ctx.fillText(String(value), cx, cy - 7);
+                            ctx.fillStyle = palette.muted;
+                            ctx.font = '600 ' + Math.max(9, Math.round(area.height * 0.05)) + "px 'IBM Plex Sans', 'Segoe UI', sans-serif";
+                            if ('letterSpacing' in ctx) ctx.letterSpacing = '1.2px';
+                            ctx.fillText(caption, cx, cy + Math.max(14, Math.round(area.height * 0.1)));
+                            ctx.restore();
+                        }
+                    };
+
+                    return {
+                        type: 'doughnut',
+                        data: {
+                            labels,
+                            datasets: [{
+                                data: values,
+                                backgroundColor: (context) => {
+                                    const area = context.chart.chartArea;
+                                    const base = colors[context.dataIndex];
+                                    if (!area) return base;
+                                    const gradient = context.chart.ctx.createLinearGradient(0, area.top, 0, area.bottom);
+                                    gradient.addColorStop(0, mixWhite(base, isDark ? 0.18 : 0.34));
+                                    gradient.addColorStop(1, base);
+                                    return gradient;
+                                },
+                                borderWidth: 0,
+                                borderRadius: 12,
+                                spacing: 4,
+                                hoverOffset: 8,
+                                hoverBorderWidth: 0
+                            }]
+                        },
+                        plugins: [glowPlugin, centerPlugin],
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            cutout: '72%',
+                            radius: '92%',
+                            layout: { padding: 12 },
+                            animation: reduceMotion ? { duration: 0 } : {
+                                duration: 900,
+                                easing: 'easeOutQuart',
+                                animateRotate: true,
+                                animateScale: true
+                            },
+                            plugins: {
+                                legend: { display: false },
+                                tooltip: {
+                                    backgroundColor: isDark ? 'rgba(9, 20, 34, 0.96)' : 'rgba(255, 255, 255, 0.98)',
+                                    titleColor: palette.text,
+                                    bodyColor: palette.muted,
+                                    borderColor: palette.grid,
+                                    borderWidth: 1,
+                                    cornerRadius: 10,
+                                    padding: 12,
+                                    boxPadding: 4,
+                                    usePointStyle: true,
+                                    boxWidth: 8,
+                                    boxHeight: 8,
+                                    callbacks: {
+                                        label: (context) => {
+                                            const pct = total > 0 ? (values[context.dataIndex] * 100 / total).toFixed(1) : '0.0';
+                                            return ' ' + context.parsed + ' sesiones Â· ' + pct + '%';
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    };
                 });
             }
 
@@ -357,7 +485,7 @@
                 new Chart(agingCtx, {
                     type: 'bar',
                     data: {
-                        labels: ['0-2 días', '3-7 días', '+8 días'],
+                        labels: ['0-2 dÃ­as', '3-7 dÃ­as', '+8 dÃ­as'],
                         datasets: [{
                             label: 'Cantidad',
                             data: [@Model.Aging0To2DaysCount, @Model.Aging3To7DaysCount, @Model.Aging8PlusDaysCount],

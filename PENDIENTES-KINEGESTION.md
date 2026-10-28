@@ -30,6 +30,7 @@
 ### Media prioridad (técnica / robustez)
 - [ ] **Sacar las llaves/secretos de GitHub del repo** (no es seguro): barrido 2026-10-19 → sin PAT/tokens/API keys hardcodeados (workflows usan `GITHUB_TOKEN`; prod usa `CHANGE_ME` con fail-fast). ~~Credencial de seed `Admin1234` en `appsettings.json`~~ → resuelto 2026-10-20: sacada del `appsettings.json` rastreado; vive solo en `appsettings.Development.json` (gitignored) + env var `Seed__AdminPassword` en no-dev (fail-fast en `Program.cs` y en `ValidateProductionSafetyConfiguration`); scripts de ops leen `KINEGESTION_AUTH_SECRET`. Pendiente: **secret scanning en CI y rotar si algún secreto llegó a publicarse** (el literal `Admin1234` sigue en historial de git).
 - [ ] Caché distribuida (Redis) para multi-instancia (hoy `QueryCache` es por proceso).
+- [ ] **Mejorar tiempos de arranque de la página**: perfilar cold start (startup, warmup, JIT, migraciones y queries iniciales), fijar objetivo p95 y documentar resultados en `REPORTE-BENCHMARK-ARRANQUE-Y-LATENCIA-2026-09-23.md`.
 - [ ] Broker de mensajería (Redis/RabbitMQ/Azure Service Bus) + **DLQ** al escalar a > 1 consumidor.
 - [ ] Idempotencia por ventana (SessionId + ventana operativa) en el productor.
 - [ ] MFA para perfiles admin + rate limiting en login.
