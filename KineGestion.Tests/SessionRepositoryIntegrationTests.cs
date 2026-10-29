@@ -657,6 +657,91 @@ namespace KineGestion.Tests
         }
 
         [Fact]
+        public async Task GetTopPendingPatientsAsync_ShouldRankCompletedPendingDebtByPatient()
+        {
+            var databaseName = $"KineGestion_Integration_{Guid.NewGuid():N}";
+            var options = IntegrationTestDatabase.BuildOptions(databaseName);
+
+            var from = new DateTime(2026, 6, 1);
+            var to = new DateTime(2026, 7, 1);
+
+            await using (var setupContext = new AppDbContext(options))
+            {
+                await setupContext.Database.EnsureDeletedAsync();
+                await setupContext.Database.EnsureCreatedAsync();
+
+                var patient1 = NewPatient();
+                patient1.Telefono = "555-1111";
+                var patient2 = new Patient
+                {
+                    Nombre = "Carlos",
+                    Apellido = "Perez",
+                    DNI = "11223344",
+                    FechaNacimiento = new DateTime(1975, 8, 20),
+                    Telefono = "555-2222"
+                };
+
+                var professional = NewProfessional();
+
+                setupContext.Patients.AddRange(patient1, patient2);
+                setupContext.Professionals.Add(professional);
+                await setupContext.SaveChangesAsync();
+
+                var treatment1 = NewTreatment(patient1.Id, from);
+                var treatment2 = NewTreatment(patient2.Id, from);
+                setupContext.Treatments.AddRange(treatment1, treatment2);
+                await setupContext.SaveChangesAsync();
+
+                int counter = 1;
+
+                void AddSession(int patientId, int treatmentId, DateTime fechaHora, SessionStatus status, PaymentStatus pay)
+                {
+                    setupContext.Sessions.Add(new Session
+                    {
+                        FechaHora = fechaHora,
+                        PatientId = patientId,
+                        ProfessionalId = professional.Id,
+                        TreatmentId = treatmentId,
+                        NroSesionEnTratamiento = counter++,
+                        Status = status,
+                        PaymentStatus = pay
+                    });
+                }
+
+                AddSession(patient1.Id, treatment1.Id, from.AddDays(20).AddHours(9), SessionStatus.Completed, PaymentStatus.Pending);
+                AddSession(patient1.Id, treatment1.Id, from.AddDays(2).AddHours(10), SessionStatus.Completed, PaymentStatus.Pending);
+                AddSession(patient2.Id, treatment2.Id, from.AddDays(5).AddHours(11), SessionStatus.Completed, PaymentStatus.Pending);
+                AddSession(patient2.Id, treatment2.Id, from.AddDays(6).AddHours(11), SessionStatus.Completed, PaymentStatus.Paid);
+                AddSession(patient2.Id, treatment2.Id, from.AddDays(7).AddHours(11), SessionStatus.Pending, PaymentStatus.Pending);
+                AddSession(patient1.Id, treatment1.Id, to.AddDays(3).AddHours(9), SessionStatus.Completed, PaymentStatus.Pending);
+
+                await setupContext.SaveChangesAsync();
+            }
+
+            await using (var testContext = new AppDbContext(options))
+            {
+                var repository = new SessionMetricsRepository(testContext);
+                var result = await repository.GetTopPendingPatientsAsync(from, to, 5);
+
+                Assert.Equal(2, result.Count);
+
+                Assert.Equal(2, result[0].PendingCount);
+                Assert.Equal("Lopez, Maria", result[0].PatientLabel);
+                Assert.Equal("555-1111", result[0].Telefono);
+                Assert.Equal(new DateTime(2026, 6, 3, 10, 0, 0), result[0].OldestPendingUtc);
+
+                Assert.Equal(1, result[1].PendingCount);
+                Assert.Equal("Perez, Carlos", result[1].PatientLabel);
+                Assert.Equal("555-2222", result[1].Telefono);
+            }
+
+            await using (var cleanupContext = new AppDbContext(options))
+            {
+                await cleanupContext.Database.EnsureDeletedAsync();
+            }
+        }
+
+        [Fact]
         public async Task GetKpiSegmentsByTimeSlotAsync_ShouldAggregateKpisByHour()
         {
             var databaseName = $"KineGestion_Integration_{Guid.NewGuid():N}";

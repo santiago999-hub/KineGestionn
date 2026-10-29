@@ -350,6 +350,145 @@ namespace KineGestion.Web.Tests
             Assert.Equal(4, model.WeeklyTrendPoints.Count);
         }
 
+        [Fact]
+        public async Task Index_ShouldExposeAdvancedFiltersAndBillingInsights()
+        {
+            var sessionService = new Mock<ISessionService>();
+            var configuration = new ConfigurationBuilder()
+                .AddInMemoryCollection(new Dictionary<string, string?>
+                {
+                    ["Billing:DefaultSessionAmount"] = "1000"
+                })
+                .Build();
+
+            var rangeStart = new DateTime(2026, 6, 1);
+            var rangeEndExclusive = new DateTime(2026, 6, 2);
+
+            sessionService.Setup(s => s.CountByPaymentStatusInRangeAsync(PaymentStatus.Pending, It.IsAny<DateTime>(), It.IsAny<DateTime>())).ReturnsAsync(2);
+            sessionService.Setup(s => s.CountByPaymentStatusInRangeAsync(PaymentStatus.Paid, It.IsAny<DateTime>(), It.IsAny<DateTime>())).ReturnsAsync(3);
+            sessionService.Setup(s => s.CountByStatusAndPaymentStatusInRangeAsync(SessionStatus.Completed, PaymentStatus.Paid, It.IsAny<DateTime>(), It.IsAny<DateTime>())).ReturnsAsync(3);
+            sessionService.Setup(s => s.CountByStatusAndPaymentStatusInRangeAsync(SessionStatus.Completed, PaymentStatus.Pending, It.IsAny<DateTime>(), It.IsAny<DateTime>())).ReturnsAsync(2);
+            sessionService.Setup(s => s.GetPagedListForAdminAsync(
+                    2,
+                    25,
+                    "maria",
+                    null,
+                    null,
+                    rangeStart,
+                    rangeEndExclusive,
+                    "fecha",
+                    "desc"))
+                .ReturnsAsync((Enumerable.Empty<SessionListDto>(), 30));
+            sessionService.Setup(s => s.GetDailySessionSeriesAsync(rangeStart, rangeEndExclusive, null))
+                .ReturnsAsync(new[]
+                {
+                    new DailySessionCountDto(rangeStart, 4, 3, 0, 2)
+                });
+            sessionService.Setup(s => s.GetKpiSegmentsByProfessionalAsync(rangeStart, rangeEndExclusive))
+                .ReturnsAsync(new[]
+                {
+                    new KpiSegmentDto("1", "Diaz, Jose", 5, 1, 4, 0, 2, 2)
+                });
+            sessionService.Setup(s => s.GetTopPendingPatientsAsync(rangeStart, rangeEndExclusive, 5, null))
+                .ReturnsAsync(new[]
+                {
+                    new PendingPatientDebtDto(7, "Lopez, Maria", "555-1234", 2, DateTime.UtcNow.Date.AddDays(-9))
+                });
+
+            var controller = BuildController(sessionService.Object, configuration);
+
+            var result = await controller.Index(rangeStart, rangeStart, "maria", page: 2, pageSize: 25, filtersApplied: true);
+
+            var view = Assert.IsType<ViewResult>(result);
+            var model = Assert.IsType<BillingDashboardViewModel>(view.Model);
+
+            Assert.True(model.FiltersApplied);
+            Assert.Null(model.StatusFilter);
+            Assert.Null(model.PaymentFilter);
+            Assert.Equal(3, model.CompletedPaidCount);
+            Assert.Equal(60m, model.CollectionEffectivenessPct);
+            Assert.Equal(30, model.TotalCount);
+            Assert.Equal(2, model.TotalPages);
+            Assert.Single(model.DailyPoints);
+            Assert.Equal(2, model.DailyPoints[0].PaidCount);
+            Assert.Equal(2000m, model.DailyPoints[0].CollectedAmount);
+            Assert.Single(model.ProfessionalEffectiveness);
+            Assert.Equal(50m, model.ProfessionalEffectiveness[0].CollectionPct);
+            Assert.Single(model.TopPendingPatients);
+            Assert.Equal(2000m, model.TopPendingPatients[0].PendingAmount);
+            Assert.Equal(9, model.TopPendingPatients[0].AgeDays);
+        }
+
+        [Fact]
+        public async Task ExportCsv_ShouldReturnFilteredRowsWithEstimatedAmounts()
+        {
+            var sessionService = new Mock<ISessionService>();
+            var configuration = new ConfigurationBuilder()
+                .AddInMemoryCollection(new Dictionary<string, string?>
+                {
+                    ["Billing:DefaultSessionAmount"] = "2500"
+                })
+                .Build();
+
+            sessionService.Setup(s => s.GetPagedListForAdminAsync(
+                    1,
+                    5000,
+                    null,
+                    SessionStatus.Completed,
+                    PaymentStatus.Paid,
+                    It.IsAny<DateTime?>(),
+                    It.IsAny<DateTime?>(),
+                    "fecha",
+                    "desc"))
+                .ReturnsAsync((new[]
+                {
+                    new SessionListDto(1, new DateTime(2026, 6, 1, 10, 0, 0), SessionStatus.Completed, PaymentStatus.Paid, 1, "Lopez, Maria", "Diaz, Jose", "Tx; especial", null, false)
+                }.AsEnumerable(), 1));
+
+            var controller = BuildController(sessionService.Object, configuration);
+
+            var result = await controller.ExportCsv(null, null, null, filtersApplied: true, status: SessionStatus.Completed, payment: PaymentStatus.Paid);
+
+            var file = Assert.IsType<FileContentResult>(result);
+            Assert.Equal("text/csv", file.ContentType);
+            Assert.Contains("cobranzas-", file.FileDownloadName);
+
+            var text = System.Text.Encoding.UTF8.GetString(file.FileContents);
+            Assert.Contains("Fecha;Paciente;Profesional;Tratamiento;Consultorio;Estado sesion;Estado pago;Importe estimado", text);
+            Assert.Contains("\"Tx; especial\"", text);
+            Assert.Contains("2500.00", text);
+        }
+
+        [Fact]
+        public async Task Index_ShouldDefaultToCompletedPending_WhenNoFiltersAreApplied()
+        {
+            var sessionService = new Mock<ISessionService>();
+            var configuration = new ConfigurationBuilder().Build();
+
+            sessionService.Setup(s => s.GetPagedListForAdminAsync(
+                    1,
+                    10,
+                    null,
+                    SessionStatus.Completed,
+                    PaymentStatus.Pending,
+                    It.IsAny<DateTime?>(),
+                    It.IsAny<DateTime?>(),
+                    "fecha",
+                    "desc"))
+                .ReturnsAsync((Enumerable.Empty<SessionListDto>(), 0));
+
+            var controller = BuildController(sessionService.Object, configuration);
+
+            var result = await controller.Index(null, null, null);
+
+            var view = Assert.IsType<ViewResult>(result);
+            var model = Assert.IsType<BillingDashboardViewModel>(view.Model);
+            Assert.Equal(SessionStatus.Completed, model.StatusFilter);
+            Assert.Equal(PaymentStatus.Pending, model.PaymentFilter);
+            Assert.False(model.FiltersApplied);
+            Assert.Equal(30, model.RangeDays);
+        }
+
         private static BillingController BuildController(ISessionService sessionService, IConfiguration configuration, Mock<IBillingBatchEventRepository>? billingBatchEventRepository = null, Mock<ILogger<BillingController>>? logger = null)
         {
             var resolvedBatchRepository = billingBatchEventRepository ?? BuildBatchRepositoryMock();

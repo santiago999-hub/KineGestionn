@@ -174,6 +174,12 @@ namespace KineGestion.Core.Services
                 () => _metricsRepository.GetStatusDistributionInRangeAsync(fromInclusiveUtc, toExclusiveUtc, officeId),
                 TimeSpan.FromSeconds(10));
 
+        public async Task<IReadOnlyList<PendingPatientDebtDto>> GetTopPendingPatientsAsync(DateTime fromInclusiveUtc, DateTime toExclusiveUtc, int limit = 5, int? officeId = null)
+            => await QueryCache.GetOrCreateAsync(
+                $"sessions:top-debts:{fromInclusiveUtc:yyyyMMddHHmmss}:{toExclusiveUtc:yyyyMMddHHmmss}:limit:{limit}:office:{officeId?.ToString() ?? "all"}" + GetCacheScope(),
+                () => _metricsRepository.GetTopPendingPatientsAsync(fromInclusiveUtc, toExclusiveUtc, limit, officeId),
+                TimeSpan.FromSeconds(10));
+
         public async Task<IReadOnlyList<SessionAgendaItemDto>> GetAgendaForDayAsync(DateTime utcDay, int? officeId = null)
             => await QueryCache.GetOrCreateAsync(
                 $"sessions:agenda:day:{utcDay:yyyyMMdd}:office:{officeId?.ToString() ?? "all"}" + GetCacheScope(),

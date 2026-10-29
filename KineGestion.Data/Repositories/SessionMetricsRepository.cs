@@ -238,6 +238,51 @@ namespace KineGestion.Data.Repositories
                 .ToList();
         }
 
+        public async Task<IReadOnlyList<PendingPatientDebtDto>> GetTopPendingPatientsAsync(DateTime fromInclusiveUtc, DateTime toExclusiveUtc, int limit = 5, int? officeId = null)
+        {
+            if (limit <= 0)
+                return Array.Empty<PendingPatientDebtDto>();
+
+            var query = ApplyCountScope(_context.Sessions.AsNoTracking())
+                .Where(s => s.Status == SessionStatus.Completed
+                    && s.PaymentStatus == PaymentStatus.Pending
+                    && s.FechaHora >= fromInclusiveUtc
+                    && s.FechaHora < toExclusiveUtc);
+
+            if (officeId.HasValue)
+            {
+                query = query.Where(s => s.OfficeId == officeId.Value);
+            }
+
+            var groups = await query
+                .GroupBy(s => s.PatientId)
+                .Select(g => new
+                {
+                    PatientId = g.Key,
+                    PendingCount = g.Count(),
+                    OldestPendingUtc = g.Min(s => s.FechaHora)
+                })
+                .OrderByDescending(d => d.PendingCount)
+                .ThenBy(d => d.OldestPendingUtc)
+                .Take(limit)
+                .ToListAsync();
+
+            var patientIds = groups.Select(g => g.PatientId).ToList();
+            var patients = await _context.Patients.AsNoTracking()
+                .Where(p => patientIds.Contains(p.Id))
+                .Select(p => new { p.Id, p.Apellido, p.Nombre, p.Telefono })
+                .ToDictionaryAsync(p => p.Id, p => p);
+
+            return groups
+                .Select(g =>
+                {
+                    patients.TryGetValue(g.PatientId, out var patient);
+                    var label = patient is null ? "Paciente sin datos" : patient.Apellido + ", " + patient.Nombre;
+                    return new PendingPatientDebtDto(g.PatientId, label, patient?.Telefono, g.PendingCount, g.OldestPendingUtc);
+                })
+                .ToList();
+        }
+
         public async Task<IReadOnlyList<SessionAgendaItemDto>> GetAgendaForDayAsync(DateTime utcDay, int? officeId = null)
         {
             var dayStart = utcDay.Date;

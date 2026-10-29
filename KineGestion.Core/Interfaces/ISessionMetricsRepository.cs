@@ -31,6 +31,7 @@ namespace KineGestion.Core.Interfaces
         Task<IReadOnlyList<KpiSegmentDto>> GetKpiSegmentsByTimeSlotAsync(DateTime fromInclusiveUtc, DateTime toExclusiveUtc);
         Task<IReadOnlyList<DailySessionCountDto>> GetDailySessionSeriesAsync(DateTime fromInclusiveUtc, DateTime toExclusiveUtc, int? officeId = null);
         Task<IReadOnlyList<SessionStatusCountDto>> GetStatusDistributionInRangeAsync(DateTime fromInclusiveUtc, DateTime toExclusiveUtc, int? officeId = null);
+        Task<IReadOnlyList<PendingPatientDebtDto>> GetTopPendingPatientsAsync(DateTime fromInclusiveUtc, DateTime toExclusiveUtc, int limit = 5, int? officeId = null);
         Task<IReadOnlyList<SessionAgendaItemDto>> GetAgendaForDayAsync(DateTime utcDay, int? officeId = null);
     }
 }
