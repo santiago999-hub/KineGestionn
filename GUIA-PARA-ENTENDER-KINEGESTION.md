@@ -144,7 +144,7 @@ Cada vez que alguien llama `SaveChangesAsync`, el contexto sobreescribe ese mét
 - **DeleteBehavior.Restrict** en las relaciones de Session→Patient/Professional/Treatment: no se puede borrar un paciente que tiene sesiones (preserva historial clínico). Office usa `SetNull` (si se borra un consultorio, las sesiones quedan sin consultorio pero se conservan).
 
 ### 3.4. Soft Delete
-Las entidades de la clínica tienen `IsActivo`/`IsActive` (borrado lógico). `Office` tiene **Query Filter global** (`Where IsActive = true`) aplicado automáticamente por EF en TODAS las consultas. Patient/Professional la aplican en sus repositorios. Borrar = marcar flag; el historial clínico queda intacto. La auditoría detecta ese cambio como `Action = "Delete"` (soft delete transition, AppDbContext.cs:478-486).
+Las entidades de la clínica tienen `IsActivo`/`IsActive` (borrado lógico). `Office`, `Patient` y `Professional` tienen **Query Filter global** (`Where IsActive/IsActivo = true`) aplicado automáticamente por EF en TODAS las consultas (AppDbContext.cs:60-62). Los repositorios que necesitan conservar el historial usan `IgnoreQueryFilters()` explícito (p. ej. `PatientRepository`, `ProfessionalRepository` y los de `Session`). Borrar = marcar flag; el historial clínico queda intacto. La auditoría detecta ese cambio como `Action = "Delete"` (soft delete transition, AppDbContext.cs:478-486).
 
 ---
 
@@ -220,7 +220,7 @@ El worker `ReminderDispatchBackgroundService` (ReminderDispatchQueue.cs:132-315)
 
 ### 5.3. Los dos niveles de deduplicación
 - **Nivel BD (filtro único)**: índice único filtrado `(SessionId, DispatchType, PayloadHash) WHERE Status IN (0,1)` (AppDbContext.cs:207-209). Dos productores concurrentes que encolan lo mismo: el primero inserta, el segundo choca contra el índice y cae en `DbUpdateException`, que se trata en `QueueAsync` (ReminderDispatchQueue.cs:72-88): relanza solo si realmente no existía.
-- **Nivel hash (re-encolado)**: el hash no incluye timestamps ni actor, así que reencolar "el mismo contenido" después de que el job ya terminó tampoco crea un duplicado mientras haya uno abierto.
+- **Nivel hash (re-encolado)**: el hash no incluye timestamps ni actor, así que reencolar "el mismo contenido" mientras el job sigue abierto (`Pending`/`Processing`) no crea un duplicado. Una vez que el job quedó terminal (`Succeeded`/`Failed`/`Canceled`) el índice filtrado ya no lo cubre y un reencolado explícito sí crea un job nuevo.
 
 **Por qué todo esto es "operativo" y no "técnico":** la garantía que se busca es *at-least-once* con control de duplicados, y contabilidad de cada intento (quién lo disparó, cuándo, resultado). Eso es lo que permite luego medir efectividad (funnel) sin adivinar.
 
@@ -258,7 +258,7 @@ Separarlos permite que el "historial" no ralentice la cola y viceversa; además 
 Capas, de afuera hacia adentro:
 1. **HTTPS en producción** (`UseHttpsRedirection` + cookie `SecurePolicy.Always`).
 2. **Autenticación** (ASP.NET Identity): la cookie es `HttpOnly` + `SameSite=Lax`, dura 8 horas, con bloqueo de 10 min tras 5 intentos fallidos. Contraseña mínima 8 chars con dígito.
-3. **Autorización por rol**: atributos `[Authorize]` + políticas en `Program.cs:193-199` (`AdminOnly`, `ClinicalStaff`, `ClinicalNotes`). Acciones específicas exigen Admin (`Delete` de sesiones, `RemindersController` entero).
+3. **Autorización por rol**: atributos `[Authorize]` + 4 políticas en `Program.cs:201-204` (`AdminOnly`, `ClinicalStaff`, `SchedulingStaff`, `ClinicalNotes`), sobre los roles Admin, Kinesiologo y Asistente. Acciones específicas exigen Admin (`Delete` de sesiones, `RemindersController` entero).
 4. **IDOR (acceso a datos ajenos)**: el filtro `ProfessionalId` se aplica en el **repositorio** (SQL), no solo en el controller, y se duplica en la clave de caché (sección 2.3). La página `MyAgenda` ni siquiera toma el profesional de la URL: lo saca del **claim** del usuario autenticado (`SessionsController.cs:123`).
 5. **Anti-CSRF**: todo POST tiene `[ValidateAntiForgeryToken]` + token de antiforgery en el form. Como la cookie antiforgery usa Data Protection con key ring en disco compartible, funciona en multi-instancia.
 6. **XSS**: Razor escapa todo por defecto; las notas clínicas se muestran con el escaping estándar.

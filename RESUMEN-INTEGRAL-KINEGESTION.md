@@ -2,6 +2,8 @@
 
 Documento consolidado para defensa oral. Cubre arquitectura, modelo de dominio, persistencia, capa Web, flujos end-to-end, rendimiento, seguridad, i18n, infraestructura/CI y tests. Incluye un **análisis por área (qué vender, qué pulir, plan a futuro)**, una matriz de madurez, un **análisis con 5 lentes de defensa** (trade-offs, abogado del diablo, entropía, Base vs Full, pitch), un **glosario por categorías** y preguntas de jurado.
 
+**Mapa de documentos (para no duplicar ni contradecir):** este archivo es la **fuente de verdad del estado actual**; `PENDIENTES-KINEGESTION.md` es la memoria operativa del backlog. `GUIA-PARA-ENTENDER-KINEGESTION.md` es el recorrido didáctico del mismo sistema (más narrativo, sin cifras de estado). `ANALISIS-SISTEMA-KINEGESTION.md` es un **análisis histórico del pre-proyecto (11/05/2026)** y `TESIS-*` es el **snapshot de resultados de mayo 2026 (114/114)**. Cuando difieran, mandan este resumen y `PENDIENTES`.
+
 ---
 
 ## 1. Qué es y stack
@@ -61,7 +63,7 @@ Detalle no obvio: **no hay** `IEntityTypeConfiguration`, ni `AddData()`/`AddRepo
 - **Concurrencia:** `Session.RowVersion` (optimista) + inserción en transacción `Serializable` con **3 reintentos** ante deadlock (SQL 1205) + índice único de numeración; `DbUpdateConcurrencyException` se traduce a `BusinessValidationException`.
 - **Cola `DispatchJob`:** claim set-based de una sola sentencia `UPDATE TOP (N) ... WITH (UPDLOCK, READPAST)` (lease por `ClaimToken`), reintentos con backoff configurable, limpieza de jobs terminales.
 - **21 migraciones.** Destacan `AddBusinessEventTables` (crea `BillingBatchEvents`/`DispatchEvents` y copia el histórico desde `AuditLogs` con `JSON_VALUE`/`TRY_CAST`) y `AddSessionRowVersion`. La última (`AddSoftDeleteGlobalQueryFilters`) es **vacía a propósito** (solo sincroniza metadatos).
-- **Repositorios (14):** sesiones partidas en 4 interfaces para Interface Segregation (`ISessionRepository`, `ISessionQueryRepository`, `ISessionMetricsRepository`, `ISessionBatchRepository`, todas sobre `SessionRepositoryBase` con scoping por rol / anti-IDOR). Operaciones destacadas: batch set-based con `ExecuteUpdateAsync`, proyección a DTO con subquery `COUNT(*)` en SQL, y `Take` aplicado en SQL para límites.
+- **Repositorios (13 implementaciones + `SessionRepositoryBase`):** sesiones partidas en 4 interfaces para Interface Segregation (`ISessionRepository`, `ISessionQueryRepository`, `ISessionMetricsRepository`, `ISessionBatchRepository`, todas sobre `SessionRepositoryBase` con scoping por rol / anti-IDOR). Operaciones destacadas: batch set-based con `ExecuteUpdateAsync`, proyección a DTO con subquery `COUNT(*)` en SQL, y `Take` aplicado en SQL para límites.
 
 ## 5. Capa Web (`KineGestion.Web`)
 
@@ -74,7 +76,7 @@ Detalle no obvio: **no hay** `IEntityTypeConfiguration`, ni `AddData()`/`AddRepo
   - **4 políticas:** `AdminOnly`, `ClinicalStaff`, `SchedulingStaff`, `ClinicalNotes`.
   - **DataProtection** con key ring persistido en `App_Data/DataProtectionKeys`.
   - `ValidateProductionSafetyConfiguration` falla el arranque ante placeholders `CHANGE_ME`, contraseña admin insegura o reset de contraseña en producción.
-- **Controllers (18):** Home (dashboard cacheado 30 s), Sessions (Index/MyAgenda/Create/Edit/Details/Delete/AvailableSlots/AgendaSlots/Reprogram/Cancel), Billing (MarkPaid/Pending individual y por lote → `BillingBatchEvent`), Reminders (ventanas 24h/3h, links firmados con DataProtection, `Respond` anónimo), BillingFollowUp (tiers Soft/Reminder/Firm), DispatchQueue (reintento/cancelación), Users, Audit (filtros + export CSV/Excel), Segmentacion (KPIs por profesional y franja horaria), ReminderFunnel (embudo), Account (login/logout/access denied/profile), Localization (`SetLanguage`), BaseController + CRUD de Patients/Professionals/Offices/Equipments/Treatments.
+- **Controllers (18):** Home (dashboard cacheado 30 s con agenda del día y 3 gráficos Chart.js locales), Sessions (Index/MyAgenda/Create/Edit/Details/Delete/AvailableSlots/AgendaSlots/Reprogram/Cancel), Billing (MarkPaid/Pending individual y por lote → `BillingBatchEvent`), Reminders (ventanas 24h/3h, links firmados con DataProtection, `Respond` anónimo), BillingFollowUp (tiers Soft/Reminder/Firm), DispatchQueue (reintento/cancelación), Users, Audit (filtros + export CSV/Excel), Segmentacion (KPIs por profesional y franja horaria), ReminderFunnel (embudo), Account (login/logout/access denied/profile), Localization (`SetLanguage`), BaseController + CRUD de Patients/Professionals/Offices/Equipments/Treatments.
 - **Background services (5):**
   - `ReminderDispatchBackgroundService` (outbox: poll 5 s, lease 120 s, 5 intentos, retención 30 días).
   - `BillingOperationalAlertBackgroundService` (alerta de baja efectividad).
@@ -112,9 +114,10 @@ ES (default) / EN. `AddLocalization` + cookie `CookieRequestCultureProvider` (1 
 
 ## 10. Tests
 
-`KineGestion.Tests` (Core/Data: unit + integración SQL) y `KineGestion.Web.Tests` (controllers/services). Regla: todo test que toque BD real debe tener `Integration` en el nombre de la clase. El guion de defensa reporta **114/114 en verde** (Core/Data 49 → 53; Web 51 → 61).
+`KineGestion.Tests` (Core/Data: unit + integración SQL) y `KineGestion.Web.Tests` (controllers/services). Regla: todo test que toque BD real debe tener `Integration` en el nombre de la clase.
 
-Estado actual (2026-10-21): **Web.Tests 183 verde, Tests 143 verde** (integración sobre SQL real incluida).
+- **Snapshot histórico de tesis (mayo 2026, docs `TESIS-*`):** 114/114 en verde (Core/Data 49 → 53; Web 51 → 61). Es una foto fechada, no el estado actual.
+- **Estado actual (2026-10-29):** `KineGestion.Web.Tests` **183/186** (183 verde; 3 fallos conocidos de Home, ver `PENDIENTES-KINEGESTION.md`) y `KineGestion.Tests` **156/156** (integración sobre SQL real incluida).
 
 ## 11. Análisis por área: qué vender, qué pulir, plan a futuro
 
@@ -476,7 +479,7 @@ Solo palabras y conceptos, agrupados por tema. Objetivo: que puedas nombrar con 
 
 1. **¿Cómo evitan doble asignación de sesiones?** Conflicto en servicio + chequeo en repositorio + transacción `Serializable` con retry + índice único `(TreatmentId, NroSesion)`.
 2. **¿Trazabilidad médico-legal?** Auditoría automática en `SaveChanges` (actor, fecha, acción, diff JSON); datos clínicos cifrados y redactados en el log.
-3. **¿Cómo aseguran que no hubo regresiones?** Suites automatizadas (114/114) + tests de integración contra SQL real en CI.
+3. **¿Cómo aseguran que no hubo regresiones?** Suites automatizadas (al 2026-10-29: Web 183/186 + integración 156/156; el snapshot de tesis de mayo reporta 114/114) + tests de integración contra SQL real en CI.
 4. **¿Estrategia de escalado?** Monolito modular optimizado; luego externalizar notificaciones, key ring compartido y cola a broker; multitenant por sede.
 5. **¿Qué quedó pendiente?** Modelo de pagos (`Payment`), reportes PDF, portal del paciente, broker distribuido / DLQ.
 6. **¿Por qué no usaron un broker de mensajería desde el inicio?** Con un solo nodo, el outbox en SQL da la misma garantía de confiabilidad sin sumar infraestructura; migrar a broker es el paso natural al escalar horizontalmente.

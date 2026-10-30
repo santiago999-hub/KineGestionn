@@ -5,6 +5,8 @@
 **Autor:** Análisis de código fuente  
 **Propósito:** Documentación técnica para evaluación de pre-proyecto
 
+> **Documento histórico (snapshot 11/05/2026).** No describe el estado actual del sistema. La fuente de verdad vigente es `RESUMEN-INTEGRAL-KINEGESTION.md` y el backlog está en `PENDIENTES-KINEGESTION.md`. Puntos ya superados por este análisis: la plataforma es **.NET 8 / EF Core 8** (no 6+), el rol **Asistente** existe además de Admin/Kinesiologo, y desde entonces se agregaron el **outbox durable** (`DispatchJob`/`DispatchEvent`), la **cobranza automatizada** (D+1/D+3/D+7), las **alertas operativas**, el **dashboard multisede** y el **módulo de cobranzas con gráficos/export**. Se conserva como evidencia del análisis inicial.
+
 ---
 
 ## 📋 TABLA DE CONTENIDOS

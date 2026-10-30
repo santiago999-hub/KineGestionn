@@ -34,7 +34,7 @@ Responsabilidad:
 - Devolver vistas y mensajes.
 
 Caracteristicas importantes:
-- Seguridad por roles (Admin, Kinesiologo).
+- Seguridad por roles (Admin, Kinesiologo, Asistente) y 4 politicas (AdminOnly, ClinicalStaff, SchedulingStaff, ClinicalNotes).
 - Localizacion ES/EN.
 - Endpoints operativos (/health/live, /health/ready, /ops/metrics).
 - Middleware para excepciones globales y metricas de request.
@@ -58,7 +58,7 @@ Ejemplos de reglas reales:
 - No permitir turnos superpuestos para el mismo profesional en una ventana configurable.
 - No exceder sesiones totales de un tratamiento.
 - Bloquear modificacion de evolucion clinica firmada.
-- Invalidad caches tras operaciones de escritura.
+- Invalida caches tras operaciones de escritura.
 
 Ejemplo simplificado de regla de conflicto horario (por profesional y por consultorio):
 ~~~csharp
@@ -160,13 +160,13 @@ await tx.CommitAsync();
 ## 5) Seguridad y cumplimiento
 
 1. Autenticacion y autorizacion
-- Identity con roles Admin/Kinesiologo.
+- Identity con roles Admin/Kinesiologo/Asistente.
 - Lockout configurado por intentos fallidos.
 - Cookies de sesion y rutas de acceso denegado.
 
 2. Seguridad de transporte y plataforma
 - HSTS y HTTPS en entornos no desarrollo.
-- DataProtection con key ring persistido en filesystem (base para escalar multi-instancia).
+- DataProtection con key ring persistido en filesystem: sirve para un nodo; para multi-instancia hay que moverlo a un almacen compartido (pendiente).
 
 3. Seguridad de formularios
 - Anti-forgery tokens en POST.
@@ -249,7 +249,7 @@ Horizonte 1 (corto plazo)
 Horizonte 2 (mediano plazo)
 1. Extraer modulo de notificaciones como servicio independiente.
 2. Persistir key ring de DataProtection en almacenamiento compartido real.
-3. Aplicar outbox pattern para eventos confiables de auditoria/notificacion.
+3. Agregar dead-letter queue y broker distribuido para la cola (el outbox en SQL ya esta implementado y opera en un nodo).
 
 Horizonte 3 (si crece la red de clinicas)
 1. Multi-sede con particion logica por tenant.
@@ -260,7 +260,7 @@ Horizonte 3 (si crece la red de clinicas)
 Ya implementado:
 1. Motivos de cancelacion obligatorios y analitica por causa.
 2. Flujo de recaptura con sugerencia de reprogramacion inmediata.
-3. Automatizacion D+1 de cobranzas pendientes con mensajes por antiguedad.
+3. Automatizacion de cobranzas pendientes con escalada D+1/D+3/D+7 y mensajes por antiguedad.
 4. Segmentacion de KPIs por profesional y franja horaria (obra social como siguiente paso).
 5. Baseline de embudo de recordatorios (/ReminderFunnel) para experimentacion A/B de plantillas.
 
