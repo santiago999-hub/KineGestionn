@@ -10,9 +10,9 @@
 ## 1. Estado actual
 
 - Repo: `C:\Users\Santy\OneDrive\Desktop\Nueva carpeta` (KineGestion, ASP.NET Core 8 MVC + EF Core 8 + SQL Server 2022). Branch `main`.
-- Último commit: `d78864e Redesign billing doughnut: semantic gradients, center total, informative legend, theme-aware rendering; add startup-time task`.
+- Últimos commits: `feb7115 feat: dashboard con agenda y graficos; corrige cobranzas, cache y filtro por sede` + `dd62886 docs: unifica coherencia entre resumen, guia, tesis y analisis` (pusheados a `origin main` 2026-10-30).
 - Documento maestro de sistema: `RESUMEN-INTEGRAL-KINEGESTION.md` (consolidado en la raíz).
-- **Cambios abiertos sin commitear** del pulido de Cobranzas + fixes + UI Fases 1-4 + P1 dashboard (ver §4). Suites: **Web.Tests 192/192 verde; Tests (integración) 156/156 verde** (2026-10-30).
+- **Sin cambios pendientes de commitear** (ver §4). Suites: **Web.Tests 192/192 verde; Tests (integración) 156/156 verde** (2026-10-30).
 - Estado 2026-10-30: **§7 Fases 1-4 hechas + P1 dashboard ejecutado** (detalle en bitácora): cobranzas (doughnut con porciones exclusivas, forms desanidados, badges unificados, un solo export, tooltip con monto estimado y 3 tablas `<details>`) y dashboard (sin KPI duplicado, `GeneratedAtUtc` + "Actualizado", badges Global/Por sede, versión real del ensamblado; **agenda del día + 3 gráficos** con `kgChart`/Chart.js local, tokens CSS y fallbacks `<details>`). Fase 4.1: `output.txt` borrado; `publish*/` y `mejoras-*/` quedan a decisión (no se commitean). Runtime: `/` 200 con agenda y 3 canvas, lib Chart.js 200; `/Billing` 200. Pendientes del P1 original: deltas vs período anterior (semáforo) y metas/brecha (ver backlog).
 - Estado 2026-10-29: **coherencia documental revisada** (RESUMEN/GUIA/TESIS-ARQ/ANALISIS) y **los 3 rojos de Home quedaron corregidos**:
   - `Index_ShouldForwardSelectedOffice_ToSessionScopedQueries`: `HomeController` no reenviaba `officeId` a `CountByCancellationReasonInRangeAsync` ni seteaba `OfficeName`. Regresión real del feature multisede, no preexistente.
@@ -105,17 +105,10 @@
 
 ## 4. Archivos sin commitear (revisar antes de commitear)
 
-- `RESUMEN-INTEGRAL-KINEGESTION.md` → conservar (coherencia 2026-10-29).
-- `PENDIENTES-KINEGESTION.md` → conservar (actualizado).
-- `AGENTS.md` → conservar (memoria de trabajo).
-- Coherencia documental 2026-10-29 (sin commitear): `RESUMEN-INTEGRAL-KINEGESTION.md`, `GUIA-PARA-ENTENDER-KINEGESTION.md`, `TESIS-RESUMEN-ARQUITECTURA-PROFESIONAL.md`, `ANALISIS-SISTEMA-KINEGESTION.md`, `PENDIENTES-KINEGESTION.md`.
-- Cambios de código sin commitear (2026-10-29, Cobranzas): `KineGestion.Core/DTOs/PendingPatientDebtDto.cs` (nuevo), `KineGestion.Core/Interfaces/ISessionMetricsRepository.cs`, `KineGestion.Core/Interfaces/ISessionService.cs`, `KineGestion.Core/Services/SessionService.cs`, `KineGestion.Data/Repositories/SessionMetricsRepository.cs`, `KineGestion.Web/Controllers/BillingController.cs`, `KineGestion.Web/Models/ViewModels/BillingDashboardViewModel.cs`, `KineGestion.Web/Views/Billing/Index.cshtml`, `KineGestion.Web/Views/Cobranzas/Index.cshtml` (eliminado), `KineGestion.Web.Tests/BillingControllerTests.cs`, `KineGestion.Tests/SessionRepositoryIntegrationTests.cs`. **No commitear** `publish*/`, `mejoras-*/` (el viejo `output.txt` fue borrado el 2026-10-30).
-- Fixes dashboard 2026-10-29 (sin commitear): `KineGestion.Web/Controllers/HomeController.cs` (officeId en motivos, OfficeName, Version en la clave), `KineGestion.Web/Services/BillingOperationalAlertService.cs` (Version en la clave), `KineGestion.Web/Views/Home/Index.cshtml` (27 caracteres mojibake).
-- UI Fases 1-2 2026-10-30 (sin commitear): `KineGestion.Web/Models/ViewModels/BillingDashboardViewModel.cs`, `KineGestion.Web/Views/Billing/Index.cshtml`, `KineGestion.Web.Tests/BillingControllerTests.cs`, `KineGestion.Web/Models/ViewModels/HomeDashboardViewModel.cs`, `KineGestion.Web/Controllers/HomeController.cs`, `KineGestion.Web/Views/Home/Index.cshtml`, `KineGestion.Web.Tests/HomeViewTemplateTests.cs`.
-- UI Fases 3-4 2026-10-30 (sin commitear): `KineGestion.Web/Views/Billing/Index.cshtml`, `KineGestion.Web/wwwroot/css/site.css`, `KineGestion.Web.Tests/BillingViewTemplateTests.cs` (nuevo). `KineGestion.Web/output.txt` → **borrado** 2026-10-30; `publish*/` y `mejoras-*/` siguen untracked (no commitear).
-- P1 dashboard 2026-10-30 (sin commitear): `KineGestion.Web/Controllers/HomeController.cs`, `KineGestion.Web/Models/ViewModels/HomeDashboardViewModel.cs`, `KineGestion.Web/Views/Home/Index.cshtml`, `KineGestion.Web/wwwroot/css/site.css`, `KineGestion.Web.Tests/HomeControllerTests.cs`, `KineGestion.Web.Tests/HomeViewTemplateTests.cs`.
-- Cambios de código sin commitear (2026-10-21, P0 dashboard): `KineGestion.Core/Interfaces/ISessionMetricsRepository.cs`, `KineGestion.Core/Interfaces/ISessionService.cs`, `KineGestion.Core/Services/QueryCache.cs`, `KineGestion.Core/Services/SessionService.cs`, `KineGestion.Data/Repositories/SessionMetricsRepository.cs`, `KineGestion.Web/Controllers/HomeController.cs`, `KineGestion.Web/Models/ViewModels/HomeDashboardViewModel.cs`, `KineGestion.Web/Services/BillingOperationalAlertService.cs`, `KineGestion.Web/Views/Home/Index.cshtml`, `KineGestion.Web/Views/Billing/Index.cshtml`, `KineGestion.Tests/QueryCacheTests.cs`, `KineGestion.Tests/SessionRepositoryIntegrationTests.cs`, `KineGestion.Web.Tests/HomeControllerTests.cs` + `.editorconfig` (nuevo).
-- Cambios de código sin commitear (2026-10-20, seed Admin1234): `KineGestion.Web/appsettings.json`, `KineGestion.Web/Program.cs`, `KineGestion.Web/ops/Run-P95-DailyChecklist.ps1`, `KineGestion.Web/ops/Measure-P95-Authenticated.ps1`, `KineGestion.Web.Tests/HomeControllerTests.cs` (+ `appsettings.Development.json` local, NO commitear: gitignored).
+- **Sin cambios pendientes de commit** al 2026-10-30: Cobranzas, coherencia documental, UI Fases 1-4 y P1 dashboard quedaron en `dd62886` (docs) y `feb7115` (código + tests, incluye `BillingViewTemplateTests.cs` nuevo), pusheados a `origin main`.
+- **NO commitear** (untracked): `KineGestion.Web/publish/`, `KineGestion.Web/publish_standalone/`, `mejoras-check/`, `mejoras-extracted/`, `mejoras-final-check/`, `mejoras-para-leer/`.
+- `KineGestion.Web/output.txt` → **borrado** 2026-10-30 (diff viejo superado).
+- `appsettings.Development.json` → local, gitignored: nunca commitear.
 - Temporales de exploración: **eliminados**.
 
 ## 5. Guía de eficiencia (feedback + tokens)
