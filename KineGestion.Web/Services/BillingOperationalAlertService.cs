@@ -3,6 +3,7 @@ using System.Text;
 using KineGestion.Core;
 using KineGestion.Core.Entities;
 using KineGestion.Core.Interfaces;
+using KineGestion.Core.Services;
 using KineGestion.Web.Models.ViewModels;
 using Microsoft.Extensions.Caching.Memory;
 
@@ -58,7 +59,7 @@ namespace KineGestion.Web.Services
             var thresholdPct = _configuration.GetValue<decimal?>("Billing:BatchEffectivenessWarnThresholdPct") ?? 70m;
             var cacheKey = string.Create(
                 CultureInfo.InvariantCulture,
-                $"{SnapshotCacheKeyPrefix}:{referenceUtc:yyyyMMdd}:{thresholdPct:F2}");
+                $"{SnapshotCacheKeyPrefix}:v{QueryCache.Version}:{referenceUtc:yyyyMMdd}:{thresholdPct:F2}");
 
             if (_memoryCache.TryGetValue(cacheKey, out BillingOperationalAlertSnapshot? cachedSnapshot) && cachedSnapshot is not null)
             {

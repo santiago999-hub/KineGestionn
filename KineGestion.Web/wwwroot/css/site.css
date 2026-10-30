@@ -3074,6 +3074,49 @@ button:disabled,
     color: var(--kg-text-muted);
 }
 
+.kg-chart-data {
+    margin-top: var(--kg-space-3, 12px);
+    border-top: 1px dashed var(--kg-border);
+    padding-top: var(--kg-space-2, 8px);
+}
+.kg-chart-data summary {
+    cursor: pointer;
+    font-size: .8rem;
+    color: var(--kg-text-muted);
+    font-weight: 600;
+}
+.kg-chart-data summary:focus-visible {
+    outline: 2px solid var(--kg-accent);
+    outline-offset: 2px;
+}
+.kg-chart-data[open] summary {
+    margin-bottom: var(--kg-space-2, 8px);
+}
+
+.kg-agenda-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--kg-space-2, 8px);
+}
+.kg-agenda-item {
+    display: flex;
+    align-items: center;
+    gap: var(--kg-space-3, 12px);
+    padding: var(--kg-space-2, 8px) var(--kg-space-3, 12px);
+    border: 1px solid var(--kg-border);
+    border-radius: var(--kg-radius-sm, 10px);
+}
+.kg-agenda-time {
+    min-width: 48px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--kg-accent);
+}
+.kg-agenda-main {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
 @media (prefers-reduced-motion: reduce) {
     *,
     *::before,

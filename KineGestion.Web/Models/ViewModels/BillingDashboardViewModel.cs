@@ -55,6 +55,8 @@ namespace KineGestion.Web.Models.ViewModels
         public int PaidCount { get; set; }
         public int CompletedPaidCount { get; set; }
         public int CompletedPendingCount { get; set; }
+        public int PendingNotCompletedCount => Math.Max(0, PendingCount - CompletedPendingCount);
+        public int SessionsInRangeCount => PaidCount + PendingCount;
         public int Aging0To2DaysCount { get; set; }
         public int Aging3To7DaysCount { get; set; }
         public int Aging8PlusDaysCount { get; set; }

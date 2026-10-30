@@ -223,6 +223,54 @@ namespace KineGestion.Web.Tests
             Assert.Equal("Alerta operativa de cobranzas encolada para administración.", controller.TempData["Success"]);
         }
 
+        [Fact]
+        public async Task Index_ShouldExposeTodayAgendaAndChartSeries_ScopedToOffice()
+        {
+            var ctx = new HomeTestContext();
+            ctx.SetupDefaultMetrics();
+            ctx.OfficeService.Setup(s => s.GetActiveAsync()).ReturnsAsync(new[]
+            {
+                new Office { Id = 7, Name = "Oficina Norte" }
+            });
+            ctx.SessionService
+                .Setup(s => s.GetAgendaForDayAsync(It.IsAny<DateTime>(), 7))
+                .ReturnsAsync(new[]
+                {
+                    new SessionAgendaItemDto(11, DateTime.UtcNow.Date.AddHours(9), "Lopez, Maria", "Diaz, Jose", "Oficina Norte", SessionStatus.Pending, PaymentStatus.Pending),
+                    new SessionAgendaItemDto(12, DateTime.UtcNow.Date.AddHours(8), "Perez, Ana", "Diaz, Jose", "Oficina Norte", SessionStatus.Completed, PaymentStatus.Paid)
+                });
+            ctx.SessionService
+                .Setup(s => s.GetDailySessionSeriesAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), 7))
+                .ReturnsAsync(new[]
+                {
+                    new DailySessionCountDto(DateTime.UtcNow.Date, 5, 3, 1, 2)
+                });
+            ctx.SessionService
+                .Setup(s => s.GetStatusDistributionInRangeAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), 7))
+                .ReturnsAsync(new[]
+                {
+                    new SessionStatusCountDto(SessionStatus.Completed, 3),
+                    new SessionStatusCountDto(SessionStatus.Canceled, 1),
+                    new SessionStatusCountDto(SessionStatus.Pending, 1)
+                });
+
+            var result = await ctx.Controller.Index(7);
+
+            var view = Assert.IsType<ViewResult>(result);
+            var model = Assert.IsType<HomeDashboardViewModel>(view.Model);
+
+            Assert.Equal(2, model.TodayAgenda.Count);
+            Assert.Equal(12, model.TodayAgenda[0].SessionId);
+            Assert.Single(model.DailySessions);
+            Assert.Equal(5, model.DailySessions[0].Total);
+            Assert.Equal(3, model.StatusDistribution.Count);
+            Assert.Equal("Completadas", model.StatusDistribution[0].Label);
+            Assert.Equal("good", model.StatusDistribution[0].Tone);
+
+            ctx.SessionService.Verify(s => s.GetAgendaForDayAsync(It.IsAny<DateTime>(), 7), Times.Once);
+            ctx.SessionService.Verify(s => s.GetStatusDistributionInRangeAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), 7), Times.Once);
+        }
+
         private sealed class HomeTestContext
         {
             public Mock<ILogger<HomeController>> Logger { get; } = new();

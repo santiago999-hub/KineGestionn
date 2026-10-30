@@ -15,10 +15,37 @@ namespace KineGestion.Web.Models.ViewModels
         public string TriggerSourceLabel => IsSystemTriggered ? "System" : "Manual";
     }
 
+    public class AgendaItemViewModel
+    {
+        public int SessionId { get; set; }
+        public DateTime FechaHora { get; set; }
+        public string PacienteNombre { get; set; } = string.Empty;
+        public string ProfesionalNombre { get; set; } = string.Empty;
+        public string? OfficeNombre { get; set; }
+        public Core.SessionStatus Status { get; set; }
+        public Core.PaymentStatus PaymentStatus { get; set; }
+    }
+
+    public class DailySessionsPointViewModel
+    {
+        public string Label { get; set; } = string.Empty;
+        public int Total { get; set; }
+        public int Completed { get; set; }
+        public int Canceled { get; set; }
+    }
+
+    public class StatusDistributionItemViewModel
+    {
+        public string Label { get; set; } = string.Empty;
+        public int Count { get; set; }
+        public string Tone { get; set; } = string.Empty;
+    }
+
     public class HomeDashboardViewModel
     {
         public int? SelectedOfficeId { get; set; }
         public string? OfficeName { get; set; }
+        public DateTime GeneratedAtUtc { get; set; }
         public int PacientesActivosCount { get; set; }
         public int ProfesionalesActivosCount { get; set; }
         public int TratamientosCount { get; set; }
@@ -34,6 +61,9 @@ namespace KineGestion.Web.Models.ViewModels
         public int LateCancellationsLast30 { get; set; }
         public decimal LateCancellationRateLast30 { get; set; }
         public List<CancellationReasonCountViewModel> TopCancellationReasons { get; set; } = new();
+        public List<AgendaItemViewModel> TodayAgenda { get; set; } = new();
+        public List<DailySessionsPointViewModel> DailySessions { get; set; } = new();
+        public List<StatusDistributionItemViewModel> StatusDistribution { get; set; } = new();
         public bool IsBillingOperationalAlertActive { get; set; }
         public bool IsBillingOperationalAlertSentToday { get; set; }
         public DateTime? LastBillingOperationalAlertAtUtc { get; set; }

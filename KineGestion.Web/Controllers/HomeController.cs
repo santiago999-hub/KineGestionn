@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using KineGestion.Core.Interfaces;
 using KineGestion.Core.DTOs;
+using KineGestion.Core.Services;
 using KineGestion.Web.Models;
 using KineGestion.Web.Models.ViewModels;
 using KineGestion.Web.Services;
@@ -19,7 +20,9 @@ public class HomeController : Controller
     private const string DashboardCacheKeyPrefix = "HomeController.Index.Dashboard";
 
     private static string DashboardCacheKeyFor(int? officeId)
-        => officeId.HasValue ? $"{DashboardCacheKeyPrefix}.Office.{officeId.Value}" : DashboardCacheKeyPrefix + ".All";
+        => officeId.HasValue
+            ? $"{DashboardCacheKeyPrefix}.v{QueryCache.Version}.Office.{officeId.Value}"
+            : $"{DashboardCacheKeyPrefix}.v{QueryCache.Version}.All";
 
     private readonly ILogger<HomeController> _logger;
     private readonly IMemoryCache _memoryCache;
@@ -99,6 +102,9 @@ public class HomeController : Controller
         var cancellationReasonsLast30 = await MeasureStepAsync("Sessions.CancelReasonsLast30", SafeGetCancellationReasonsAsync);
         var recentBillingAlerts = await MeasureStepAsync("BillingAlert.RecentHistory", SafeGetRecentOperationalAlertsAsync);
         var lastBillingAlert = recentBillingAlerts.FirstOrDefault();
+        var todayAgenda = await MeasureStepAsync("Sessions.AgendaToday", SafeGetTodayAgendaAsync);
+        var dailySessions = await MeasureStepAsync("Sessions.DailySeries", SafeGetDailySeriesAsync);
+        var statusDistribution = await MeasureStepAsync("Sessions.StatusDistribution", SafeGetStatusDistributionAsync);
 
         var completionRateToday = countToday == 0 ? 0m : Math.Round((decimal)countCompletedToday * 100m / countToday, 2);
         var collectionRateLast30 = completedLast30 == 0 ? 0m : Math.Round((decimal)paidCompletedLast30 * 100m / completedLast30, 2);
@@ -108,6 +114,8 @@ public class HomeController : Controller
         var model = new HomeDashboardViewModel
         {
             SelectedOfficeId = officeId,
+            OfficeName = officeId.HasValue ? offices.FirstOrDefault(o => o.Id == officeId.Value)?.Name : null,
+            GeneratedAtUtc = DateTime.UtcNow,
             PacientesActivosCount = countPatients,
             ProfesionalesActivosCount = countProfessionals,
             TratamientosCount = countTreatments,
@@ -127,7 +135,10 @@ public class HomeController : Controller
             LastBillingOperationalAlertAtUtc = lastBillingAlert?.ChangedAtUtc,
             LastBillingOperationalAlertChangedBy = lastBillingAlert?.ChangedBy,
             RecentBillingOperationalAlerts = recentBillingAlerts,
-            TopCancellationReasons = cancellationReasonsLast30
+            TopCancellationReasons = cancellationReasonsLast30,
+            TodayAgenda = todayAgenda,
+            DailySessions = dailySessions,
+            StatusDistribution = statusDistribution
         };
 
         if (hasErrors == 0)
@@ -257,7 +268,7 @@ public class HomeController : Controller
         {
             try
             {
-                var counts = await _sessionService.CountByCancellationReasonInRangeAsync(rangeFrom, rangeTo);
+                var counts = await _sessionService.CountByCancellationReasonInRangeAsync(rangeFrom, rangeTo, officeId);
                 if (counts is null) return new List<CancellationReasonCountViewModel>();
                 return counts
                     .Select(kv => new CancellationReasonCountViewModel
@@ -275,6 +286,88 @@ public class HomeController : Controller
                 Interlocked.Exchange(ref hasErrors, 1);
                 _logger.LogError(ex, "Error cargando motivos de cancelación del dashboard.");
                 return new List<CancellationReasonCountViewModel>();
+            }
+        }
+
+        async Task<List<AgendaItemViewModel>> SafeGetTodayAgendaAsync()
+        {
+            try
+            {
+                var items = await _sessionService.GetAgendaForDayAsync(DateTime.UtcNow.Date, officeId);
+                return (items ?? Array.Empty<SessionAgendaItemDto>())
+                    .OrderBy(i => i.FechaHora)
+                    .Select(i => new AgendaItemViewModel
+                    {
+                        SessionId = i.SessionId,
+                        FechaHora = i.FechaHora,
+                        PacienteNombre = i.PacienteNombre,
+                        ProfesionalNombre = i.ProfesionalNombre,
+                        OfficeNombre = i.OfficeNombre,
+                        Status = i.Status,
+                        PaymentStatus = i.PaymentStatus
+                    })
+                    .ToList();
+            }
+            catch (Exception ex)
+            {
+                Interlocked.Exchange(ref hasErrors, 1);
+                _logger.LogError(ex, "Error cargando la agenda del día del dashboard.");
+                return new List<AgendaItemViewModel>();
+            }
+        }
+
+        async Task<List<DailySessionsPointViewModel>> SafeGetDailySeriesAsync()
+        {
+            try
+            {
+                var series = await _sessionService.GetDailySessionSeriesAsync(rangeFrom, rangeTo, officeId);
+                return (series ?? Array.Empty<DailySessionCountDto>())
+                    .Select(p => new DailySessionsPointViewModel
+                    {
+                        Label = p.Day.ToString("dd/MM"),
+                        Total = p.Total,
+                        Completed = p.Completed,
+                        Canceled = p.Canceled
+                    })
+                    .ToList();
+            }
+            catch (Exception ex)
+            {
+                Interlocked.Exchange(ref hasErrors, 1);
+                _logger.LogError(ex, "Error cargando la serie diaria de sesiones del dashboard.");
+                return new List<DailySessionsPointViewModel>();
+            }
+        }
+
+        async Task<List<StatusDistributionItemViewModel>> SafeGetStatusDistributionAsync()
+        {
+            try
+            {
+                var distribution = await _sessionService.GetStatusDistributionInRangeAsync(rangeFrom, rangeTo, officeId);
+                return (distribution ?? Array.Empty<SessionStatusCountDto>())
+                    .Select(d => new StatusDistributionItemViewModel
+                    {
+                        Count = d.Count,
+                        Label = d.Status switch
+                        {
+                            SessionStatus.Completed => "Completadas",
+                            SessionStatus.Canceled => "Canceladas",
+                            _ => "Pendientes"
+                        },
+                        Tone = d.Status switch
+                        {
+                            SessionStatus.Completed => "good",
+                            SessionStatus.Canceled => "critical",
+                            _ => "warn"
+                        }
+                    })
+                    .ToList();
+            }
+            catch (Exception ex)
+            {
+                Interlocked.Exchange(ref hasErrors, 1);
+                _logger.LogError(ex, "Error cargando la distribución por estado del dashboard.");
+                return new List<StatusDistributionItemViewModel>();
             }
         }
     }

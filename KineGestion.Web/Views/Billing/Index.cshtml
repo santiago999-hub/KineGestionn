@@ -4,8 +4,9 @@
 
 @{
     ViewData["Title"] = "Cobranzas";
-    var totalCountAll = Model.PendingCount + Model.PaidCount + Model.CompletedPendingCount;
-    var pendingPct = totalCountAll > 0 ? Math.Round((decimal)Model.PendingCount * 100m / totalCountAll, 1) : 0m;
+    var totalCountAll = Model.SessionsInRangeCount;
+    var pendingNotCompletedCount = Model.PendingNotCompletedCount;
+    var pendingPct = totalCountAll > 0 ? Math.Round((decimal)pendingNotCompletedCount * 100m / totalCountAll, 1) : 0m;
     var paidPct = totalCountAll > 0 ? Math.Round((decimal)Model.PaidCount * 100m / totalCountAll, 1) : 0m;
     var compPendPct = totalCountAll > 0 ? Math.Round((decimal)Model.CompletedPendingCount * 100m / totalCountAll, 1) : 0m;
     var variation = Model.CollectedVariationPct;
@@ -102,7 +103,7 @@
             <div class="kg-stat-icon violet"><i class="bi bi-receipt"></i></div>
             <div>
                 <div class="kg-stat-label">Sesiones del período</div>
-                <div class="kg-stat-value">@(Model.PaidCount + Model.PendingCount)</div>
+                <div class="kg-stat-value">@Model.SessionsInRangeCount</div>
                 <small class="text-muted">@Model.PaidCount pagadas · @Model.PendingCount pendientes</small>
             </div>
         </div>
@@ -129,6 +130,37 @@
                 <div class="kg-chart-frame">
                     <canvas id="billingEvolutionChart" role="img" aria-label="Evolución diaria del monto cobrado"></canvas>
                 </div>
+                <details class="kg-chart-data">
+                    <summary>Ver datos de la evolución</summary>
+                    <div class="table-responsive">
+                        <table class="table table-sm mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Día</th>
+                                    <th class="text-end">Cobrado</th>
+                                    <th class="text-end">Sesiones pagadas</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (Model.DailyPoints.Count == 0)
+                                {
+                                    <tr><td colspan="3" class="text-muted">Sin datos en el período.</td></tr>
+                                }
+                                else
+                                {
+                                    @foreach (var point in Model.DailyPoints)
+                                    {
+                                        <tr>
+                                            <td>@point.Label</td>
+                                            <td class="text-end">$ @point.CollectedAmount.ToString("N2")</td>
+                                            <td class="text-end">@point.PaidCount</td>
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </details>
             </div>
         </div>
     </div>
@@ -141,7 +173,7 @@
             <div class="kg-card-body">
                 <div class="kg-chart-frame">
                     <canvas id="billingStatusChart" role="img"
-                            aria-label="Distribución por estado: @Model.CompletedPendingCount completadas sin cobrar, @Model.PendingCount pendientes y @Model.PaidCount pagadas"></canvas>
+                            aria-label="Distribución por estado: @Model.CompletedPendingCount completadas sin cobrar, @pendingNotCompletedCount pendientes sin atender y @Model.PaidCount pagadas"></canvas>
                 </div>
                 <ul class="kg-chart-legend">
                     <li class="kg-chart-legend-item is-warn">
@@ -152,8 +184,8 @@
                     </li>
                     <li class="kg-chart-legend-item is-critical">
                         <span class="kg-chart-dot is-critical" aria-hidden="true"></span>
-                        <span class="kg-chart-legend-label">Pendientes</span>
-                        <span class="kg-chart-legend-value">@Model.PendingCount</span>
+                        <span class="kg-chart-legend-label">Pendientes sin atender</span>
+                        <span class="kg-chart-legend-value">@pendingNotCompletedCount</span>
                         <span class="kg-chart-legend-pct">@pendingPct.ToString("0.#")%</span>
                     </li>
                     <li class="kg-chart-legend-item is-good">
@@ -173,11 +205,43 @@
         <div class="kg-card h-100">
             <div class="kg-card-header">
                 <h5 class="kg-card-header-title"><i class="bi bi-hourglass-split"></i> Aging de cobranzas</h5>
+                <span class="text-muted small">Sesiones sin cobrar por antigüedad</span>
             </div>
             <div class="kg-card-body">
                 <div class="kg-chart-frame">
                     <canvas id="billingAgingChart" role="img" aria-label="Antigüedad de saldos pendientes"></canvas>
                 </div>
+                <details class="kg-chart-data">
+                    <summary>Ver datos del aging</summary>
+                    <div class="table-responsive">
+                        <table class="table table-sm mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Antigüedad</th>
+                                    <th class="text-end">Sesiones</th>
+                                    <th class="text-end">Monto estimado</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>0-2 días</td>
+                                    <td class="text-end">@Model.Aging0To2DaysCount</td>
+                                    <td class="text-end">$ @((Model.Aging0To2DaysCount * Model.DefaultSessionAmount).ToString("N2"))</td>
+                                </tr>
+                                <tr>
+                                    <td>3-7 días</td>
+                                    <td class="text-end">@Model.Aging3To7DaysCount</td>
+                                    <td class="text-end">$ @((Model.Aging3To7DaysCount * Model.DefaultSessionAmount).ToString("N2"))</td>
+                                </tr>
+                                <tr>
+                                    <td>+8 días</td>
+                                    <td class="text-end">@Model.Aging8PlusDaysCount</td>
+                                    <td class="text-end">$ @((Model.Aging8PlusDaysCount * Model.DefaultSessionAmount).ToString("N2"))</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </details>
             </div>
         </div>
     </div>
@@ -193,6 +257,41 @@
                 <div class="kg-chart-frame">
                     <canvas id="billingTrendChart" role="img" aria-label="Efectividad semanal de los lotes de cobranza"></canvas>
                 </div>
+                <details class="kg-chart-data">
+                    <summary>Ver datos de efectividad</summary>
+                    <div class="table-responsive">
+                        <table class="table table-sm mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Semana</th>
+                                    <th class="text-end">Solicitadas</th>
+                                    <th class="text-end">Actualizadas</th>
+                                    <th class="text-end">Omitidas</th>
+                                    <th class="text-end">Efectividad</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (Model.WeeklyTrendPoints.Count == 0)
+                                {
+                                    <tr><td colspan="5" class="text-muted">Sin lotes registrados en el período.</td></tr>
+                                }
+                                else
+                                {
+                                    @foreach (var point in Model.WeeklyTrendPoints)
+                                    {
+                                        <tr>
+                                            <td>@point.Label</td>
+                                            <td class="text-end">@point.RequestedCount</td>
+                                            <td class="text-end">@point.UpdatedCount</td>
+                                            <td class="text-end">@point.SkippedCount</td>
+                                            <td class="text-end">@point.EffectivenessPct.ToString("0.#")%</td>
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </details>
             </div>
         </div>
     </div>
@@ -372,7 +471,6 @@
             <div class="col-12 d-flex gap-2 mt-3">
                 <button type="submit" class="btn btn-primary"><i class="bi bi-search"></i> Aplicar filtros</button>
                 <a class="btn btn-outline-secondary" asp-action="Index"><i class="bi bi-arrow-counterclockwise"></i> Limpiar</a>
-                <a class="btn btn-outline-primary ms-auto" href="@Url.Action("ExportCsv", exportRoute)"><i class="bi bi-download"></i> Exportar resultados</a>
             </div>
         </form>
     </div>
@@ -384,7 +482,7 @@
         <span class="text-muted small">Importe calculado con valor de sesión $ @Model.DefaultSessionAmount.ToString("N2")</span>
     </div>
     <div class="kg-card-body">
-        <form asp-action="MarkPaidBatch" method="post" id="batchMarkPaidForm">
+        <form asp-action="MarkPaidBatch" method="post" id="billingBatchForm">
             @Html.AntiForgeryToken()
             <input type="hidden" name="dateFrom" value="@Model.DateFrom.ToString("yyyy-MM-dd")" />
             <input type="hidden" name="dateTo" value="@Model.DateTo.ToString("yyyy-MM-dd")" />
@@ -395,20 +493,21 @@
             <input type="hidden" name="status" value="@Model.StatusFilter" />
             <input type="hidden" name="payment" value="@Model.PaymentFilter" />
             <input type="hidden" name="filtersApplied" value="@Model.FiltersApplied" />
+        </form>
 
-            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-                <small class="text-muted">Seleccioná sesiones para acciones masivas</small>
-                <div class="d-flex gap-2">
-                    <button type="submit" class="btn btn-sm btn-success" id="markSelectedPaidBtn" disabled>
-                        <i class="bi bi-check2-all"></i> Marcar pagadas
-                    </button>
-                    <button type="submit" formaction="@Url.Action("MarkPendingBatch", "Billing")" class="btn btn-sm btn-outline-warning" id="markSelectedPendingBtn" disabled>
-                        <i class="bi bi-arrow-counterclockwise"></i> Reabrir
-                    </button>
-                </div>
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+            <small class="text-muted">Seleccioná sesiones para acciones masivas</small>
+            <div class="d-flex gap-2">
+                <button type="submit" form="billingBatchForm" class="btn btn-sm btn-success" id="markSelectedPaidBtn" disabled>
+                    <i class="bi bi-check2-all"></i> Marcar pagadas
+                </button>
+                <button type="submit" form="billingBatchForm" formaction="@Url.Action("MarkPendingBatch", "Billing")" class="btn btn-sm btn-outline-warning" id="markSelectedPendingBtn" disabled>
+                    <i class="bi bi-arrow-counterclockwise"></i> Reabrir
+                </button>
             </div>
+        </div>
 
-            <div class="table-responsive">
+        <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-light">
                         <tr>
@@ -438,7 +537,7 @@
                             {
                                 <tr class="js-billing-row" data-payment-status="@(item.PaymentStatus == PaymentStatus.Paid ? "paid" : "pending")">
                                     <td>
-                                        <input type="checkbox" class="form-check-input js-batch-session" name="sessionIds" value="@item.Id" />
+                                        <input type="checkbox" class="form-check-input js-batch-session" name="sessionIds" value="@item.Id" form="billingBatchForm" />
                                     </td>
                                     <td><span class="fw-semibold">@item.FechaHora.ToString("dd/MM/yyyy")</span><br /><small class="text-muted">@item.FechaHora.ToString("HH:mm")</small></td>
                                     <td>@item.PacienteNombre</td>
@@ -461,11 +560,11 @@
                                     <td class="text-center">
                                         @if (item.PaymentStatus == PaymentStatus.Paid)
                                         {
-                                            <span class="badge bg-success-subtle text-success-emphasis border border-success-subtle">Pagada</span>
+                                            <span class="kg-badge kg-badge-success">Pagada</span>
                                         }
                                         else
                                         {
-                                            <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle">Pendiente</span>
+                                            <span class="kg-badge kg-badge-warning">Pendiente</span>
                                         }
                                     </td>
                                     <td class="text-end">$ @Model.DefaultSessionAmount.ToString("N2")</td>
@@ -511,7 +610,6 @@
                     </tbody>
                 </table>
             </div>
-        </form>
 
         @if (Model.TotalPages > 1)
         {
@@ -539,8 +637,8 @@
         (() => {
             const statusCanvas = document.getElementById('billingStatusChart');
             if (statusCanvas && window.kgChart) {
-                const labels = ['Completadas sin cobrar', 'Pendientes', 'Pagadas'];
-                const values = [@Model.CompletedPendingCount, @Model.PendingCount, @Model.PaidCount];
+                const labels = ['Completadas sin cobrar', 'Pendientes sin atender', 'Pagadas'];
+                const values = [@Model.CompletedPendingCount, @pendingNotCompletedCount, @Model.PaidCount];
                 const total = values.reduce((sum, value) => sum + value, 0);
 
                 window.kgChart.render('billingStatusChart', (palette) => {
@@ -616,6 +714,7 @@
                 }
             }));
 
+            const estimatedSessionAmount = @Model.DefaultSessionAmount.ToString("0.##", CultureInfo.InvariantCulture);
             window.kgChart?.render('billingAgingChart', (palette) => ({
                 type: 'bar',
                 data: {
@@ -627,7 +726,17 @@
                         borderRadius: 6
                     }]
                 },
-                options: { plugins: { legend: { display: false } } }
+                options: {
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: Object.assign(window.kgChart.tooltipDefaults(palette), {
+                            callbacks: {
+                                label: (context) => ' ' + context.parsed.y + ' sesiones',
+                                afterLabel: (context) => 'Monto estimado: $ ' + (context.parsed.y * estimatedSessionAmount).toLocaleString('es-AR')
+                            }
+                        })
+                    }
+                }
             }));
 
             window.kgChart?.render('billingTrendChart', (palette) => ({

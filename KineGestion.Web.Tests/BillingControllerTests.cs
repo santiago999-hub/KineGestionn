@@ -489,6 +489,43 @@ namespace KineGestion.Web.Tests
             Assert.Equal(30, model.RangeDays);
         }
 
+        [Fact]
+        public async Task Index_ShouldBuildExclusivePaymentDistribution_ForDoughnut()
+        {
+            var sessionService = new Mock<ISessionService>();
+            var configuration = new ConfigurationBuilder().Build();
+
+            sessionService.Setup(s => s.GetPagedListForAdminAsync(
+                    1,
+                    10,
+                    null,
+                    SessionStatus.Completed,
+                    PaymentStatus.Pending,
+                    It.IsAny<DateTime?>(),
+                    It.IsAny<DateTime?>(),
+                    "fecha",
+                    "desc"))
+                .ReturnsAsync((Enumerable.Empty<SessionListDto>(), 0));
+
+            sessionService.Setup(s => s.CountByPaymentStatusInRangeAsync(PaymentStatus.Pending, It.IsAny<DateTime>(), It.IsAny<DateTime>())).ReturnsAsync(5);
+            sessionService.Setup(s => s.CountByPaymentStatusInRangeAsync(PaymentStatus.Paid, It.IsAny<DateTime>(), It.IsAny<DateTime>())).ReturnsAsync(3);
+            sessionService.Setup(s => s.CountByStatusAndPaymentStatusInRangeAsync(SessionStatus.Completed, PaymentStatus.Paid, It.IsAny<DateTime>(), It.IsAny<DateTime>())).ReturnsAsync(3);
+            sessionService.Setup(s => s.CountByStatusAndPaymentStatusInRangeAsync(SessionStatus.Completed, PaymentStatus.Pending, It.IsAny<DateTime>(), It.IsAny<DateTime>())).ReturnsAsync(2);
+
+            var controller = BuildController(sessionService.Object, configuration);
+
+            var result = await controller.Index(null, null, null);
+
+            var view = Assert.IsType<ViewResult>(result);
+            var model = Assert.IsType<BillingDashboardViewModel>(view.Model);
+
+            Assert.Equal(8, model.SessionsInRangeCount);
+            Assert.Equal(3, model.PendingNotCompletedCount);
+            Assert.Equal(
+                model.SessionsInRangeCount,
+                model.CompletedPendingCount + model.PendingNotCompletedCount + model.PaidCount);
+        }
+
         private static BillingController BuildController(ISessionService sessionService, IConfiguration configuration, Mock<IBillingBatchEventRepository>? billingBatchEventRepository = null, Mock<ILogger<BillingController>>? logger = null)
         {
             var resolvedBatchRepository = billingBatchEventRepository ?? BuildBatchRepositoryMock();
