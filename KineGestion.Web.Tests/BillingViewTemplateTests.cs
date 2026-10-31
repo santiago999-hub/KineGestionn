@@ -25,7 +25,8 @@ namespace KineGestion.Web.Tests
             Assert.Equal(1, content.Split("ExportCsv").Length - 1);
             Assert.True(content.Split("kg-chart-data").Length - 1 >= 3);
             Assert.Contains("<details", content, StringComparison.Ordinal);
-            Assert.Contains("Pendientes sin atender", content, StringComparison.Ordinal);
+            Assert.Contains("Pendientes", content, StringComparison.Ordinal);
+            Assert.Contains("Sin cobrar", content, StringComparison.Ordinal);
         }
 
         private static bool HasNestedForms(string content)
