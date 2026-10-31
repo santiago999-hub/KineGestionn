@@ -21,6 +21,7 @@ namespace KineGestion.Web.Services
             _scopeFactory = scopeFactory;
             _logger = logger;
             _enabled = configuration.GetValue<bool?>("Performance:Warmup:Enabled") ?? true;
+            _enabled = configuration.GetValue<bool?>("Performance:Warmup:Enabled") ?? true;
             _startupDelayMs = OperationalConfig.ReadBoundedInt(
                 configuration,
                 logger,
@@ -101,7 +102,11 @@ namespace KineGestion.Web.Services
                     (() => SafeRunAsync(() => sessionService.GetDashboardCountsAsync(nowUtc, rangeFrom, rangeTo), "sessions:count:dashboard"), "sessions:count:dashboard"),
                     (() => SafeRunAsync(() => sessionService.GetPagedListForAdminAsync(1, 10, null, null, null, null, null, "fecha", "desc"), "sessions:admin:paged:first"), "sessions:admin:paged:first"),
                     (() => SafeRunAsync(() => patientService.GetPagedAsync(1, 10, null), "patients:paged:first"), "patients:paged:first"),
-                    (() => SafeRunAsync(() => patientService.GetForSelectAsync(), "patients:select:active"), "patients:select:active")
+                    (() => SafeRunAsync(() => patientService.GetForSelectAsync(), "patients:select:active"), "patients:select:active"),
+                    (() => SafeRunAsync(() => sessionService.GetAgendaForDayAsync(nowUtc.Date, null), "sessions:agenda:today"), "sessions:agenda:today"),
+                    (() => SafeRunAsync(() => sessionService.GetDailySessionSeriesAsync(rangeFrom, rangeTo, null), "sessions:series:daily"), "sessions:series:daily"),
+                    (() => SafeRunAsync(() => sessionService.GetStatusDistributionInRangeAsync(rangeFrom, rangeTo, null), "sessions:distribution:status"), "sessions:distribution:status"),
+                    (() => SafeRunAsync(() => sessionService.GetTopPendingPatientsAsync(rangeFrom, rangeTo, 5, null), "sessions:pending:top"), "sessions:pending:top")
                 };
 
                 foreach (var step in warmupSteps)

@@ -140,6 +140,7 @@ namespace KineGestion.Web.Services
         private readonly int _maxAttempts;
         private readonly TimeSpan _retryDelay;
         private readonly TimeSpan _retentionPeriod;
+        private readonly TimeSpan _startupDelay;
 
         public ReminderDispatchBackgroundService(
             IServiceScopeFactory scopeFactory,
@@ -148,6 +149,14 @@ namespace KineGestion.Web.Services
         {
             _scopeFactory = scopeFactory;
             _logger = logger;
+            _startupDelay = TimeSpan.FromMilliseconds(
+                OperationalConfig.ReadBoundedInt(
+                    configuration,
+                    logger,
+                    "DispatchQueue:StartupDelayMs",
+                    defaultValue: 2000,
+                    min: 0,
+                    max: 300000));
             _pollIntervalSeconds = OperationalConfig.ReadBoundedInt(
                 configuration,
                 logger,
@@ -195,6 +204,18 @@ namespace KineGestion.Web.Services
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             var pollSinceCleanup = 0;
+
+            if (_startupDelay > TimeSpan.Zero)
+            {
+                try
+                {
+                    await Task.Delay(_startupDelay, stoppingToken);
+                }
+                catch (OperationCanceledException)
+                {
+                    return;
+                }
+            }
 
             while (!stoppingToken.IsCancellationRequested)
             {

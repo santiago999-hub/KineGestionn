@@ -97,6 +97,7 @@ builder.Services.AddHostedService<BillingOperationalAlertBackgroundService>();
 builder.Services.AddHostedService<BillingFollowUpAutomationBackgroundService>();
 builder.Services.AddHostedService<CacheWarmupBackgroundService>();
 builder.Services.AddHostedService<AuditRetentionBackgroundService>();
+builder.Services.AddHostedService<SeedBackgroundService>();
 builder.Services.AddHealthChecks()
     .AddCheck<AppLivenessHealthCheck>("liveness", tags: new[] { "live" })
     .AddCheck<DatabaseHealthCheck>("database", tags: new[] { "ready" })
@@ -384,61 +385,7 @@ if (builder.Configuration.GetValue<bool>("Database:ApplyMigrationsOnStartup"))
     app.Logger.LogInformation("Migraciones de base de datos aplicadas.");
 }
 
-// ─── SEED: roles y usuario admin inicial ─────────────────────────────────────
-using (var scope = app.Services.CreateScope())
-{
-    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
-
-    string[] roles = ["Admin", "Kinesiologo", "Asistente"];
-    foreach (var role in roles)
-    {
-        if (!await roleManager.RoleExistsAsync(role))
-            await roleManager.CreateAsync(new IdentityRole(role));
-    }
-
-    // Usuario admin por defecto — cambiar contraseña después del primer login
-    var config = scope.ServiceProvider.GetRequiredService<IConfiguration>();
-    var adminEmail = config["Seed:AdminEmail"] ?? "admin@kinegestion.com";
-    var adminPassword = config["Seed:AdminPassword"];
-    if (string.IsNullOrWhiteSpace(adminPassword))
-    {
-        if (app.Environment.IsDevelopment())
-            adminPassword = "Admin1234";
-        else
-            throw new InvalidOperationException(
-                "Seed:AdminPassword no está configurado. Definirlo vía la variable de entorno Seed__AdminPassword.");
-    }
-    var resetAdminPasswordOnStartup = config.GetValue<bool>("Seed:ResetAdminPasswordOnStartup");
-    var existingAdmin = await userManager.FindByEmailAsync(adminEmail);
-    if (existingAdmin is null)
-    {
-        var admin = new IdentityUser { UserName = adminEmail, Email = adminEmail, EmailConfirmed = true };
-        var result = await userManager.CreateAsync(admin, adminPassword);
-        if (result.Succeeded)
-            await userManager.AddToRoleAsync(admin, "Admin");
-    }
-    else
-    {
-        var seedLogger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
-        if (resetAdminPasswordOnStartup)
-        {
-            var token = await userManager.GeneratePasswordResetTokenAsync(existingAdmin);
-            var resetResult = await userManager.ResetPasswordAsync(existingAdmin, token, adminPassword);
-            if (!resetResult.Succeeded)
-                seedLogger.LogError("SEED: fallo reset contraseña admin: {Errors}", string.Join(", ", resetResult.Errors.Select(e => e.Description)));
-            else
-                seedLogger.LogInformation("SEED: contraseña admin reseteada correctamente para {Email}", adminEmail);
-            await userManager.SetLockoutEndDateAsync(existingAdmin, null);
-            await userManager.ResetAccessFailedCountAsync(existingAdmin);
-        }
-
-        if (!await userManager.IsInRoleAsync(existingAdmin, "Admin"))
-            await userManager.AddToRoleAsync(existingAdmin, "Admin");
-    }
-}
-
-app.Run();
+        app.Run();
 
 static SameSiteMode ParseSameSiteMode(string? value, SameSiteMode fallback)
 {

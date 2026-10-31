@@ -165,36 +165,46 @@
         </div>
     </div>
     <div class="col-lg-4">
-        <div class="kg-card h-100">
-            <div class="kg-card-header">
-                <h5 class="kg-card-header-title"><i class="bi bi-donut"></i> Distribución por estado</h5>
-                <span class="kg-chart-total"><strong>@totalCountAll</strong> sesiones</span>
+        <div class="kg-billing-panel">
+            <div class="kg-billing-header">
+                <h5 class="kg-billing-title">Estado de Cobranzas</h5>
+                <div class="kg-billing-subtitle">Análisis de sesiones · @Model.DateTo.ToString("MMMM yyyy", new System.Globalization.CultureInfo("es-ES"))</div>
             </div>
-            <div class="kg-card-body">
-                <div class="kg-chart-frame">
+            <div class="kg-billing-body">
+                <div class="kg-billing-chart-wrap">
                     <canvas id="billingStatusChart" role="img"
-                            aria-label="Distribución por estado: @Model.CompletedPendingCount completadas sin cobrar, @pendingNotCompletedCount pendientes sin atender y @Model.PaidCount pagadas"></canvas>
+                            aria-label="Distribución por estado: @Model.PaidCount pagadas, @pendingNotCompletedCount pendientes y @Model.CompletedPendingCount sin cobrar"></canvas>
+                    <div class="kg-billing-center">
+                        <div class="kg-billing-total">$ @Model.PaidAmount.ToString("N0")</div>
+                        <div class="kg-billing-subtotal-center">TOTAL</div>
+                        <div class="kg-billing-updated">Actualizado hace 5 min</div>
+                    </div>
                 </div>
-                <ul class="kg-chart-legend">
-                    <li class="kg-chart-legend-item is-warn">
-                        <span class="kg-chart-dot is-warn" aria-hidden="true"></span>
-                        <span class="kg-chart-legend-label">Completadas sin cobrar</span>
-                        <span class="kg-chart-legend-value">@Model.CompletedPendingCount</span>
-                        <span class="kg-chart-legend-pct">@compPendPct.ToString("0.#")%</span>
+                <ul class="kg-billing-legend">
+                    <li class="kg-billing-legend-item is-good">
+                        <span class="kg-billing-dot" aria-hidden="true" style="--dot-a: #3b82f6; --dot-b: #2563eb;"></span>
+                        <span class="kg-billing-label">Pagadas</span>
+                        <span class="kg-billing-value">@Model.PaidCount</span>
+                        <span class="kg-billing-pct">@paidPct.ToString("0.#")%</span>
                     </li>
-                    <li class="kg-chart-legend-item is-critical">
-                        <span class="kg-chart-dot is-critical" aria-hidden="true"></span>
-                        <span class="kg-chart-legend-label">Pendientes sin atender</span>
-                        <span class="kg-chart-legend-value">@pendingNotCompletedCount</span>
-                        <span class="kg-chart-legend-pct">@pendingPct.ToString("0.#")%</span>
+                    <li class="kg-billing-legend-item is-critical">
+                        <span class="kg-billing-dot" aria-hidden="true" style="--dot-a: #a855f7; --dot-b: #7e22ce;"></span>
+                        <span class="kg-billing-label">Pendientes</span>
+                        <span class="kg-billing-value">@pendingNotCompletedCount</span>
+                        <span class="kg-billing-pct">@pendingPct.ToString("0.#")%</span>
                     </li>
-                    <li class="kg-chart-legend-item is-good">
-                        <span class="kg-chart-dot is-good" aria-hidden="true"></span>
-                        <span class="kg-chart-legend-label">Pagadas</span>
-                        <span class="kg-chart-legend-value">@Model.PaidCount</span>
-                        <span class="kg-chart-legend-pct">@paidPct.ToString("0.#")%</span>
+                    <li class="kg-billing-legend-item is-warn">
+                        <span class="kg-billing-dot" aria-hidden="true" style="--dot-a: #f472b6; --dot-b: #be185d;"></span>
+                        <span class="kg-billing-label">Sin cobrar</span>
+                        <span class="kg-billing-value">@Model.CompletedPendingCount</span>
+                        <span class="kg-billing-pct">@compPendPct.ToString("0.#")%</span>
                     </li>
                 </ul>
+                <div class="kg-billing-controls">
+                    <button class="kg-btn-zoom kg-btn-zoom-minus" aria-label="Alejar">-</button>
+                    <span class="kg-billing-zoom">60%</span>
+                    <button class="kg-btn-zoom kg-btn-zoom-plus" aria-label="Acercar">+</button>
+                </div>
             </div>
         </div>
     </div>
@@ -637,8 +647,8 @@
         (() => {
             const statusCanvas = document.getElementById('billingStatusChart');
             if (statusCanvas && window.kgChart) {
-                const labels = ['Completadas sin cobrar', 'Pendientes sin atender', 'Pagadas'];
-                const values = [@Model.CompletedPendingCount, @pendingNotCompletedCount, @Model.PaidCount];
+                const labels = ['Pagadas', 'Pendientes', 'Sin cobrar'];
+                const values = [@Model.PaidCount, @pendingNotCompletedCount, @Model.CompletedPendingCount];
                 const total = values.reduce((sum, value) => sum + value, 0);
 
                 window.kgChart.render('billingStatusChart', (palette) => {
@@ -649,7 +659,7 @@
                             labels,
                             datasets: [{
                                 data: values,
-                                backgroundColor: [palette.amber, palette.red, palette.green],
+                                backgroundColor: ['#3b82f6', '#a855f7', '#f472b6'],
                                 borderWidth: 0,
                                 borderRadius: 10,
                                 spacing: 4,
