@@ -98,6 +98,7 @@ builder.Services.AddHostedService<BillingFollowUpAutomationBackgroundService>();
 builder.Services.AddHostedService<CacheWarmupBackgroundService>();
 builder.Services.AddHostedService<AuditRetentionBackgroundService>();
 builder.Services.AddHostedService<SeedBackgroundService>();
+builder.Services.AddHostedService<BusinessDataSeedService>();
 builder.Services.AddHealthChecks()
     .AddCheck<AppLivenessHealthCheck>("liveness", tags: new[] { "live" })
     .AddCheck<DatabaseHealthCheck>("database", tags: new[] { "ready" })
