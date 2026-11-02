@@ -3,6 +3,8 @@
    Paleta: Navy (#0f2044), Accent Cyan (#0ea5e9), Surface gris claro
    ═══════════════════════════════════════════════════════════ */
 
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap');
+
 /* ── Variables globales ─────────────────────────────────── */
 :root {
     --kg-sidebar-bg:      #102744;
@@ -3307,4 +3309,155 @@ button:disabled,
 
 .kg-billing-zoom {
     font-variant-numeric: tabular-nums;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   COBRANZAS — modo oscuro: contraste legible
+   ════════════════════════════════════════════════════════════ */
+body.kg-theme-dark .kg-billing-panel {
+    background: #0d1b2a;
+    border-color: #1e3148;
+    color: var(--kg-text);
+}
+body.kg-theme-dark .kg-billing-title { color: #fff; }
+body.kg-theme-dark .kg-billing-subtitle { color: var(--kg-text-muted); }
+body.kg-theme-dark .kg-billing-total { color: #fff; }
+body.kg-theme-dark .kg-billing-subtotal-center { color: #94a3b8; }
+body.kg-theme-dark .kg-billing-updated { color: #94a3b8; }
+body.kg-theme-dark .kg-billing-label { color: #d8e8f4; }
+body.kg-theme-dark .kg-billing-value { color: #d8e8f4; }
+body.kg-theme-dark .kg-billing-pct { color: var(--kg-text-muted); }
+body.kg-theme-dark .kg-billing-controls { color: #94a3b8; }
+body.kg-theme-dark .kg-btn-zoom {
+    border-color: #334155;
+    background: #1e293b;
+    color: #cbd5e1;
+}
+body.kg-theme-dark .kg-btn-zoom:hover {
+    border-color: #475569;
+    background: #334155;
+    color: #fff;
+}
+
+/* Tablas y cards de cobranzas en dark */
+body.kg-theme-dark .kg-billing-movements {
+    background: var(--kg-card-bg);
+    border-color: var(--kg-border);
+}
+body.kg-theme-dark .kg-billing-movements .kg-card-header {
+    border-bottom-color: var(--kg-border);
+}
+body.kg-theme-dark .kg-billing-movements .kg-card-header-title {
+    color: var(--kg-text);
+}
+body.kg-theme-dark .kg-billing-movements .kg-card-header-title i {
+    color: var(--kg-accent);
+}
+body.kg-theme-dark .kg-billing-movements table.table-hover thead th {
+    background: #0f2030;
+    color: var(--kg-text-muted);
+    border-bottom-color: #1e3148;
+}
+body.kg-theme-dark .kg-billing-movements table.table-hover tbody td {
+    border-bottom-color: #1e3148;
+    color: var(--kg-text);
+}
+body.kg-theme-dark .kg-billing-movements table.table-hover tbody tr:hover td {
+    background: #162a3e;
+}
+body.kg-theme-dark .kg-billing-movements .text-muted { color: var(--kg-text-muted) !important; }
+body.kg-theme-dark .kg-billing-movements .fw-semibold { color: var(--kg-text); }
+body.kg-theme-dark .kg-billing-movements .small { color: var(--kg-text-muted); }
+
+/* Badges de estado en dark */
+body.kg-theme-dark .kg-billing-movements .kg-badge-success { background: #0e2d1e; color: #4ade80; }
+body.kg-theme-dark .kg-billing-movements .kg-badge-warning { background: #2a1c08; color: #fbbf24; }
+body.kg-theme-dark .kg-billing-movements .kg-badge-info { background: #0d2035; color: #60b4e8; }
+body.kg-theme-dark .kg-billing-movements .kg-badge-muted { background: #162840; color: #8fb8d8; }
+body.kg-theme-dark .kg-billing-movements .kg-badge-primary { background: #0f2540; color: #7ec8f8; }
+body.kg-theme-dark .kg-billing-movements .kg-badge-danger { background: #2a0f0f; color: #f87171; }
+
+/* Paginación de cobranzas en dark */
+body.kg-theme-dark .kg-billing-movements nav .btn-outline-secondary {
+    background: #132032;
+    border-color: #1e3148;
+    color: var(--kg-text-muted);
+}
+body.kg-theme-dark .kg-billing-movements nav .btn-outline-secondary:hover {
+    background: #1e3148;
+    color: var(--kg-text);
+}
+
+/* Filtros avanzados en dark */
+body.kg-theme-dark .kg-billing-movements .form-label { color: var(--kg-text-muted); }
+body.kg-theme-dark .kg-billing-movements .form-control,
+body.kg-theme-dark .kg-billing-movements .form-select {
+    background: #0f2033;
+    border-color: #2a4565;
+    color: var(--kg-text);
+}
+body.kg-theme-dark .kg-billing-movements .form-control::placeholder { color: #6e93b3; }
+
+/* Tablas de datos de cobranzas en dark (efectividad profesional, top deudas, movimientos) */
+body.kg-theme-dark .kg-billing-movements table.table-sm tbody td,
+body.kg-theme-dark .kg-billing-panel table.table-sm tbody td,
+body.kg-theme-dark .kg-card table.table-sm tbody td,
+body.kg-theme-dark table.table-sm tbody td {
+    color: var(--kg-text) !important;
+}
+body.kg-theme-dark .kg-billing-movements table.table-sm tbody tr,
+body.kg-theme-dark .kg-billing-panel table.table-sm tbody tr,
+body.kg-theme-dark .kg-card table.table-sm tbody tr,
+body.kg-theme-dark table.table-sm tbody tr {
+    background: var(--kg-card-bg);
+}
+body.kg-theme-dark .kg-billing-movements table.table-sm tbody tr:hover td,
+body.kg-theme-dark .kg-billing-panel table.table-sm tbody tr:hover td,
+body.kg-theme-dark .kg-card table.table-sm tbody tr:hover td,
+body.kg-theme-dark table.table-sm tbody tr:hover td {
+    background: #162a3e;
+}
+body.kg-theme-dark .kg-billing-movements table.table-sm thead th,
+body.kg-theme-dark .kg-billing-panel table.table-sm thead th,
+body.kg-theme-dark .kg-card table.table-sm thead th,
+body.kg-theme-dark table.table-sm thead th {
+    background: #0f2030;
+    color: var(--kg-text-muted);
+    border-bottom-color: #1e3148;
+}
+body.kg-theme-dark .kg-billing-movements table.table-sm tbody td.text-end,
+body.kg-theme-dark .kg-billing-panel table.table-sm tbody td.text-end,
+body.kg-theme-dark .kg-card table.table-sm tbody td.text-end,
+body.kg-theme-dark table.table-sm tbody td.text-end {
+    color: var(--kg-text);
+}
+body.kg-theme-dark .kg-billing-movements table.table-sm tbody td.fw-semibold,
+body.kg-theme-dark .kg-billing-panel table.table-sm tbody td.fw-semibold,
+body.kg-theme-dark .kg-card table.table-sm tbody td.fw-semibold,
+body.kg-theme-dark table.table-sm tbody td.fw-semibold {
+    color: #fff;
+}
+body.kg-theme-dark .kg-billing-movements table.table-sm tbody td small.text-muted,
+body.kg-theme-dark .kg-billing-panel table.table-sm tbody td small.text-muted,
+body.kg-theme-dark .kg-card table.table-sm tbody td small.text-muted,
+body.kg-theme-dark table.table-sm tbody td small.text-muted {
+    color: var(--kg-text-muted);
+}
+
+/* Filas de tabla alternadas en dark */
+body.kg-theme-dark .kg-billing-movements table.table-sm tbody tr:nth-child(even),
+body.kg-theme-dark .kg-billing-panel table.table-sm tbody tr:nth-child(even),
+body.kg-theme-dark .kg-card table.table-sm tbody tr:nth-child(even),
+body.kg-theme-dark table.table-sm tbody tr:nth-child(even) {
+    background: #0f1b2e;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   COBRANZAS — tipografía formal (Montserrat)
+   ════════════════════════════════════════════════════════════ */
+.kg-billing-panel,
+.kg-billing-panel *,
+.kg-billing-movements,
+.kg-billing-movements * {
+    font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
