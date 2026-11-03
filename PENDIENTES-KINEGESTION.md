@@ -3,7 +3,7 @@
 > Memoria de trabajo del agente. **Leer al inicio de cada sesión** antes de explorar el repo.
 > Regla de oro (ahorro de tokens): si la tarea es sobre contenido/documentación, leer `RESUMEN-INTEGRAL-KINEGESTION.md`; NO re-explorar las 4 capas de nuevo.
 
-Última actualización: 2026-10-30 (UI Fases 1-4 + P1 dashboard: cobranzas depurada, dashboard sin duplicados, agenda del día y 3 gráficos; suites 192/192 y 156/156 verdes).
+Última actualización: 2026-11-02 (gráficos del dashboard al estilo v0 de Cobranzas: panel oscuro neón en distribución por estado, evolución y motivos con tooltips/paleta de billing; suites 193/193 y 156/156 verdes).
 
 ---
 
@@ -12,7 +12,7 @@
 - Repo: `C:\Users\Santy\OneDrive\Desktop\Nueva carpeta` (KineGestion, ASP.NET Core 8 MVC + EF Core 8 + SQL Server 2022). Branch `main`.
 - Últimos commits: `feb7115 feat: dashboard con agenda y graficos; corrige cobranzas, cache y filtro por sede` + `dd62886 docs: unifica coherencia entre resumen, guia, tesis y analisis` (pusheados a `origin main` 2026-10-30).
 - Documento maestro de sistema: `RESUMEN-INTEGRAL-KINEGESTION.md` (consolidado en la raíz).
-- **Sin cambios pendientes de commitear** (ver §4). Suites: **Web.Tests 192/192 verde; Tests (integración) 156/156 verde** (2026-10-30).
+- **Sin cambios pendientes de commitear** salvo los de la sesión 2026-11-02 (ver §4). Suites: **Web.Tests 193/193 verde; Tests (integración) 156/156 verde** (2026-11-02).
 - Estado 2026-10-30: **§7 Fases 1-4 hechas + P1 dashboard ejecutado** (detalle en bitácora): cobranzas (doughnut con porciones exclusivas, forms desanidados, badges unificados, un solo export, tooltip con monto estimado y 3 tablas `<details>`) y dashboard (sin KPI duplicado, `GeneratedAtUtc` + "Actualizado", badges Global/Por sede, versión real del ensamblado; **agenda del día + 3 gráficos** con `kgChart`/Chart.js local, tokens CSS y fallbacks `<details>`). Fase 4.1: `output.txt` borrado; `publish*/` y `mejoras-*/` quedan a decisión (no se commitean). Runtime: `/` 200 con agenda y 3 canvas, lib Chart.js 200; `/Billing` 200. Pendientes del P1 original: deltas vs período anterior (semáforo) y metas/brecha (ver backlog).
 - Estado 2026-10-29: **coherencia documental revisada** (RESUMEN/GUIA/TESIS-ARQ/ANALISIS) y **los 3 rojos de Home quedaron corregidos**:
   - `Index_ShouldForwardSelectedOffice_ToSessionScopedQueries`: `HomeController` no reenviaba `officeId` a `CountByCancellationReasonInRangeAsync` ni seteaba `OfficeName`. Regresión real del feature multisede, no preexistente.
@@ -30,6 +30,7 @@
 ### Media prioridad (producto)
 - [x] ~~Pulir módulo Cobranzas (`/Billing/Index`)~~ → 2026-10-29 (ver bitácora). Incluye borrar el mock `Views/Cobranzas/Index.cshtml`.
 - [x] **Dashboard multisede: filtro por sede en los KPIs, selector en el header y vista detalle por sucursal manteniendo la apariencia global del dashboard** → implementado y verificado con datos reales (2026-10-20): selector de oficinas en header que pobla desde BD, dropdown custom accesible, filtrado de KPIs por officeId y agregados. Bugs corregidos del feature: (a) caché de `IMemoryCache` del dashboard tenía clave fija → ahora `DashboardCacheKeyFor(officeId)`; (b) `SelectedOfficeId` nunca se seteaba en el modelo; (c) la clave de `QueryCache` en `SessionService.GetDashboardCountsAsync` no incluía `officeId` → el warmup contaminaba todas las sedes. Seed de datos demo: `KineGestion.Web/ops/Seed-MultiSede.sql`.
+- [x] ~~**Mejorar gráfico del dashboard (`/Home/Index`)**~~ → **HECHO 2026-11-02** (ver bitácora): los 3 gráficos pasaron al estilo v0 de Cobranzas (panel oscuro neón con centro total + leyenda con dots/pct en "Distribución por estado"; evolución y motivos con tooltips, bordes redondeados y paleta de billing).
 - [ ] **Corregir defectos de UI detectados 2026-10-29** → plan priorizado con pasos en **§7** (empezar por ahí mañana; recomendado antes del P1).
 - [ ] Entidad `Payment` (montos, parciales, método de cobro, recibo).
 - [ ] Reportes PDF + cierre de caja.
@@ -55,6 +56,13 @@
 
 ## 3. Bitácora reciente
 
+- **2026-11-02 (gráficos del dashboard = estilo v0 de Cobranzas):**
+  - **Vista (`Views/Home/Index.cshtml`):** "Distribución por estado" pasó de `kg-card` + `kg-chart-frame` al panel oscuro neón `kg-billing-panel` (header `kg-billing-title`/`kg-billing-subtitle`, `kg-billing-chart-wrap` con overlay `kg-billing-center` de total "SESIONES" + "Actualizado hh:mm", leyenda `kg-billing-legend` con dots degradados `--dot-a/--dot-b`, valor y %; se mantiene el fallback `<details class="kg-chart-data">` con columna % nueva). Colores por tone: good→azul (#3b82f6/#2563eb), warn→violeta (#a855f7/#7e22ce), critical→rosa (#f472b6/#be185d), igual que la leyenda de `/Billing`.
+  - **Scripts:** `homeStatusChart` doughnut idéntico al de billing (cutout 70%, borderRadius 10, spacing 4, hoverOffset 6, tooltip con "N sesiones · X%" y leyenda nativa off); `homeEvolutionChart` línea con fill 0.14, tooltips es-AR y `maxTicksLimit: 12`; `homeCancellationChart` barras horizontales con paleta rojo→cian por posición, `borderRadius: 6` y tooltip "N cancelaciones".
+  - **CSS (`site.css`):** overrides de `.kg-billing-panel .kg-chart-data` (borde, summary, thead/tbody) para que la tabla del `<details>` sea legible sobre el panel oscuro; el resto de `kg-billing-*` se reutiliza tal cual (incluida la tipografía Montserrat y el modo oscuro).
+  - **Tests:** nuevo `IndexView_ShouldRenderDistributionChartWithBillingNeonStyle` en `HomeViewTemplateTests` (fija panel/center/total/leyenda/pct). Web.Tests **193/193**; integración **156/156**.
+  - **Runtime:** login admin + `GET /` 200 → panel con centro `20 SESIONES`, leyenda Pendientes 4 (20%), Completadas 13 (65%), Canceladas 3 (15%). App detenida al cerrar.
+  - **Fix crítico 2026-11-02 (los canvas salían vacíos):** `const cancellationColors = [@string.Join(", ", ... $"'{c}'")]` → Razor codifica `'` como `&#x27;` y el navegador **no** decodifica entidades dentro de `<script>` → `SyntaxError` que mataba todo el IIFE (ni doughnut ni línea ni barras). Regla: **nunca interpolar strings con comillas en `<script>`; serializar a JSON y emitir con `@Html.Raw(...)`** (como `statusLabelsJson`). Verificado con headless Chrome/CDP: 3 `Chart.instances`, 0 errores de consola y captura full-page con los 3 gráficos dibujados.
 - **2026-10-30 (P1 dashboard: agenda + gráficos):**
   - **Backend:** el commit `083f307` ya tenía los DTOs/repo/service (`GetAgendaForDayAsync`, `GetDailySessionSeriesAsync`, `GetStatusDistributionInRangeAsync`) pero **nunca se habían cableado**; ahora `HomeController` los consume con helpers seguros e instrumentación (`Sessions.AgendaToday`, `Sessions.DailySeries`, `Sessions.StatusDistribution`). `HomeDashboardViewModel` suma `TodayAgenda`, `DailySessions` y `StatusDistribution` (+ VMs hijos).
   - **Vista:** panel "Agenda de hoy" (hora local, profesional/sede, badge de estado, CTA a `Sessions/Details`, empty state), doughnut "Distribución por estado" (30 d), línea "Evolución de sesiones" (Total vs Completadas) y barras horizontales "Motivos de cancelación"; los tiles viejos de motivos se reemplazaron por el gráfico + tabla. Scripts con Chart.js local + `kgChart` (colores por tono, re-render en dark mode). CSS nuevo `.kg-agenda-list/.kg-agenda-item/.kg-agenda-time`.
@@ -105,6 +113,7 @@
 
 ## 4. Archivos sin commitear (revisar antes de commitear)
 
+- **2026-11-02 (gráficos del dashboard estilo v0):** modificados `KineGestion.Web/Views/Home/Index.cshtml`, `KineGestion.Web/wwwroot/css/site.css` y `KineGestion.Web.Tests/HomeViewTemplateTests.cs` (sin commit; no pedido).
 - **Sin cambios pendientes de commit** al 2026-10-30: Cobranzas, coherencia documental, UI Fases 1-4 y P1 dashboard quedaron en `dd62886` (docs) y `feb7115` (código + tests, incluye `BillingViewTemplateTests.cs` nuevo), pusheados a `origin main`.
 - **NO commitear** (untracked): `KineGestion.Web/publish/`, `KineGestion.Web/publish_standalone/`, `mejoras-check/`, `mejoras-extracted/`, `mejoras-final-check/`, `mejoras-para-leer/`.
 - `KineGestion.Web/output.txt` → **borrado** 2026-10-30 (diff viejo superado).

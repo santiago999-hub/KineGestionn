@@ -3147,6 +3147,29 @@ button:disabled,
 /* ═══════════════════════════════════════════════════════════════════════════════
    COBRANZAS — tarjeta oscuro neón (estilo v0)
    ══════════════════════════════════════════════════════════════════════════════ */
+.kg-billing-panel .kg-chart-data {
+    border-top-color: #1e293b;
+}
+.kg-billing-panel .kg-chart-data summary {
+    color: #94a3b8;
+}
+.kg-billing-panel .kg-chart-data table {
+    color: #e2e8f0;
+}
+.kg-billing-panel .kg-chart-data table thead th {
+    background: #16203a;
+    color: #cbd5e1;
+    border-bottom-color: #1e293b;
+}
+.kg-billing-panel .kg-chart-data table tbody td {
+    background: transparent;
+    color: #e2e8f0;
+    border-bottom-color: #1e293b;
+}
+.kg-billing-panel .kg-chart-data table tbody td.text-muted {
+    color: #94a3b8 !important;
+}
+
 .kg-billing-panel {
     background: #0f172a;
     border: 1px solid #1e293b;

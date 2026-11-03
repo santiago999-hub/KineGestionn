@@ -57,6 +57,22 @@ namespace KineGestion.Web.Tests
             Assert.True(content.Split("kg-chart-data").Length - 1 >= 3);
         }
 
+        [Fact]
+        public void IndexView_ShouldRenderDistributionChartWithBillingNeonStyle()
+        {
+            var content = File.ReadAllText(GetHomeViewPath());
+
+            Assert.Contains("kg-billing-panel", content, StringComparison.Ordinal);
+            Assert.Contains("kg-billing-chart-wrap", content, StringComparison.Ordinal);
+            Assert.Contains("kg-billing-center", content, StringComparison.Ordinal);
+            Assert.Contains("kg-billing-total", content, StringComparison.Ordinal);
+            Assert.Contains("kg-billing-legend", content, StringComparison.Ordinal);
+            Assert.Contains("kg-billing-dot", content, StringComparison.Ordinal);
+            Assert.Contains("kg-billing-pct", content, StringComparison.Ordinal);
+            Assert.Contains("Distribución por estado", content, StringComparison.Ordinal);
+            Assert.Contains("SESIONES", content, StringComparison.Ordinal);
+        }
+
         private static string GetHomeViewPath()
         {
             return Path.GetFullPath(Path.Combine(

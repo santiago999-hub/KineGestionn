@@ -16,12 +16,33 @@
 
     var statusLabelsJson = System.Text.Json.JsonSerializer.Serialize(Model.StatusDistribution.Select(s => s.Label));
     var statusCountsJson = System.Text.Json.JsonSerializer.Serialize(Model.StatusDistribution.Select(s => s.Count));
-    var statusTonesJson = System.Text.Json.JsonSerializer.Serialize(Model.StatusDistribution.Select(s => s.Tone));
     var dailyLabelsJson = System.Text.Json.JsonSerializer.Serialize(Model.DailySessions.Select(p => p.Label));
     var dailyTotalsJson = System.Text.Json.JsonSerializer.Serialize(Model.DailySessions.Select(p => p.Total));
     var dailyCompletedJson = System.Text.Json.JsonSerializer.Serialize(Model.DailySessions.Select(p => p.Completed));
     var cancellationLabelsJson = System.Text.Json.JsonSerializer.Serialize(Model.TopCancellationReasons.Select(c => c.Label));
     var cancellationCountsJson = System.Text.Json.JsonSerializer.Serialize(Model.TopCancellationReasons.Select(c => c.Count));
+    var statusTotal = Model.StatusDistribution.Sum(s => s.Count);
+    var statusColorsJson = System.Text.Json.JsonSerializer.Serialize(Model.StatusDistribution.Select(s => s.Tone switch
+    {
+        "good" => "#3b82f6",
+        "critical" => "#a855f7",
+        _ => "#f472b6"
+    }));
+    var cancellationToneColors = new[] { "#dc2626", "#ea580c", "#d97706", "#ca8a04", "#0284c7" };
+    var cancellationColorsJson = System.Text.Json.JsonSerializer.Serialize(cancellationToneColors);
+
+    string StatusDotA(string tone) => tone switch
+    {
+        "good" => "#3b82f6",
+        "critical" => "#a855f7",
+        _ => "#f472b6"
+    };
+    string StatusDotB(string tone) => tone switch
+    {
+        "good" => "#2563eb",
+        "critical" => "#7e22ce",
+        _ => "#be185d"
+    };
 
     string StatusLabel(SessionStatus status) => status switch
     {
@@ -216,15 +237,33 @@
         </div>
     </div>
     <div class="col-lg-5">
-        <div class="kg-card h-100">
-            <div class="kg-card-header">
-                <h5 class="kg-card-header-title"><i class="bi bi-pie-chart-fill"></i> Distribución por estado</h5>
-                <span class="text-muted small">Últimos 30 días</span>
+        <div class="kg-billing-panel h-100">
+            <div class="kg-billing-header">
+                <h5 class="kg-billing-title">Distribución por estado</h5>
+                <div class="kg-billing-subtitle">Análisis de sesiones · Últimos 30 días</div>
             </div>
-            <div class="kg-card-body">
-                <div class="kg-chart-frame">
-                    <canvas id="homeStatusChart" role="img" aria-label="Distribución de sesiones por estado en los últimos 30 días"></canvas>
+            <div class="kg-billing-body">
+                <div class="kg-billing-chart-wrap">
+                    <canvas id="homeStatusChart" role="img"
+                            aria-label="Distribución de sesiones por estado en los últimos 30 días: @string.Join(", ", Model.StatusDistribution.Select(s => s.Count + " " + s.Label.ToLowerInvariant()))"></canvas>
+                    <div class="kg-billing-center">
+                        <div class="kg-billing-total">@statusTotal</div>
+                        <div class="kg-billing-subtotal-center">SESIONES</div>
+                        <div class="kg-billing-updated">Actualizado @Model.GeneratedAtUtc.ToLocalTime().ToString("HH:mm")</div>
+                    </div>
                 </div>
+                <ul class="kg-billing-legend">
+                    @foreach (var item in Model.StatusDistribution)
+                    {
+                        var itemPct = statusTotal > 0 ? Math.Round((decimal)item.Count * 100m / statusTotal, 1) : 0m;
+                        <li class="kg-billing-legend-item">
+                            <span class="kg-billing-dot" aria-hidden="true" style="--dot-a: @StatusDotA(item.Tone); --dot-b: @StatusDotB(item.Tone);"></span>
+                            <span class="kg-billing-label">@item.Label</span>
+                            <span class="kg-billing-value">@item.Count</span>
+                            <span class="kg-billing-pct">@itemPct.ToString("0.#")%</span>
+                        </li>
+                    }
+                </ul>
                 <details class="kg-chart-data">
                     <summary>Ver datos de la distribución</summary>
                     <div class="table-responsive">
@@ -233,20 +272,23 @@
                                 <tr>
                                     <th>Estado</th>
                                     <th class="text-end">Sesiones</th>
+                                    <th class="text-end">%</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @if (Model.StatusDistribution.Count == 0)
                                 {
-                                    <tr><td colspan="2" class="text-muted">Sin datos en el período.</td></tr>
+                                    <tr><td colspan="3" class="text-muted">Sin datos en el período.</td></tr>
                                 }
                                 else
                                 {
                                     @foreach (var item in Model.StatusDistribution)
                                     {
+                                        var itemPctRow = statusTotal > 0 ? Math.Round((decimal)item.Count * 100m / statusTotal, 1) : 0m;
                                         <tr>
                                             <td>@item.Label</td>
                                             <td class="text-end">@item.Count</td>
+                                            <td class="text-end">@itemPctRow.ToString("0.#")%</td>
                                         </tr>
                                     }
                                 }
@@ -820,25 +862,48 @@
         (function () {
             if (!window.kgChart) return;
 
-            const toneColorKeys = { good: 'green', critical: 'red', warn: 'amber' };
             const statusLabels = @Html.Raw(statusLabelsJson);
             const statusCounts = @Html.Raw(statusCountsJson);
-            const statusTones = @Html.Raw(statusTonesJson);
+            const statusColors = @Html.Raw(statusColorsJson);
+            const statusTotalCount = statusCounts.reduce((sum, value) => sum + value, 0);
 
-            window.kgChart.render('homeStatusChart', (palette) => ({
-                type: 'doughnut',
-                data: {
-                    labels: statusLabels,
-                    datasets: [{
-                        data: statusCounts,
-                        backgroundColor: statusTones.map(t => palette[toneColorKeys[t]] || palette.accent),
-                        borderWidth: 0,
-                        borderRadius: 10,
-                        spacing: 4
-                    }]
-                },
-                options: { cutout: '70%' }
-            }));
+            window.kgChart.render('homeStatusChart', (palette) => {
+                const isDark = window.kgChart.isDark();
+                return {
+                    type: 'doughnut',
+                    data: {
+                        labels: statusLabels,
+                        datasets: [{
+                            data: statusCounts,
+                            backgroundColor: statusColors,
+                            borderWidth: 0,
+                            borderRadius: 10,
+                            spacing: 4,
+                            hoverOffset: 6
+                        }]
+                    },
+                    options: {
+                        cutout: '70%',
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                backgroundColor: isDark ? 'rgba(9, 20, 34, 0.96)' : 'rgba(255, 255, 255, 0.98)',
+                                titleColor: palette.text,
+                                bodyColor: palette.muted,
+                                borderColor: palette.grid,
+                                borderWidth: 1,
+                                padding: 10,
+                                callbacks: {
+                                    label: (context) => {
+                                        const pct = statusTotalCount > 0 ? (statusCounts[context.dataIndex] * 100 / statusTotalCount).toFixed(1) : '0.0';
+                                        return ' ' + context.parsed + ' sesiones · ' + pct + '%';
+                                    }
+                                }
+                            }
+                        }
+                    }
+                };
+            });
 
             const dailyLabels = @Html.Raw(dailyLabelsJson);
             const dailyTotals = @Html.Raw(dailyTotalsJson);
@@ -853,12 +918,13 @@
                             label: 'Total',
                             data: dailyTotals,
                             borderColor: palette.accent,
-                            backgroundColor: window.kgChart.withAlpha(palette.accent, 0.12),
+                            backgroundColor: window.kgChart.withAlpha(palette.accent, 0.14),
                             fill: true,
                             tension: 0.35,
                             borderWidth: 2,
                             pointRadius: 0,
-                            pointHoverRadius: 4
+                            pointHoverRadius: 4,
+                            pointHoverBackgroundColor: palette.accent
                         },
                         {
                             label: 'Completadas',
@@ -868,14 +934,29 @@
                             tension: 0.35,
                             borderWidth: 2,
                             pointRadius: 0,
-                            pointHoverRadius: 4
+                            pointHoverRadius: 4,
+                            pointHoverBackgroundColor: palette.green
                         }
                     ]
+                },
+                options: {
+                    plugins: {
+                        tooltip: Object.assign(window.kgChart.tooltipDefaults(palette), {
+                            callbacks: {
+                                label: (context) => ' ' + context.dataset.label + ': ' + Number(context.parsed.y).toLocaleString('es-AR')
+                            }
+                        })
+                    },
+                    scales: {
+                        x: { ticks: { maxTicksLimit: 12 } },
+                        y: { ticks: { precision: 0 } }
+                    }
                 }
             }));
 
             const cancellationLabels = @Html.Raw(cancellationLabelsJson);
             const cancellationCounts = @Html.Raw(cancellationCountsJson);
+            const cancellationColors = @Html.Raw(cancellationColorsJson);
 
             window.kgChart.render('homeCancellationChart', (palette) => ({
                 type: 'bar',
@@ -884,11 +965,21 @@
                     datasets: [{
                         label: 'Cancelaciones',
                         data: cancellationCounts,
-                        backgroundColor: palette.red,
+                        backgroundColor: cancellationColors,
                         borderRadius: 6
                     }]
                 },
-                options: { indexAxis: 'y' }
+                options: {
+                    indexAxis: 'y',
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: Object.assign(window.kgChart.tooltipDefaults(palette), {
+                            callbacks: {
+                                label: (context) => ' ' + context.parsed.x + ' cancelaciones'
+                            }
+                        })
+                    }
+                }
             }));
         })();
     </script>
