@@ -113,7 +113,7 @@
 
 ## 4. Archivos sin commitear (revisar antes de commitear)
 
-- **2026-11-02 (gráficos del dashboard estilo v0):** modificados `KineGestion.Web/Views/Home/Index.cshtml`, `KineGestion.Web/wwwroot/css/site.css` y `KineGestion.Web.Tests/HomeViewTemplateTests.cs` (sin commit; no pedido).
+- **2026-11-02 (gráficos del dashboard estilo v0):** commiteado y pusheado a `origin main` en `cf44f5b` (`Views/Home/Index.cshtml`, `site.css`, `HomeViewTemplateTests.cs` + esta memoria). Untracked `publish*/` y `mejoras-*` siguen fuera del repo.
 - **Sin cambios pendientes de commit** al 2026-10-30: Cobranzas, coherencia documental, UI Fases 1-4 y P1 dashboard quedaron en `dd62886` (docs) y `feb7115` (código + tests, incluye `BillingViewTemplateTests.cs` nuevo), pusheados a `origin main`.
 - **NO commitear** (untracked): `KineGestion.Web/publish/`, `KineGestion.Web/publish_standalone/`, `mejoras-check/`, `mejoras-extracted/`, `mejoras-final-check/`, `mejoras-para-leer/`.
 - `KineGestion.Web/output.txt` → **borrado** 2026-10-30 (diff viejo superado).
